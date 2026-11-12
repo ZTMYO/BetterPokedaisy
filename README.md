@@ -132,6 +132,13 @@ python scripts/gen_nds_ports.py --check
 - `scripts/gen_type_icons.py` + `app/src/main/res/drawable/type_*.xml`：
   PokeIdle 类型图标转换成的 Android VectorDrawable。
 
+## 分支
+
+- `main`：上游 1.5.0.1 的镜像，不直接开发。
+- `dev`：BetterPokedaisy 的完整开发分支，包含简体中文界面、游戏数据中文名和全部魔改。
+- `pr/upstream`：从上游 `main` 拉出的干净分支，只包含通用、适合向原作者提交 PR 的改动；
+  目前有「即时存档防误触/删除」和「设置开启时在对战信息面板内联显示对手个体值」。
+
 ## 来源与许可
 
 - **原项目**：[PokeDaisy by Lidor Itzhari](https://github.com/lidor30/pokedaisy)，GNU GPL v3。
