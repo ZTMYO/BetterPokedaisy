@@ -21,6 +21,7 @@ The left side shows your counts and filters:
 The right side is the numbered list. A red ball marks a Pokémon you've caught, a grey one a Pokémon you've only seen. Ones you haven't seen are greyed out.
 
 In games with a `BOXES` tab, a Pokémon you've caught also says where it is: `PARTY`, the box holding the first one (`BOX 3`), or `MISSING` if your party and boxes have none, because it evolved or you let it go.
+In Simplified Chinese, a species name is translated only when both its national number and the ROM's name match the known data. An unverified name keeps the ROM's text with `未译` in front, including names already in Chinese. Player nicknames are left alone.
 
 ## An entry
 
@@ -60,7 +61,7 @@ Some hacks only have their level-up moves read so far, and say so under the list
 
 ## What comes from your ROM
 
-None of this is bundled with the app. Names, pictures, dex text, stats, evolutions, encounters and learnsets are all read from the ROM you're playing, so a hack's changes show up as that hack has them, and names come in your game's language. The very first time you open an entry it can take a moment to read.
+Pictures, dex text, stats, evolutions, encounters and learnsets are read from the ROM you're playing, so a hack's changes show up as that hack has them. Names come from the ROM too, except for a bundled Simplified Chinese species-name table used only when the national number and original name match. The very first time you open an entry it can take a moment to read.
 
 That also means what you see depends on the game:
 

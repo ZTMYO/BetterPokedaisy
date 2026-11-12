@@ -53,6 +53,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pokedaisy.app.companion.data.DexEntry
+import com.pokedaisy.app.companion.data.dexSpeciesLabel
+import com.pokedaisy.app.companion.data.displayRegionName
+import com.pokedaisy.app.companion.data.UnboundChineseBattleNames
+import com.pokedaisy.app.companion.i18n.AppLanguage
+import com.pokedaisy.app.companion.i18n.L10n
 import com.pokedaisy.app.companion.data.GameKind
 import com.pokedaisy.app.companion.data.GuideTables
 import com.pokedaisy.app.companion.data.activeGame
@@ -225,7 +230,7 @@ fun PokedexScreen(
             // Games with one dex (Gaia, Celia's hack) get no toggle.
             dex.tables.regionName?.let { region ->
                 OptionButton(
-                    if (national) tr("NATIONAL DEX") else tr("{0} DEX", region), small,
+                    if (national) tr("NATIONAL DEX") else tr("{0} DEX", displayRegionName(region)), small,
                     onClick = { ui.national = !national },
                     modifier = Modifier.fillMaxWidth(),
                     emphasis = true,
@@ -247,7 +252,7 @@ fun PokedexScreen(
                 LazyColumn(Modifier.fillMaxSize(), state = ui.list) {
                     items(entries, key = { it }) { n ->
                         DexRow(
-                            order.number(n), species?.getOrNull(n) ?: 0, n in dex.caught, n in dex.seen, m, small,
+                            order.number(n), n, species?.getOrNull(n) ?: 0, n in dex.caught, n in dex.seen, m, small,
                             start = n == (back ?: top),
                             holding = holdingLabel(species?.getOrNull(n) ?: 0, n in dex.caught, holdings),
                         ) { ui.lastOpened = n; ui.open = n }
@@ -298,8 +303,8 @@ private fun CountLine(label: String, value: Int, small: GbaTextMetrics) {
 /** "● [icon] No.025 PIKACHU" - the ball marks a caught entry, a grey one a seen one.
  * [n] is the number in the dex being shown. */
 @Composable
-private fun DexRow(
-    n: Int, species: Int, caught: Boolean, seen: Boolean,
+internal fun DexRow(
+    n: Int, national: Int, species: Int, caught: Boolean, seen: Boolean,
     m: GbaTextMetrics, small: GbaTextMetrics,
     /** Where the D-pad starts in the list (the companion's window). */
     start: Boolean = false,
@@ -319,19 +324,29 @@ private fun DexRow(
             .height(u * 34)
             .background(if (focused) OptionColors.rowSelected else Color.Transparent)
             .drawBehind { drawRowDivider(OptionColors.divider, u.toPx(), 4 * u.toPx()) }
-            .soundClickable(interactionSource = noRipple, indication = null, onClick = onClick)
+            .soundClickable(interactionSource = noRipple, indication = null, enabled = seen, onClick = onClick)
             .padding(horizontal = u * 4),
     ) {
         DexMark(caught, seen, Modifier.size(u * 12))
         Spacer(Modifier.width(u * 4))
-        Box(Modifier.size(u * 32).alpha(if (seen) 1f else 0.45f)) {
-            if (species > 0) SpeciesIcon(spriteAsset("pokemon", species), size = u * 32)
+        Box(Modifier.size(u * 32), contentAlignment = Alignment.Center) {
+            if (species > 0) {
+                if (seen) {
+                    SpeciesIcon(spriteAsset("pokemon", species), size = u * 32)
+                } else {
+                    SpeciesIcon(spriteAsset("pokemon", species), size = u * 32, silhouette = true)
+                }
+            }
         }
         Spacer(Modifier.width(u * 6))
         GbaText(dexNo(n), OptionColors.muted, OptionColors.mutedShadow, small)
         Spacer(Modifier.width(u * 8))
         GbaText(
-            if (species > 0) speciesName(species) else "-----",
+            when {
+                species <= 0 -> "-----"
+                !seen -> "???"
+                else -> dexSpeciesLabel(national, speciesName(species))
+            },
             if (seen) OptionColors.label else OptionColors.muted,
             if (seen) OptionColors.labelShadow else OptionColors.mutedShadow,
             m, Modifier.weight(1f),
@@ -383,7 +398,7 @@ fun PokedexEntryScreen(dex: PokedexState, ui: DexUiState, current: Int, modifier
     val step = { d: Int ->
         if (entries.isNotEmpty()) {
             val i = if (index < 0) 0 else (index + d + entries.size) % entries.size
-            ui.open = entries[i]
+            if (entries[i] in dex.seen) ui.open = entries[i]
         }
     }
     // Keep the list's scroll position on the entry being looked at.
@@ -431,7 +446,7 @@ private fun EntryPage(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 GbaText(dexNo(shownNo), OptionColors.value, OptionColors.valueShadow, small)
                 Spacer(Modifier.width(u * 6))
-                GbaText(if (species > 0) speciesName(species) else "-----", OptionColors.label, OptionColors.labelShadow, m, Modifier.weight(1f))
+                GbaText(if (species > 0 && seen) dexSpeciesLabel(n, speciesName(species)) else if (species > 0) "???" else "-----", OptionColors.label, OptionColors.labelShadow, m, Modifier.weight(1f))
                 DexMark(caught, seen, Modifier.size(u * 12))
             }
             // The sprite gets whatever height the text below leaves it.
@@ -454,7 +469,7 @@ private fun EntryPage(
                     Spacer(Modifier.width(u * 5))
                 }
                 // A narrow column (a short screen's, the RG DS): the category takes a second line rather than being cut.
-                GbaText(e?.let { dexCategoryLine(t, it.category) } ?: "", OptionColors.label, OptionColors.labelShadow, small, maxLines = 2)
+                GbaText(e?.let { com.pokedaisy.app.companion.data.displayDexCategoryLine(t, it) } ?: "", OptionColors.label, OptionColors.labelShadow, small, maxLines = 2)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { e?.types?.forEach { TypeBadge(it) } }
             val height = @Composable { Stat(tr("HT"), e?.let { formatDexHeight(t, it) } ?: "", small) }
@@ -492,12 +507,13 @@ private fun EntryPage(
 
 /** INFO: the dex text, base stats, abilities, egg groups, gender and catch rate. */
 @Composable
-private fun DexInfoSection(e: DexEntry?, small: GbaTextMetrics, m: GbaTextMetrics, modifier: Modifier) {
+internal fun DexInfoSection(e: DexEntry?, small: GbaTextMetrics, m: GbaTextMetrics, modifier: Modifier) {
     val u = m.u
     // Nothing to tap: one D-pad stop that scrolls (the companion's window).
     val scroll = rememberScrollState()
     Column(modifier.dpadScroll(scroll, RectangleShape, m.lineHeight * 3).verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(u * 2)) {
-        GbaText(e?.description ?: "", OptionColors.label, OptionColors.labelShadow, small, maxLines = 6)
+        GbaText(UnboundChineseBattleNames.dexOriginal(e?.description.orEmpty()), OptionColors.label, OptionColors.labelShadow, small,
+            maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 6)
         Separator(m, Modifier.fillMaxWidth())
         if (e != null) {
             BaseStats(e.baseStats, small)
@@ -506,9 +522,11 @@ private fun DexInfoSection(e: DexEntry?, small: GbaTextMetrics, m: GbaTextMetric
             // Two names outrun a line in a wide game font (Polished Crystal's): one a line there.
             val wide = com.pokedaisy.app.companion.ui.theme.LocalGameFont.current != null
             if (e.abilities.isNotEmpty()) {
-                InfoLine(tr("ABILITY"), e.abilities.joinToString(if (wide) "\n" else " / "), small, maxLines = if (wide) e.abilities.size else 1)
+                InfoLine(tr("ABILITY"), e.abilities.joinToString(if (wide || L10n.language == AppLanguage.ZH_CN) "\n" else " / ") { com.pokedaisy.app.companion.data.displayAbilityNameMarked(it) }, small,
+                    maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else if (wide) e.abilities.size else 1)
             }
-            e.hiddenAbility?.let { InfoLine(tr("HIDDEN|ability"), it, small) }
+            e.hiddenAbility?.let { InfoLine(tr("HIDDEN|ability"), com.pokedaisy.app.companion.data.displayAbilityNameMarked(it), small,
+                maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 1) }
             if (e.eggGroups.isNotEmpty()) InfoLine(tr("EGG GROUP"), e.eggGroups.joinToString(" / ") { dexCase(it) }, small)
             if (e.genderRatio >= 0) InfoLine(tr("GENDER"), genderLabel(e.genderRatio), small)
             InfoLine(tr("CATCH RATE"), "${e.catchRate}", small)

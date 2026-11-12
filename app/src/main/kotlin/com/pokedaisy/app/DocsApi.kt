@@ -20,6 +20,7 @@ import java.security.MessageDigest
  */
 object DocsApi {
     const val URL = "https://pokedaisy.com/api/docs/v1/docs.json"
+    const val ZH_URL = "https://pokedaisy.com/api/docs/v1/zh-hans/docs.json"
     /** The API version this reader draws; a newer one gets its own path (/v2/) and older apps keep /v1/. */
     const val VERSION = 1
 
@@ -142,12 +143,21 @@ object DocsApi {
 /** Fetches, keeps and serves the manual and its images (filesDir/docs). Blocking calls: run them off the UI thread. */
 object DocsStore {
     private fun dir(context: Context) = File(context.filesDir, "docs").apply { mkdirs() }
-    private fun manualFile(context: Context) = File(dir(context), "docs.json")
-    private fun etagFile(context: Context) = File(dir(context), "docs.etag")
+    private fun manualFile(context: Context, chinese: Boolean) = File(dir(context), if (chinese) "docs-zh-hans.json" else "docs.json")
+    private fun etagFile(context: Context, chinese: Boolean) = File(dir(context), if (chinese) "docs-zh-hans.etag" else "docs.etag")
 
-    /** The copy on disk, or null (never fetched, or unreadable). */
-    fun cached(context: Context): DocsApi.Manual? =
-        runCatching { DocsApi.parse(manualFile(context).readText()) }.getOrNull()
+    private fun bundledChinese(context: Context): DocsApi.Manual? = runCatching {
+        context.assets.open("docs-zh-hans.json").bufferedReader(Charsets.UTF_8).use { DocsApi.parse(it.readText()) }
+    }.getOrNull()
+
+    private fun chineseBaseFile(context: Context) = File(dir(context), "docs-zh-hans.base")
+
+    /** A copy downloaded for this bundled version, or the bundled Chinese manual on first use. */
+    fun cached(context: Context, chinese: Boolean = false): DocsApi.Manual? {
+        val bundled = if (chinese) bundledChinese(context) else null
+        if (chinese && bundled != null && chineseBaseFile(context).takeIf { it.isFile }?.readText() != bundled.rev) return bundled
+        return runCatching { DocsApi.parse(manualFile(context, chinese).readText()) }.getOrNull() ?: bundled
+    }
 
     sealed class Refresh {
         class Updated(val manual: DocsApi.Manual) : Refresh()
@@ -156,8 +166,11 @@ object DocsStore {
     }
 
     /** Asks the site for the manual, sending the kept copy's ETag; a new one replaces the copy on disk. */
-    fun refresh(context: Context, url: String = DocsApi.URL): Refresh = runCatching {
-        val etag = etagFile(context).takeIf { it.isFile && manualFile(context).isFile }?.readText()
+    @Synchronized
+    fun refresh(context: Context, chinese: Boolean = false, url: String = if (chinese) DocsApi.ZH_URL else DocsApi.URL): Refresh = runCatching {
+        val base = if (chinese) bundledChinese(context)?.rev else null
+        val sameBase = !chinese || (base != null && chineseBaseFile(context).takeIf { it.isFile }?.readText() == base)
+        val etag = etagFile(context, chinese).takeIf { sameBase && it.isFile && manualFile(context, chinese).isFile }?.readText()
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 8000
             readTimeout = 12000
@@ -169,11 +182,13 @@ object DocsStore {
             HttpURLConnection.HTTP_NOT_MODIFIED -> Refresh.Unchanged
             HttpURLConnection.HTTP_OK -> {
                 val body = conn.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
+                if (chinese) require(JSONObject(body).optString("locale") == "zh-Hans") { "wrong manual language" }
                 val manual = DocsApi.parse(body)
-                val tmp = File(dir(context), "docs.json.part")
+                val tmp = File(dir(context), if (chinese) "docs-zh-hans.json.part" else "docs.json.part")
                 tmp.writeText(body)
-                tmp.renameTo(manualFile(context))
-                conn.getHeaderField("ETag")?.let { etagFile(context).writeText(it) } ?: etagFile(context).delete()
+                java.nio.file.Files.move(tmp.toPath(), manualFile(context, chinese).toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                if (chinese && base != null) chineseBaseFile(context).writeText(base)
+                conn.getHeaderField("ETag")?.let { etagFile(context, chinese).writeText(it) } ?: etagFile(context, chinese).delete()
                 Refresh.Updated(manual)
             }
             else -> Refresh.Failed(offline = false)
@@ -184,6 +199,14 @@ object DocsStore {
     fun image(context: Context, manual: DocsApi.Manual, image: DocsApi.Block.Image): Bitmap? = runCatching {
         val file = imageFile(context, image)
         if (!file.isFile) {
+            val relative = image.src.removePrefix("/docs/")
+            if (image.src.startsWith("/docs/") && relative.matches(Regex("(shots|art)/[a-z0-9/-]+\\.png"))) {
+                val bundled = runCatching { context.assets.open("docs-zh-hans/$relative").use { it.readBytes() } }.getOrNull()
+                if (bundled != null) {
+                    val hash = MessageDigest.getInstance("SHA-1").digest(bundled).joinToString("") { "%02x".format(it) }.take(10)
+                    if (hash == image.version) return@runCatching BitmapFactory.decodeByteArray(bundled, 0, bundled.size)
+                }
+            }
             val conn = (URL(manual.site + image.src).openConnection() as HttpURLConnection).apply {
                 connectTimeout = 8000
                 readTimeout = 15000

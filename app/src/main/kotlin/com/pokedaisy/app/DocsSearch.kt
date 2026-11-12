@@ -87,6 +87,7 @@ class DocsSearch(manual: DocsApi.Manual) {
     /** How well [q] matches [t]: 1 the same, 0.75 the start of it, 0.5 a typo away, else 0. */
     private fun matchScore(q: String, t: String): Double {
         if (q == t) return 1.0
+        if (HAN.containsMatchIn(q)) return if (t.contains(q)) 0.75 else 0.0
         if (q.length >= 2 && t.startsWith(q)) return 0.75
         val max = if (q.length >= 8) 2 else if (q.length >= 4) 1 else 0
         if (max > 0 && distance(q, t, max) <= max) return 0.5
@@ -102,6 +103,7 @@ class DocsSearch(manual: DocsApi.Manual) {
     fun search(query: String, limit: Int = 8): List<Hit> {
         val groups = expand(query)
         if (groups.isEmpty()) return emptyList()
+        val queryTerms = terms(query)
         val n = records.size.toDouble()
         fun idf(t: String) = ln(1 + n / (df[t] ?: 1))
         class Scored(val r: Record, var total: Double, val matched: Int)
@@ -135,6 +137,8 @@ class DocsSearch(manual: DocsApi.Manual) {
             val title = r.fields.getValue("title").toSet()
             val covered = title.count { t -> groups.any { alts -> alts.any { matchScore(it.t, t) > 0 } } }
             if (title.isNotEmpty()) total *= 1 + 0.6 * (covered.toDouble() / title.size)
+            // Prefer the exact title to a longer heading containing the same Chinese phrase.
+            if (queryTerms == r.fields.getValue("title")) total *= 2
             // A page's own record a little ahead of its sections on a tie, so "fast forward" opens the page.
             if (r.anchor == null) total *= 1.05
             scored += Scored(r, total, matched)
@@ -154,11 +158,21 @@ class DocsSearch(manual: DocsApi.Manual) {
     private fun snippet(body: String, groups: List<List<Alt>>, size: Int = 160): Pair<String, List<IntRange>> {
         if (body.isEmpty()) return "" to emptyList()
         val qs = groups.flatten().map { it.t }
-        val hits = WORD.findAll(body).mapNotNull { m ->
+        val hits = WORD.findAll(body).flatMap { m ->
             val t = stem(words(m.value).firstOrNull() ?: "")
-            if (t.isNotEmpty() && qs.any { matchScore(it, t) > 0 }) m.range.first to m.range.last + 1 else null
-        }.toList()
-        val first = hits.firstOrNull()?.first ?: 0
+            if (HAN.containsMatchIn(t)) qs.mapNotNull { q ->
+                val at = t.indexOf(q)
+                if (at >= 0) m.range.first + at to m.range.first + at + q.length else null
+            }.asSequence()
+            else listOfNotNull(if (t.isNotEmpty() && qs.any { matchScore(it, t) > 0 }) m.range.first to m.range.last + 1 else null).asSequence()
+        }.sortedWith(compareBy({ it.first }, { it.second })).toList()
+        val merged = mutableListOf<Pair<Int, Int>>()
+        for (hit in hits) {
+            val last = merged.lastOrNull()
+            if (last != null && hit.first < last.second) merged[merged.lastIndex] = last.first to maxOf(last.second, hit.second)
+            else merged += hit
+        }
+        val first = merged.firstOrNull()?.first ?: 0
         var start = maxOf(0, first - size / 3)
         if (start > 0) {
             val space = body.indexOf(' ', start)
@@ -171,15 +185,16 @@ class DocsSearch(manual: DocsApi.Manual) {
         }
         val pre = if (start > 0) "…" else ""
         val text = pre + body.substring(start, end) + if (end < body.length) "…" else ""
-        val marks = hits.filter { (a, b) -> a >= start && b <= end }
+        val marks = merged.filter { (a, b) -> a >= start && b <= end }
             .map { (a, b) -> (a - start + pre.length) until (b - start + pre.length) }
         return text to marks
     }
 
     companion object {
         private val FIELDS = listOf("title" to 6.0, "keywords" to 4.0, "context" to 1.5, "summary" to 2.0, "text" to 1.0)
-        private val WORD = Regex("[A-Za-z0-9À-ɏ]+")
-        private val SPLIT = Regex("[^a-z0-9]+")
+        private val WORD = Regex("[A-Za-z0-9À-ɏ]+|[\u3400-\u9fff\uf900-\ufaff]+")
+        private val NORMALIZED_WORD = Regex("[a-z0-9]+|[\u3400-\u9fff\uf900-\ufaff]+")
+        private val HAN = Regex("[\u3400-\u9fff\uf900-\ufaff]")
         private val MARKS = Regex("[̀-ͯ]")
         private val STOP = setOf(
             "a", "an", "the", "to", "of", "in", "on", "at", "and", "or", "is", "it", "its", "how", "do", "does",
@@ -188,8 +203,8 @@ class DocsSearch(manual: DocsApi.Manual) {
 
         /** Lowercase words without accents ("Poké Ball" -> [poke, ball]). */
         fun words(text: String): List<String> =
-            MARKS.replace(Normalizer.normalize(text, Normalizer.Form.NFD), "").lowercase()
-                .split(SPLIT).filter { it.isNotEmpty() }
+            NORMALIZED_WORD.findAll(MARKS.replace(Normalizer.normalize(text, Normalizer.Form.NFD), "").lowercase())
+                .map { it.value }.toList()
 
         /** A light English stemmer: plurals, -ing, -ed. */
         fun stem(w: String): String = when {

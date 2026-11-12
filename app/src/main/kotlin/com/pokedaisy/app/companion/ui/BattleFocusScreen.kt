@@ -71,7 +71,7 @@ fun BattleFocusScreen(
     // One that's in battle shows its battle stats, otherwise its party entry.
     val battlerAt = playerBattlers.indexOf(viewedSlot).takeIf { viewedSlot >= 0 }
     val own = (battlerAt?.let { battlePlayer.getOrNull(it) }
-        ?: party.getOrNull(viewedSlot)?.let { p -> p.copy(heldItem = p.heldItemId.takeIf { it != 0 }?.let(::itemName) ?: "") }
+        ?: party.getOrNull(viewedSlot)?.let { p -> p.copy(heldItem = p.heldItemId.takeIf { it != 0 }?.let { com.pokedaisy.app.companion.data.displayItemName(it) } ?: "") }
         ?: battlePlayer.firstOrNull())
         ?.let { if (foe != null) it.withMovesVs(foe) else it }
     val foePage = remember(foe, battlePlayer) { foe?.withMovesVs(battlePlayer) }

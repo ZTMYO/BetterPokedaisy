@@ -5,7 +5,7 @@ import com.pokedaisy.app.companion.i18n.Tr
 /** GuideQuetzal.kt's text (see GuideText.kt): one line per English string, names as the localized games show them. */
 val guideTextQuetzal: Map<String, Tr> = mapOf(
     // NEXT BOSS's variants: NORMAL is the app's own word; HARD as Quetzal's Spanish menus write it.
-    "HARD" to Tr(ja = "むずかしい", fr = "DIFFICILE", de = "SCHWER", it = "DIFFICILE", es = "DIFÍCIL"),
+    "HARD" to Tr(ja = "むずかしい", fr = "DIFFICILE", de = "SCHWER", it = "DIFFICILE", es = "DIFÍCIL", zh = "困难"),
 
     // Hoenn: Emerald's names (EmeraldText<Lang>Gen.kt, each ROM's trainers and gym signs).
     "LEADER ROXANNE" to Tr(ja = "ジムリーダー ツツジ", fr = "CHAMPION ROXANNE", de = "ARENALEITERIN FELIZIA", it = "CAPOPALESTRA PETRA", es = "LÍDER PETRA"),
@@ -32,28 +32,28 @@ val guideTextQuetzal: Map<String, Tr> = mapOf(
     "CHAMPION WALLACE" to Tr(ja = "チャンピオン ミクリ", fr = "MAITRE MARC", de = "CHAMP WASSILI", it = "CAMPIONE ADRIANO", es = "CAMPEÓN PLUBIO"),
 
     // Johto: the official names of the Johto games (Spanish: Quetzal's own, QuetzalNamesGen.kt).
-    "LEADER FALKNER" to Tr(ja = "ジムリーダー ハヤト", fr = "CHAMPION ALBERT", de = "ARENALEITER FALK", it = "CAPOPALESTRA VALERIO", es = "LÍDER PEGASO"),
-    "VIOLET CITY GYM" to Tr(ja = "キキョウジム", fr = "ARENE DE MAUVILLE", de = "ARENA VON VIOLA CITY", it = "PALESTRA DI VIOLAPOLI", es = "GIMNASIO DE CIUDAD MALVA"),
-    "LEADER BUGSY" to Tr(ja = "ジムリーダー ツクシ", fr = "CHAMPION HECTOR", de = "ARENALEITER KAI", it = "CAPOPALESTRA RAFFAELLO", es = "LÍDER ANTÓN"),
-    "AZALEA TOWN GYM" to Tr(ja = "ヒワダジム", fr = "ARENE D'ECORCIA", de = "ARENA VON AZALEA CITY", it = "PALESTRA DI AZALINA", es = "GIMNASIO DE PUEBLO AZALEA"),
-    "LEADER WHITNEY" to Tr(ja = "ジムリーダー アカネ", fr = "CHAMPION BLANCHE", de = "ARENALEITERIN BIANKA", it = "CAPOPALESTRA CHIARA", es = "LÍDER BLANCA"),
-    "GOLDENROD CITY GYM" to Tr(ja = "コガネジム", fr = "ARENE DE DOUBLONVILLE", de = "ARENA VON DUKATIA CITY", it = "PALESTRA DI FIORDOROPOLI", es = "GIMNASIO DE CIUDAD TRIGAL"),
-    "LEADER MORTY" to Tr(ja = "ジムリーダー マツバ", fr = "CHAMPION MORTIMER", de = "ARENALEITER JENS", it = "CAPOPALESTRA ANGELO", es = "LÍDER MORTI"),
-    "ECRUTEAK CITY GYM" to Tr(ja = "エンジュジム", fr = "ARENE DE ROSALIA", de = "ARENA VON TEAK CITY", it = "PALESTRA DI AMARANTOPOLI", es = "GIMNASIO DE CIUDAD IRIS"),
-    "LEADER CHUCK" to Tr(ja = "ジムリーダー シジマ", fr = "CHAMPION CHUCK", de = "ARENALEITER HARTWIG", it = "CAPOPALESTRA FURIO", es = "LÍDER ANÍBAL"),
-    "CIANWOOD CITY GYM" to Tr(ja = "タンバジム", fr = "ARENE D'IRISIA", de = "ARENA VON ANEMONIA CITY", it = "PALESTRA DI FIORLISOPOLI", es = "GIMNASIO DE CIUDAD ORQUÍDEA"),
-    "LEADER JASMINE" to Tr(ja = "ジムリーダー ミカン", fr = "CHAMPION JASMINE", de = "ARENALEITERIN JASMIN", it = "CAPOPALESTRA JASMINE", es = "LÍDER YASMINA"),
-    "OLIVINE CITY GYM" to Tr(ja = "アサギジム", fr = "ARENE D'OLIVILLE", de = "ARENA VON OLIVIANA CITY", it = "PALESTRA DI OLIVINOPOLI", es = "GIMNASIO DE CIUDAD OLIVO"),
-    "LEADER PRYCE" to Tr(ja = "ジムリーダー ヤナギ", fr = "CHAMPION FREDO", de = "ARENALEITER NORBERT", it = "CAPOPALESTRA ALFREDO", es = "LÍDER FREDO"),
-    "MAHOGANY TOWN GYM" to Tr(ja = "チョウジジム", fr = "ARENE D'ACAJOU", de = "ARENA VON MAHAGONIA CITY", it = "PALESTRA DI MOGANIA", es = "GIMNASIO DE PUEBLO CAOBA"),
-    "LEADER CLAIR" to Tr(ja = "ジムリーダー イブキ", fr = "CHAMPION SANDRA", de = "ARENALEITERIN SANDRA", it = "CAPOPALESTRA SANDRA", es = "LÍDER DÉBORA"),
-    "BLACKTHORN CITY GYM" to Tr(ja = "フスベジム", fr = "ARENE D'EBENELLE", de = "ARENA VON EBENHOLZ CITY", it = "PALESTRA DI EBANOPOLI", es = "GIMNASIO DE CIUDAD ENDRINO"),
-    "ELITE FOUR WILL" to Tr(ja = "してんのう イツキ", fr = "CONSEIL 4 CLEMENT", de = "TOP VIER WILLI", it = "SUPERQUATTRO PINO", es = "ALTO MANDO MENTO"),
-    "INDIGO PLATEAU" to Tr(ja = "セキエイこうげん", fr = "PLATEAU INDIGO", de = "INDIGO PLATEAU", it = "ALTOPIANO BLU", es = "MESETA AÑIL"),
-    "ELITE FOUR KOGA" to Tr(ja = "してんのう キョウ", fr = "CONSEIL 4 KOGA", de = "TOP VIER KOGA", it = "SUPERQUATTRO KOGA", es = "ALTO MANDO KOGA"),
+    "LEADER FALKNER" to Tr(ja = "ジムリーダー ハヤト", fr = "CHAMPION ALBERT", de = "ARENALEITER FALK", it = "CAPOPALESTRA VALERIO", es = "LÍDER PEGASO", zh = "馆主阿速"),
+    "VIOLET CITY GYM" to Tr(ja = "キキョウジム", fr = "ARENE DE MAUVILLE", de = "ARENA VON VIOLA CITY", it = "PALESTRA DI VIOLAPOLI", es = "GIMNASIO DE CIUDAD MALVA", zh = "桔梗市道馆"),
+    "LEADER BUGSY" to Tr(ja = "ジムリーダー ツクシ", fr = "CHAMPION HECTOR", de = "ARENALEITER KAI", it = "CAPOPALESTRA RAFFAELLO", es = "LÍDER ANTÓN", zh = "馆主阿笔"),
+    "AZALEA TOWN GYM" to Tr(ja = "ヒワダジム", fr = "ARENE D'ECORCIA", de = "ARENA VON AZALEA CITY", it = "PALESTRA DI AZALINA", es = "GIMNASIO DE PUEBLO AZALEA", zh = "桧皮镇道馆"),
+    "LEADER WHITNEY" to Tr(ja = "ジムリーダー アカネ", fr = "CHAMPION BLANCHE", de = "ARENALEITERIN BIANKA", it = "CAPOPALESTRA CHIARA", es = "LÍDER BLANCA", zh = "馆主小茜"),
+    "GOLDENROD CITY GYM" to Tr(ja = "コガネジム", fr = "ARENE DE DOUBLONVILLE", de = "ARENA VON DUKATIA CITY", it = "PALESTRA DI FIORDOROPOLI", es = "GIMNASIO DE CIUDAD TRIGAL", zh = "满金市道馆"),
+    "LEADER MORTY" to Tr(ja = "ジムリーダー マツバ", fr = "CHAMPION MORTIMER", de = "ARENALEITER JENS", it = "CAPOPALESTRA ANGELO", es = "LÍDER MORTI", zh = "馆主小松"),
+    "ECRUTEAK CITY GYM" to Tr(ja = "エンジュジム", fr = "ARENE DE ROSALIA", de = "ARENA VON TEAK CITY", it = "PALESTRA DI AMARANTOPOLI", es = "GIMNASIO DE CIUDAD IRIS", zh = "圆朱市道馆"),
+    "LEADER CHUCK" to Tr(ja = "ジムリーダー シジマ", fr = "CHAMPION CHUCK", de = "ARENALEITER HARTWIG", it = "CAPOPALESTRA FURIO", es = "LÍDER ANÍBAL", zh = "馆主阿四"),
+    "CIANWOOD CITY GYM" to Tr(ja = "タンバジム", fr = "ARENE D'IRISIA", de = "ARENA VON ANEMONIA CITY", it = "PALESTRA DI FIORLISOPOLI", es = "GIMNASIO DE CIUDAD ORQUÍDEA", zh = "湛蓝市道馆"),
+    "LEADER JASMINE" to Tr(ja = "ジムリーダー ミカン", fr = "CHAMPION JASMINE", de = "ARENALEITERIN JASMIN", it = "CAPOPALESTRA JASMINE", es = "LÍDER YASMINA", zh = "馆主阿蜜"),
+    "OLIVINE CITY GYM" to Tr(ja = "アサギジム", fr = "ARENE D'OLIVILLE", de = "ARENA VON OLIVIANA CITY", it = "PALESTRA DI OLIVINOPOLI", es = "GIMNASIO DE CIUDAD OLIVO", zh = "浅葱市道馆"),
+    "LEADER PRYCE" to Tr(ja = "ジムリーダー ヤナギ", fr = "CHAMPION FREDO", de = "ARENALEITER NORBERT", it = "CAPOPALESTRA ALFREDO", es = "LÍDER FREDO", zh = "馆主柳伯"),
+    "MAHOGANY TOWN GYM" to Tr(ja = "チョウジジム", fr = "ARENE D'ACAJOU", de = "ARENA VON MAHAGONIA CITY", it = "PALESTRA DI MOGANIA", es = "GIMNASIO DE PUEBLO CAOBA", zh = "卡吉镇道馆"),
+    "LEADER CLAIR" to Tr(ja = "ジムリーダー イブキ", fr = "CHAMPION SANDRA", de = "ARENALEITERIN SANDRA", it = "CAPOPALESTRA SANDRA", es = "LÍDER DÉBORA", zh = "馆主小椿"),
+    "BLACKTHORN CITY GYM" to Tr(ja = "フスベジム", fr = "ARENE D'EBENELLE", de = "ARENA VON EBENHOLZ CITY", it = "PALESTRA DI EBANOPOLI", es = "GIMNASIO DE CIUDAD ENDRINO", zh = "烟墨市道馆"),
+    "ELITE FOUR WILL" to Tr(ja = "してんのう イツキ", fr = "CONSEIL 4 CLEMENT", de = "TOP VIER WILLI", it = "SUPERQUATTRO PINO", es = "ALTO MANDO MENTO", zh = "四天王一树"),
+    "INDIGO PLATEAU" to Tr(ja = "セキエイこうげん", fr = "PLATEAU INDIGO", de = "INDIGO PLATEAU", it = "ALTOPIANO BLU", es = "MESETA AÑIL", zh = "石英高原"),
+    "ELITE FOUR KOGA" to Tr(ja = "してんのう キョウ", fr = "CONSEIL 4 KOGA", de = "TOP VIER KOGA", it = "SUPERQUATTRO KOGA", es = "ALTO MANDO KOGA", zh = "四天王阿桔"),
     "ELITE FOUR BRUNO" to Tr(ja = "してんのう シバ", fr = "CONSEIL 4 ALDO", de = "TOP VIER BRUNO", it = "SUPERQUATTRO BRUNO", es = "ALTO MANDO BRUNO"),
-    "ELITE FOUR KAREN" to Tr(ja = "してんのう カリン", fr = "CONSEIL 4 MARION", de = "TOP VIER MELANIE", it = "SUPERQUATTRO KAREN", es = "ALTO MANDO KAREN"),
-    "CHAMPION LANCE" to Tr(ja = "チャンピオン ワタル", fr = "MAITRE PETER", de = "CHAMP SIEGFRIED", it = "CAMPIONE LANCE", es = "CAMPEÓN LANCE"),
+    "ELITE FOUR KAREN" to Tr(ja = "してんのう カリン", fr = "CONSEIL 4 MARION", de = "TOP VIER MELANIE", it = "SUPERQUATTRO KAREN", es = "ALTO MANDO KAREN", zh = "四天王梨花"),
+    "CHAMPION LANCE" to Tr(ja = "チャンピオン ワタル", fr = "MAITRE PETER", de = "CHAMP SIEGFRIED", it = "CAMPIONE LANCE", es = "CAMPEÓN LANCE", zh = "冠军渡"),
 
     // Kanto: FireRed's names (GameText<Code>Gen.kt, each ROM's trainers and gym signs).
     "LEADER BROCK" to Tr(ja = "ジムリーダー タケシ", fr = "CHAMPION PIERRE", de = "ARENALEITER ROCKO", it = "CAPOPALESTRA BROCK", es = "LÍDER BROCK"),
@@ -75,5 +75,5 @@ val guideTextQuetzal: Map<String, Tr> = mapOf(
     "ELITE FOUR LORELEI" to Tr(ja = "してんのう カンナ", fr = "CONSEIL 4 OLGA", de = "TOP VIER LORELEI", it = "SUPERQUATTRO LORELEI", es = "ALTO MANDO LORELEI"),
     "ELITE FOUR AGATHA" to Tr(ja = "してんのう キクコ", fr = "CONSEIL 4 AGATHA", de = "TOP VIER AGATHE", it = "SUPERQUATTRO AGATHA", es = "ALTO MANDO AGATHA"),
     "ELITE FOUR LANCE" to Tr(ja = "してんのう ワタル", fr = "CONSEIL 4 PETER", de = "TOP VIER SIEGFRIED", it = "SUPERQUATTRO LANCE", es = "ALTO MANDO LANCE"),
-    "CHAMPION BLUE" to Tr(ja = "チャンピオン グリーン", fr = "MAITRE BLUE", de = "CHAMP BLAU", it = "CAMPIONE BLU", es = "CAMPEÓN AZUL"),
+    "CHAMPION BLUE" to Tr(ja = "チャンピオン グリーン", fr = "MAITRE BLUE", de = "CHAMP BLAU", it = "CAMPIONE BLU", es = "CAMPEÓN AZUL", zh = "冠军青绿"),
 )

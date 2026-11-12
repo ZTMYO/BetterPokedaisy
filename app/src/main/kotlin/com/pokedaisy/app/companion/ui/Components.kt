@@ -1,6 +1,8 @@
 package com.pokedaisy.app.companion.ui
 
 import com.pokedaisy.app.companion.i18n.tr
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -15,8 +17,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -25,7 +30,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -71,30 +79,119 @@ private fun rememberTypeTags(): androidx.compose.ui.graphics.ImageBitmap? {
 }
 
 @Composable
-fun TypeBadge(type: String, modifier: Modifier = Modifier, fontSize: TextUnit = 12.sp) {
-    val tags = rememberTypeTags()
-    val tile = TYPE_TAG_TILES[type]
-    if (tags != null && tile != null) {
-        // Whole pixels of the tag per GBA pixel, as large as the words the badge would have had.
-        val u = rememberGbaTextMetrics().u * (fontSize.value / TYPE_TAG_SP).toInt().coerceAtLeast(1)
-        androidx.compose.foundation.Canvas(modifier.size(u * TYPE_TAG_W, u * TYPE_TAG_H).semantics { contentDescription = com.pokedaisy.app.companion.data.typeLabel(type) }) {
-            drawImage(
-                tags, srcOffset = androidx.compose.ui.unit.IntOffset(tile % 16 * 8, tile / 16 * 8),
-                srcSize = androidx.compose.ui.unit.IntSize(TYPE_TAG_W, TYPE_TAG_H),
-                dstSize = androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt()),
-                filterQuality = androidx.compose.ui.graphics.FilterQuality.None,
-            )
-        }
-        return
-    }
+fun TypeBadge(type: String, modifier: Modifier = Modifier, fontSize: TextUnit = 15.sp) {
+    MoveTypeBadge(type, modifier, fontSize, iconSize = (fontSize.value * 0.95f).dp)
+}
+
+@Composable
+fun MoveTypeBadge(type: String, modifier: Modifier = Modifier, fontSize: TextUnit = 14.sp, iconSize: Dp = 14.dp) {
     val color = AppColors.typeColors[type] ?: AppColors.muted
+    val icon = typeIconRes(type)
     Box(
         modifier = modifier
-            .clip(PixelCornerShape(3.dp))
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(50))
             .background(color)
-            .padding(horizontal = 6.dp, vertical = 3.dp),
+            .padding(horizontal = 6.dp, vertical = 2.dp),
     ) {
-        Text(com.pokedaisy.app.companion.data.typeLabel(type), color = Color.White, fontSize = fontSize, fontFamily = pixelFontFamily())
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            icon?.let {
+                // Fit keeps the glyph's own aspect (water and electric are tall).
+                Image(
+                    painter = painterResource(it), contentDescription = null,
+                    modifier = Modifier.size(iconSize), contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(Color.White),
+                )
+            }
+            Text(
+                com.pokedaisy.app.companion.data.typeLabel(type),
+                color = Color.White, fontSize = fontSize, fontFamily = pixelFontFamily(), maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+fun MoveTypeIcon(type: String, modifier: Modifier = Modifier, size: Dp = 16.dp) {
+    val color = AppColors.typeColors[type] ?: AppColors.muted
+    val icon = typeIconRes(type)
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(size / 5))
+            .background(color),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (icon != null) {
+            Image(
+                painter = painterResource(icon), contentDescription = com.pokedaisy.app.companion.data.typeLabel(type),
+                modifier = Modifier.size(size * 0.9f), contentScale = ContentScale.Fit,
+                colorFilter = ColorFilter.tint(Color.White),
+            )
+        } else {
+            Text(com.pokedaisy.app.companion.data.typeLabel(type), color = Color.White, fontSize = 8.sp, fontFamily = pixelFontFamily(), maxLines = 1)
+        }
+    }
+}
+
+private enum class EffectKind { SUPER, NORMAL, WEAK, NONE }
+
+private fun effectKind(pct: Int): EffectKind = when {
+    pct == 0 -> EffectKind.NONE
+    pct > 100 -> EffectKind.SUPER
+    pct < 100 -> EffectKind.WEAK
+    else -> EffectKind.NORMAL
+}
+
+private fun effectLabel(kind: EffectKind): String = when (kind) {
+    EffectKind.SUPER -> "SUPER EFFECTIVE"
+    EffectKind.NORMAL -> "NORMAL EFFECT"
+    EffectKind.WEAK -> "NOT VERY EFFECTIVE"
+    EffectKind.NONE -> "NO EFFECT"
+}
+
+@Composable
+private fun EffectIcon(kind: EffectKind, color: Color, modifier: Modifier) {
+    Canvas(modifier) {
+        val s = size.minDimension
+        val w = s * 0.14f
+        when (kind) {
+            EffectKind.SUPER -> {
+                drawCircle(color, radius = s * 0.38f, style = Stroke(w))
+                drawCircle(color, radius = s * 0.18f, style = Stroke(w))
+            }
+            EffectKind.NORMAL -> drawCircle(color, radius = s * 0.34f, style = Stroke(w))
+            EffectKind.WEAK -> {
+                val p = Path().apply {
+                    moveTo(s * 0.5f, s * 0.10f)
+                    lineTo(s * 0.90f, s * 0.84f)
+                    lineTo(s * 0.10f, s * 0.84f)
+                    close()
+                }
+                drawPath(p, color, style = Stroke(w))
+            }
+            EffectKind.NONE -> {
+                val d = s * 0.20f
+                drawLine(color, Offset(d, d), Offset(s - d, s - d), strokeWidth = w)
+                drawLine(color, Offset(s - d, d), Offset(d, s - d), strokeWidth = w)
+            }
+        }
+    }
+}
+
+/** Official-style effectiveness: an icon (◎ ○ △ ×) and its Chinese words, no badge behind it.
+ *  [lethal] replaces the words with 致命 and turns both icon and text red. */
+@Composable
+fun EffectLabel(pct: Int, modifier: Modifier = Modifier, fontSize: TextUnit = 10.sp, lethal: Boolean = false) {
+    val kind = effectKind(pct)
+    val color = if (lethal) Color(0xFFE53935) else when (kind) {
+        EffectKind.SUPER -> Color(0xFF3F9B3A)
+        EffectKind.NORMAL -> OptionColors.label
+        EffectKind.WEAK -> Color(0xFFC05A2A)
+        EffectKind.NONE -> OptionColors.muted
+    }
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        EffectIcon(kind, color, Modifier.size((fontSize.value * 0.95f).dp))
+        Text(tr(if (lethal) "LETHAL" else effectLabel(kind)), color = color, fontSize = fontSize, fontFamily = pixelFontFamily(), maxLines = 1)
     }
 }
 
@@ -107,7 +204,7 @@ fun StatusBadge(status: String, modifier: Modifier = Modifier) {
             .background(AppColors.statusColor(status))
             .padding(horizontal = 5.dp, vertical = 2.dp),
     ) {
-        Text(status, color = Color.White, fontSize = 10.sp, fontFamily = pixelFontFamily())
+        Text(com.pokedaisy.app.companion.data.statusText(status), color = Color.White, fontSize = 10.sp, fontFamily = pixelFontFamily())
     }
 }
 
@@ -117,11 +214,11 @@ fun MultiplierChip(label: String, pct: Int, modifier: Modifier = Modifier, fontS
     val fg = if (pct == 0) Color(0xFFF2B8BD) else Color.White
     Box(
         modifier = modifier
-            .clip(PixelRoundedShape(4.dp))
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(50))
             .background(bg)
-            .padding(horizontal = 5.dp, vertical = 2.dp),
+            .padding(horizontal = 7.dp, vertical = 2.dp),
     ) {
-        Text(label, color = fg, fontSize = fontSize, fontFamily = pixelFontFamily())
+        Text(label, color = fg, fontSize = fontSize, fontFamily = pixelFontFamily(), maxLines = 1)
     }
 }
 
@@ -175,13 +272,16 @@ fun MatchupChipRow(heading: String, list: List<TypeMatchup>) {
 fun MoveKindIcon(mv: com.pokedaisy.app.companion.data.MoveView, m: GbaTextMetrics) {
     val kind = com.pokedaisy.app.companion.data.moveKind(mv) ?: return
     val art = when (kind) {
-        com.pokedaisy.app.companion.data.MoveKind.PHYSICAL -> PixelIcons.movePhysical
-        com.pokedaisy.app.companion.data.MoveKind.SPECIAL -> PixelIcons.moveSpecial
-        com.pokedaisy.app.companion.data.MoveKind.STATUS -> PixelIcons.moveStatus
+        com.pokedaisy.app.companion.data.MoveKind.PHYSICAL -> com.pokedaisy.app.R.drawable.move_physical
+        com.pokedaisy.app.companion.data.MoveKind.SPECIAL -> com.pokedaisy.app.R.drawable.move_special
+        com.pokedaisy.app.companion.data.MoveKind.STATUS -> com.pokedaisy.app.R.drawable.move_status
     }
     val label = com.pokedaisy.app.companion.i18n.tr(kind.label)
     Spacer(Modifier.width(m.u * 3))
-    PixelArt(art, MOVE_KIND_COLORS, Modifier.size(m.u * 11).semantics { contentDescription = label })
+    Icon(
+        painterResource(art), contentDescription = label, tint = OptionColors.label,
+        modifier = Modifier.size(m.u * 12),
+    )
 }
 
 private val MOVE_KIND_COLORS = mapOf(
@@ -193,13 +293,26 @@ private val MOVE_KIND_COLORS = mapOf(
 @Composable
 fun TypeBadgeWithLabel(m: TypeMatchup, modifier: Modifier = Modifier) {
     val color = AppColors.typeColors[m.type] ?: AppColors.muted
+    val icon = typeIconRes(m.type)
     Box(
         modifier = modifier
-            .clip(PixelCornerShape(3.dp))
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(50))
             .background(color)
-            .padding(horizontal = 6.dp, vertical = 3.dp),
+            .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
-        Text("${com.pokedaisy.app.companion.data.typeLabel(m.type)} ${m.label}", color = Color.White, fontSize = 12.sp, fontFamily = pixelFontFamily())
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            icon?.let {
+                Image(
+                    painter = painterResource(it), contentDescription = null,
+                    modifier = Modifier.size(14.dp), contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(Color.White),
+                )
+            }
+            Text(
+                "${com.pokedaisy.app.companion.data.typeLabel(m.type)} ${m.label}",
+                color = Color.White, fontSize = 15.sp, fontFamily = pixelFontFamily(), maxLines = 1,
+            )
+        }
     }
 }
 

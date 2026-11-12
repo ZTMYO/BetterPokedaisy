@@ -628,20 +628,20 @@ internal fun MoveCard(
                     Text(tr("PP {0}", mv.pp), color = AppColors.text, fontSize = 20.sp * k, style = tight, maxLines = 1)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp * k)) {
-                    TypeBadge(mv.type, fontSize = 16.sp * k)
+                    MoveTypeBadge(mv.type, fontSize = 16.sp * k, iconSize = 18.dp)
                     Text(tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 22.sp * k, style = tight, maxLines = 1)
-                    if (showHints) mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp * k) }
+                    if (showHints) mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, fontSize = 16.sp * k) }
                 }
             } else Column(modifier = Modifier.fillMaxSize()) {
                 // HeartGold's halves: the name on the white, then type, power and PP on the beige; the verdict by the name.
                 Row(Modifier.fillMaxWidth().weight(0.47f), verticalAlignment = Alignment.CenterVertically) {
                     FittedText(mv.name, AppColors.text, tight, maxSize = 32, minSize = 20, modifier = Modifier.weight(1f))
                     if (showHints) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp) }
+                        mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, fontSize = 16.sp) }
                     }
                 }
                 Row(Modifier.fillMaxWidth().weight(0.53f), verticalAlignment = Alignment.CenterVertically) {
-                    TypeBadge(mv.type, fontSize = 16.sp)
+                    MoveTypeBadge(mv.type, fontSize = 16.sp, iconSize = 18.dp)
                     Text(
                         tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 20.sp, style = tight, maxLines = 1,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f),
@@ -785,8 +785,20 @@ internal fun ButtonLabel(
  * text boxes (the game's own words; [BattleInput]'s indices stay Gen 3's: 1 = ITEM / BAG,
  * 2 = PkMn / POKEMON). The active mon's icon sits by FIGHT, as on the other games.
  */
+/** Keep game words for other languages; Chinese uses the app's labels without changing action indices. */
+internal fun gen1ActionLabel(index: Int, original: String): String {
+    if (com.pokedaisy.app.companion.i18n.L10n.language != com.pokedaisy.app.companion.i18n.AppLanguage.ZH_CN) return original
+    return when (index) {
+        0 -> tr("FIGHT")
+        1 -> companionTabLabel("ITEMS")
+        2 -> tr("POKéMON")
+        3 -> tr("RUN")
+        else -> original
+    }
+}
+
 @Composable
-private fun Gen1ActionButtons(
+internal fun Gen1ActionButtons(
     activeMon: MonView?,
     battleInput: BattleInput?,
     enabled: Boolean,
@@ -802,7 +814,7 @@ private fun Gen1ActionButtons(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(m.u * 6)) {
             if (icon) SpeciesIcon(activeMon?.iconAsset, size = m.u * 32)
-            GbaText(label, buttonContent, Color.Transparent, m, bold = true)
+            GbaText(gen1ActionLabel(index, label), buttonContent, Color.Transparent, m, bold = true)
         }
     }
     // Prism's menu is mixed case (Fight / PkMn / Pack / Run), Polished Crystal's too (its bag a Bag); Yellow's in each
@@ -866,10 +878,10 @@ private fun Gen1MoveList(
                             GbaText(mv?.name ?: "-", buttonContent, Color.Transparent, m, bold = true)
                             if (mv != null) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    TypeBadge(mv.type, fontSize = pill)
+                                    MoveTypeBadge(mv.type, fontSize = pill, iconSize = 15.dp)
                                     if (showHints && mv.power > 0) mv.vs.firstOrNull()?.let { v ->   // status moves ignore the chart
                                         Spacer(Modifier.width(m.u * 4))
-                                        MultiplierChip(v.label, v.pct, fontSize = pill)
+                                        EffectLabel(v.pct, lethal = v.lethal, fontSize = pill)
                                     }
                                     Spacer(Modifier.width(m.u * 8))
                                     GbaText(tr("PP {0}", mv.pp), buttonContent, Color.Transparent, small)

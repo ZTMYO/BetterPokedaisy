@@ -106,6 +106,7 @@ object ShinyOdds {
         "ed60654d7525ba005bfc8f799bf0ecba2ef08a2e" to 8, // Recharged Yellow v1.9.7, the original rule (*)
         "d5b1e77975fcda831e0e9a7b527906bf3f40ecd0" to 8, // Gaia v3.2 (CFRU)
         "964f951a0fdaf209e4ea1344883ef0d557bb3a80" to 8, // Radical Red v4.1 (CFRU)
+        "f1772137ce263cf4357eecfc431b888b37e34369" to 8, // Radical Red v4.1 汉化版 (CFRU, 纯翻译)
         "8745ddbdbfadf6abaf66de4e9055923b62eb4668" to 255, // Odyssey v4.1.1 (shiny value 254 shiny, 255 not) (CFRU)
         "afe4c8e0f9c7186860fcea5f25d8318f5d7929b9" to 8, // Sword and Shield Ultimate Plus v1.2.1.2 (CFRU)
         "daa2f89934d2c0447d5271dabeba86bfba04e1fd" to 8, // Sword and Shield Ultimate Plus, Casual Patch (CFRU)
@@ -115,6 +116,7 @@ object ShinyOdds {
         "00e70c0384a5f1698588034201fd5b849d3542e2" to 8, // Amethyst v1.3.0 (CFRU)
         "91291aade04b4b111cd03ae7b6e2ff460e1edd8a" to 16, // Amethyst v1.4.1 (CFRU, its own 1 in 4096)
         "b4776b82a4c7915d0fadeaa27e013523f99dfd94" to 16, // Unbound v2.1.1.1 (CFRU, its own 1 in 4096)
+        "40104331f1899b23cd5b6cee9612b775e6bb4234" to 16, // Unbound v2.1.1.1 汉化版 (CFRU, 纯翻译)
         "0ce2a880aa097f1dce4e1db8ee513d0e82d15859" to 16, // Unbound v2.1.1.1 FR (CFRU, its own 1 in 4096)
         "7dcdc7e280bc4631487e13dd37e6e0cea04adea6" to 16, // Lazarus v2.0 (its colours shift with the personality: 15 drew nearest the shiny, 16 the normal) (expansion)
         "b9f4d332d30fc88c379f9e037f9eae3b2755ead4" to 16, // Emerald Seaglass v3.0 (expansion)
@@ -132,6 +134,7 @@ object ShinyOdds {
         "32988f918ca09923466ae3bc5bbfe5f2a771c728" to 256, // SoulGold v1.2.1 (its own 1 in 256)
         "dacb6e40e7f572ddefd2dfa10e99c0da6835b062" to 256, // SoulGold v1.2.1, second build (its own 1 in 256)
         "40780347d0b4df6bf491eaf12603e5422caee677" to 8, // Team Rocket Edition: Dragonsden Version 1.5
+        "4ea5b01ee2feda127c230a0d2f80e1aa2b3b81b0" to 8, // 西火汉化 v3.04（同一引擎的纯翻译构建，闪率继承 8）
         "2f3e17e55c6afe23da97ec0f96a067eeb142ad15" to 8, // Elite Redux 2.65.4.1b (a shiny bit of its own; its roll's odds unknown)
         "5b38a681b6924ef3e0bb9f6cfbf22426c4c4e523" to 8, // Elite Redux 2.65.3b (a shiny bit of its own; its roll's odds unknown)
         "81bd0f4bfa1c04ab2c6faab1bddd10e8a390ea77" to 8, // R.O.W.E. v2.1.9.1 Experimental (a shiny bit of its own; its roll's odds unknown)
@@ -271,6 +274,7 @@ object ShinyOdds {
         "32988f918ca09923466ae3bc5bbfe5f2a771c728", // SoulGold v1.2.1
         "dacb6e40e7f572ddefd2dfa10e99c0da6835b062", // SoulGold v1.2.1, second build
         "40780347d0b4df6bf491eaf12603e5422caee677", // Team Rocket Edition: Dragonsden Version 1.5
+        "4ea5b01ee2feda127c230a0d2f80e1aa2b3b81b0", // 西火汉化 v3.04
         "2f3e17e55c6afe23da97ec0f96a067eeb142ad15", // Elite Redux 2.65.4.1b
         "5b38a681b6924ef3e0bb9f6cfbf22426c4c4e523", // Elite Redux 2.65.3b
         "81bd0f4bfa1c04ab2c6faab1bddd10e8a390ea77", // R.O.W.E. v2.1.9.1 Experimental
@@ -280,6 +284,7 @@ object ShinyOdds {
     val PLAINTEXT_SHA1S: Set<String> = setOf(
         "d5b1e77975fcda831e0e9a7b527906bf3f40ecd0", // Gaia v3.2
         "964f951a0fdaf209e4ea1344883ef0d557bb3a80", // Radical Red v4.1
+        "f1772137ce263cf4357eecfc431b888b37e34369", // Radical Red v4.1 汉化版
         "8745ddbdbfadf6abaf66de4e9055923b62eb4668", // Odyssey v4.1.1
         "afe4c8e0f9c7186860fcea5f25d8318f5d7929b9", // Sword and Shield Ultimate Plus v1.2.1.2
         "daa2f89934d2c0447d5271dabeba86bfba04e1fd", // Sword and Shield Ultimate Plus, Casual Patch
@@ -288,6 +293,7 @@ object ShinyOdds {
         "00e70c0384a5f1698588034201fd5b849d3542e2", // Amethyst v1.3.0
         "91291aade04b4b111cd03ae7b6e2ff460e1edd8a", // Amethyst v1.4.1
         "b4776b82a4c7915d0fadeaa27e013523f99dfd94", // Unbound v2.1.1.1
+        "40104331f1899b23cd5b6cee9612b775e6bb4234", // Unbound v2.1.1.1 汉化版
         "0ce2a880aa097f1dce4e1db8ee513d0e82d15859", // Unbound v2.1.1.1 FR
         "25f8840ecb58e584edf18ffde35f845e94f3f17c", // GS Chronicles v2.7.6
     )

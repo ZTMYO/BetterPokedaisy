@@ -20,7 +20,7 @@ if (!CHROME) throw new Error('no Chrome found - set CHROME=/path/to/chrome');
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png', '.webp': 'image/webp', '.ttf': 'font/ttf', '.svg': 'image/svg+xml' };
 const server = createServer(async (req, res) => {
   let path = join(dist, decodeURIComponent(new URL(req.url, 'http://x').pathname));
-  if (path.endsWith('/')) path = join(path, 'index.html');
+  if (path.endsWith('/') || path.endsWith('\\')) path = join(path, 'index.html');
   let body;
   try {
     body = await readFile(path);

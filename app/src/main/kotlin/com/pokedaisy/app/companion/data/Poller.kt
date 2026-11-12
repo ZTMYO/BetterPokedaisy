@@ -18,6 +18,7 @@ class TelemetrySampler {
     init {
         resetNativeBagCache()
         RomItemText.use(null)
+        UnboundChineseBattleNames.use(false)
     }
 
     private var kind: GameKind? = null
@@ -41,8 +42,12 @@ class TelemetrySampler {
     private val unboundCfg: NativeConfig get() = shinyMarked(NATIVE_UNBOUND_WITH_DEX)
     // The ROM's masked SHA-1 once detect() has hashed it (for the hacks' shiny check), and whether its code is the FireRed
     // engine's (BPR* / BPG*: gEnemyParty right before gPlayerParty where a config doesn't name it).
-    private var romSha1: String? = null
+    // Volatile: detection writes it on the emu thread and the companion reads it elsewhere.
+    @Volatile private var romSha1: String? = null
     private var fireRedEngine = false
+
+    /** [romSha1] for a reader on another thread. */
+    val romSha1Hex: String? get() = romSha1
 
     private fun romHash(reader: MemoryReader, size: Long): String = sha1HexChunked(reader, 0x08000000L, size).also { romSha1 = it }
     // A Game Boy game's (Gen 1) addresses instead of [nativeCfg].
@@ -325,7 +330,8 @@ class TelemetrySampler {
                 // A DS cart: its text's language once NdsArt has read it (it applies it itself when it lands later), else the header's.
                 (nativeCfg?.language ?: gen1Cfg?.language ?: NdsArt.names?.takeIf { kind?.isDsGame == true }?.language
                     ?: dsLanguage)?.let { com.pokedaisy.app.companion.i18n.L10n.applyGameLanguage(it) }
-                RomItemText.use(itemTable(reader))
+                RomItemText.use(itemTable(reader), chineseNames = romSha1 == UNBOUND_V2_1_1_1_CN_SHA1)
+                UnboundChineseBattleNames.use(romSha1 == UNBOUND_V2_1_1_1_CN_SHA1)
             }
             activeGame = kind ?: GameKind.FIRERED
             val base = baseCfg ?: unmarkedCfg
@@ -348,6 +354,9 @@ class TelemetrySampler {
             gen2Cfg?.let { activeGen2 = it }
             // A DS cart: its own text's language (NdsArt.names: a French Sacred Gold is an IPKE HeartGold, GitHub #230).
             romLanguage = nativeCfg?.language ?: gen1Cfg?.language ?: NdsArt.names?.takeIf { kind?.isDsGame == true }?.language ?: dsLanguage ?: 'E'
+            // A Chinese fan translation's charmap (by the masked hash): drives Gen3Text's greedy
+            // 2-byte decoding and, through Gen3Text.encode returning null, skips the name checks.
+            Gen3Text.cjk = CjkTables.forSha(romSha1)
             romGameCode = nativeCfg?.gameCode ?: gen1Cfg?.gameCode ?: dsGameCode
             // Quetzal picks each kind of name's language from its own options (a few bytes a sample).
             quetzalNames = nativeCfg?.takeIf { it.quetzalPlacesDefault >= 0 }
@@ -401,6 +410,7 @@ class TelemetrySampler {
         val code = runCatching { MgbaCore.pkRomCode() }.getOrNull().orEmpty()
         val size = runCatching { MgbaCore.pkRomSize() }.getOrDefault(0L)
         romSha1 = null
+        cnRomText = false
         retailEngine = null
         fireRedEngine =code.startsWith("BPR") || code.startsWith("BPG")
 
@@ -503,6 +513,7 @@ class TelemetrySampler {
             // ROM past that (i.e. exactly the large hacks this check exists
             // for) and the hash would always come back null.
             val hash = runCatching { romHash(reader, size) }.getOrNull()
+            romSha1 = hash
             // FireRed 1.0 hacks edited in place past 16 MB (Ghost Grey): run as FireRed with their own names.
             fireRedHackConfig(hash)?.let {
                 kind = GameKind.FIRERED
@@ -513,8 +524,11 @@ class TelemetrySampler {
             when (hash) {
                 UNBOUND_V2_1_1_1_SHA1 -> kind = GameKind.UNBOUND
                 UNBOUND_V2_1_1_1_FR_SHA1 -> { kind = GameKind.UNBOUND; nativeCfg = NATIVE_UNBOUND_FR }
+                UNBOUND_V2_1_1_1_CN_SHA1 -> { kind = GameKind.UNBOUND; nativeCfg = NATIVE_UNBOUND_CN }
                 GAIA_V3_2_SHA1 -> { kind = GameKind.GAIA; nativeCfg = NATIVE_GAIA_V3_2 }
                 RADICAL_RED_V4_1_SHA1 -> { kind = GameKind.RADICAL_RED; nativeCfg = NATIVE_RADICAL_RED_V4_1 }
+                RADICAL_RED_V4_1_CN_SHA1 -> { kind = GameKind.RADICAL_RED; nativeCfg = NATIVE_RADICAL_RED_V4_1_CN }
+                MERCURY_V1_33_CN_SHA1 -> { kind = GameKind.FIRERED; nativeCfg = NATIVE_MERCURY_CN }
                 ODYSSEY_V4_1_1_SHA1 -> { kind = GameKind.ODYSSEY; nativeCfg = NATIVE_ODYSSEY }
                 AMETHYST_V1_3_0_SHA1 -> { kind = GameKind.AMETHYST; nativeCfg = NATIVE_AMETHYST }
                 AMETHYST_V1_4_1_SHA1 -> { kind = GameKind.AMETHYST; nativeCfg = NATIVE_AMETHYST_V1_4_1 }
@@ -549,6 +563,7 @@ class TelemetrySampler {
         // Emerald's addresses would show silently wrong data for a real hack.
         if (code == "BPEE" && size > 0x1000000L) {
             val hash = runCatching { romHash(reader, size) }.getOrNull()
+            romSha1 = hash
             when (hash) {
                 HEART_AND_SOUL_V2_0_6_SHA1 -> { kind = GameKind.HEART_AND_SOUL; nativeCfg = NATIVE_HEART_AND_SOUL }
                 LAZARUS_V2_0_SHA1 -> { kind = GameKind.LAZARUS; nativeCfg = NATIVE_LAZARUS }
@@ -563,6 +578,7 @@ class TelemetrySampler {
                 GLAZED_V9_2_0_SHA1 -> { kind = GameKind.GLAZED; nativeCfg = NATIVE_GLAZED }
                 IMPERIUM_V1_3_1_SHA1 -> { kind = GameKind.IMPERIUM; nativeCfg = NATIVE_IMPERIUM }
                 QUETZAL_V9_0_ALPHA_SHA1 -> { kind = GameKind.QUETZAL; nativeCfg = NATIVE_QUETZAL }
+                QUETZAL_V9_0_ALPHA_CN_SHA1 -> { kind = GameKind.QUETZAL; nativeCfg = NATIVE_QUETZAL_CN }
                 QUETZAL_V9_0_ALPHA_ES_SHA1 -> { kind = GameKind.QUETZAL; nativeCfg = NATIVE_QUETZAL_ES }
                 QUETZAL_V9_1_ALPHA_SHA1 -> { kind = GameKind.QUETZAL; nativeCfg = NATIVE_QUETZAL_V1 }
                 QUETZAL_V9_1_ALPHA_ES_SHA1 -> { kind = GameKind.QUETZAL; nativeCfg = NATIVE_QUETZAL_ES_V1 }
@@ -579,6 +595,7 @@ class TelemetrySampler {
                 ELITE_REDUX_V2_65_4_1B_SHA1 -> { kind = GameKind.ELITE_REDUX; nativeCfg = NATIVE_ELITE_REDUX_V2_65_4_1B }
                 TEAM_ROCKET_DRAGONSDEN_V1_5_SHA1 -> { kind = GameKind.TEAM_ROCKET; nativeCfg = NATIVE_TEAM_ROCKET }
                 TEAM_ROCKET_2026_V3_0_9_ES_SHA1 -> { kind = GameKind.TEAM_ROCKET; nativeCfg = NATIVE_TEAM_ROCKET_V3 }
+                TEAM_ROCKET_DRAGONSDEN_V1_5_CN_SHA1 -> { kind = GameKind.TEAM_ROCKET; nativeCfg = NATIVE_TEAM_ROCKET_CN }
                 WISHES_OF_TOMORROW_V1_2_6_SHA1 -> { kind = GameKind.WISHES; nativeCfg = NATIVE_WISHES }
                 DREAMSTONE_MYSTERIES_UNVERSIONED_SHA1 -> { kind = GameKind.DREAMSTONE; nativeCfg = NATIVE_DREAMSTONE }
                 MONOMYTH_V1_1_SHA1 -> { kind = GameKind.MONOMYTH; nativeCfg = NATIVE_MONOMYTH_V1_1 }
@@ -604,6 +621,24 @@ class TelemetrySampler {
         // 16 MB, same as retail) - hash those too, before the retail check below.
         if (code == "BPEE") {
             val hash = runCatching { romHash(reader, size) }.getOrNull()
+            // The Simplified Chinese "官译七世代" translation of retail Emerald. Its code, RAM and
+            // tables keep retail's layout (checked against the ROM: dex entry 1's height/weight,
+            // front pics, species/national tables, wild headers, icons), but its text is translated
+            // to a Chinese encoding: the English text probes (dex category, trainer name) can't
+            // match, and names are read from the bundled tables instead (cnRomText).
+            if (hash == EMERALD_CN_GUANYI_7GEN_SHA1) {
+                kind = GameKind.EMERALD
+                retailHash = true
+                cnRomText = true
+                nativeCfg = NATIVE_EMERALD_RETAIL.copy(
+                    itemDescs = null,   // Chinese-encoded descriptions: item names/icons only
+                    shinyBelow = 8,
+                    pokemonStoragePtr = NATIVE_EMERALD_RETAIL.saveBlock2Ptr + 4,
+                )
+                ramVerified = true
+                android.util.Log.i("pokedaisy", "Emerald 官译七世代 (CN): retail layout, bundled names")
+                return
+            }
             if (hash == EMERALD_SEAGLASS_V3_0_SHA1) {
                 kind = GameKind.EMERALD_SEAGLASS
                 nativeCfg = NATIVE_EMERALD_SEAGLASS
@@ -923,6 +958,10 @@ class TelemetrySampler {
         // Its French fan translation (the same release's code and RAM, French text) - host-side
         // masked hash (GPIO bytes zero, so a plain `shasum`).
         const val UNBOUND_V2_1_1_1_FR_SHA1 = "0ce2a880aa097f1dce4e1db8ee513d0e82d15859"
+        // 解放（无界）v2.1.1.1 新汉化 beta0.281 - 对 v2.1.1.1 的纯翻译（分析见
+        // gamedata/gen3/hacks/unbound.toml 的 config.unbound_cn：gItems 等表全部
+        // 原位可解析）。遮蔽哈希（GPIO 洞清零）= 文件 shasum。
+        const val UNBOUND_V2_1_1_1_CN_SHA1 = "40104331f1899b23cd5b6cee9612b775e6bb4234"
         // Pokémon Gaia v3.2 - see NATIVE_GAIA_V3_2 in NativeReader.kt for the
         // verification this address reuse is based on.
         const val GAIA_V3_2_SHA1 = "d5b1e77975fcda831e0e9a7b527906bf3f40ecd0"
@@ -936,6 +975,12 @@ class TelemetrySampler {
         // file hash on a truly fresh boot, came out completely different
         // after resuming a session with real elapsed play time).
         const val RADICAL_RED_V4_1_SHA1 = "964f951a0fdaf209e4ea1344883ef0d557bb3a80"
+        // 激进红 v4.1 汉化版 - 纯翻译（config.radical_red_v4_1_cn；静态表校验 +
+        // 注入法动态验证 fixtures/radical_red_cn）。遮蔽哈希 = 文件 shasum。
+        const val RADICAL_RED_V4_1_CN_SHA1 = "f1772137ce263cf4357eecfc431b888b37e34369"
+        // 宝可梦水银 FC v1.33 - 国产 FireRed 深度改版，大量原生表保持原位
+        // （config.mercury_cn）。⚠ 仅静态验证，动态验证待游戏内存档补验。
+        const val MERCURY_V1_33_CN_SHA1 = "2d0d2b269199b90564e141518ad0e44cb2ada04f"
         // Pokemon Odyssey (English) v4.1.1 - confirmed live on-device 2026-09-22.
         const val ODYSSEY_V4_1_1_SHA1 = "8745ddbdbfadf6abaf66de4e9055923b62eb4668"
         // Emerald-based (BPEE) hacks - confirmed live on-device 2026-09-22 via
@@ -963,6 +1008,10 @@ class TelemetrySampler {
         // the file (its 0x080000C4-C9 bytes are zero, so it also equals a plain
         // `shasum`). NOT yet confirmed via the on-device live-bus log.
         const val EMERALD_SEAGLASS_V3_0_SHA1 = "b9f4d332d30fc88c379f9e037f9eae3b2755ead4"
+        // 《口袋妖怪 绿宝石 [1] 官译七世代版》 - a text-only Simplified Chinese patch of retail
+        // Emerald (16 MB, BPEE rev 0). RAM and the dex/guide/icon tables stay retail's; names are
+        // read from the bundled tables (cnRomText) because the ROM's text encoding is Chinese.
+        const val EMERALD_CN_GUANYI_7GEN_SHA1 = "393ebfef775dc9462cbffa58e78584a1f4fad8ee"
         // Pokemon Celia's Stupid Romhack v1.1.4 - same host-side masked hash as
         // Seaglass (GPIO bytes are zero, so it equals a plain `shasum`).
         const val CELIA_V1_1_4_SHA1 = "3cbd5a2e72ce60cfae1e0c28d83e01f855c51537"
@@ -992,6 +1041,9 @@ class TelemetrySampler {
         const val IMPERIUM_V1_3_1_SHA1 = "1d20091c4d936f5eb122db8780554dd0829ffb63"
         // Pokémon Quetzal English Alpha 9 v0 (BPEE, 32 MB) - host-side masked hash (GPIO bytes zero).
         const val QUETZAL_V9_0_ALPHA_SHA1 = "d0658315da1e8827f66f15c3d3a000fe747e163e"
+        // 格查尔 Alpha 9 v0 机翻汉化「作弊随时开关」- 对英文 Alpha 9 v0 的机器翻译
+        // （config.quetzal_cn：gItems @0x091E0594 描述指针全部原位可解析）。遮蔽哈希。
+        const val QUETZAL_V9_0_ALPHA_CN_SHA1 = "a905bb8712f5d934b40aca14e29939f578402bda"
         // Pokémon Quetzal Spanish Alpha 9 v0 (BPEE, 32 MB) - host-side masked hash (GPIO bytes zero).
         const val QUETZAL_V9_0_ALPHA_ES_SHA1 = "fe346b5b0eb022e3a103f81e7dcefba6f1dc542f"
         // Pokémon Quetzal English / Spanish Alpha 9 v1 (BPEE, 32 MB): plain `shasum`s (their GPIO bytes are zero).
@@ -1041,6 +1093,9 @@ class TelemetrySampler {
         // Pokémon Team Rocket Edition 2026 - Dragonsden, Spanish (its START menu says v3.0.9; BPEE, 32 MB, an expansion
         // 1.14.4 rebuild) - host-side masked hash (GPIO bytes zero, so a plain `shasum`).
         const val TEAM_ROCKET_2026_V3_0_9_ES_SHA1 = "0d8bdaeeca0856175037a75679c1a2b73ad2b68a"
+        // 宝可梦 火箭队（西火）汉化 v3.04 - pokeCIA 对 Dragonsden 1.5 的中文本地化，整份重编译
+        // （config.team_rocket_cn；注入法动态验证背包/金钱/队伍/地图 + 静态表校验）。遮蔽哈希 = 文件 shasum。
+        const val TEAM_ROCKET_DRAGONSDEN_V1_5_CN_SHA1 = "4ea5b01ee2feda127c230a0d2f80e1aa2b3b81b0"
         // Pokémon Wishes of Tomorrow v1.2.6 (FlatFoot Labs; BPEE, 32 MB, pokeemerald-expansion 1.15.3) - host-side masked
         // hash (GPIO bytes zero, so a plain `shasum`).
         const val WISHES_OF_TOMORROW_V1_2_6_SHA1 = "60182b934d2e8eb3eef226a9bbc25e5df6becd4f"
@@ -1251,6 +1306,7 @@ class TelemetrySampler {
             UNBOUND_V2_1_1_1_SHA1, GAIA_V3_2_SHA1, RADICAL_RED_V4_1_SHA1, ODYSSEY_V4_1_1_SHA1,
             AMETHYST_V1_3_0_SHA1, AMETHYST_V1_4_1_SHA1, CELIA_V1_1_4_SHA1, HEART_AND_SOUL_V2_0_6_SHA1, LAZARUS_V2_0_SHA1,
             ROWE_V2_1_9_1_SHA1, EMERALD_ROGUE_V2_2_1_EX_SHA1, TMT2_V1_5_2_SHA1, EMERALD_SEAGLASS_V3_0_SHA1, EMERALD_KAIZO_V2_0_SHA1, EMERALD_LEGACY_V1_1_4_SHA1,
+            EMERALD_CN_GUANYI_7GEN_SHA1,
             SOULGOLD_V1_1_4_SHA1, SOULGOLD_V1_2_SHA1, SOULGOLD_V1_2B_SHA1, SOULGOLD_V1_2C_SHA1, GLAZED_V9_2_0_SHA1, IMPERIUM_V1_3_1_SHA1,
             SOULGOLD_V1_2_1_SHA1, SOULGOLD_V1_2_1B_SHA1,
             QUETZAL_V9_0_ALPHA_SHA1, QUETZAL_V9_0_ALPHA_ES_SHA1, QUETZAL_V9_1_ALPHA_SHA1, QUETZAL_V9_1_ALPHA_ES_SHA1, UNBOUND_V2_1_1_1_FR_SHA1,
@@ -1263,6 +1319,8 @@ class TelemetrySampler {
             LETS_GO_EEVEE_UNVERSIONED_SHA1, LETS_GO_EEVEE_TRANSLATION_ONLY_UNVERSIONED_SHA1,
             ELITE_REDUX_V2_65_3B_SHA1, ELITE_REDUX_V2_65_4_1B_SHA1, TEAM_ROCKET_DRAGONSDEN_V1_5_SHA1,
             TEAM_ROCKET_2026_V3_0_9_ES_SHA1,
+            UNBOUND_V2_1_1_1_CN_SHA1, RADICAL_RED_V4_1_CN_SHA1, MERCURY_V1_33_CN_SHA1, QUETZAL_V9_0_ALPHA_CN_SHA1,
+            TEAM_ROCKET_DRAGONSDEN_V1_5_CN_SHA1,
             WISHES_OF_TOMORROW_V1_2_6_SHA1,
             DREAMSTONE_MYSTERIES_UNVERSIONED_SHA1, MONOMYTH_V1_0_SHA1, MONOMYTH_V1_1_SHA1,
             ULTRA_VIOLET_V1_22_SHA1, SWORD_SHIELD_ULTIMATE_PLUS_V1_2_1_2_SHA1, SWORD_SHIELD_ULTIMATE_PLUS_V1_2_1_2_CASUAL_SHA1,

@@ -1,6 +1,5 @@
 package com.pokedaisy.app.companion.ui
 
-import androidx.compose.ui.focus.focusProperties
 import com.pokedaisy.app.companion.i18n.tr
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -18,8 +17,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,8 +48,10 @@ import kotlinx.coroutines.withContext
  * Savestate slots for the bottom screen, in the SETTINGS tab's OPTION-screen
  * language (white title window, grey framed windows, grey/red pixel text)
  * straight over the game's backdrop - but as a grid of slot cards rather
- * than one list. Tap a slot's screenshot (or LOAD) to load it, SAVE to
- * overwrite. [tick] just forces a re-list after a save/load.
+ * than one list. SAVE and LOAD act on their own card; tapping a slot's picture
+ * does nothing (so a stray tap can't load an old state), and long-pressing a
+ * saved slot replaces its picture with DELETE, which asks for a second tap
+ * before removing the slot. [tick] just forces a re-list after a save/load.
  */
 @Composable
 fun StatesScreen(slots: StateSlots?, tick: Long) {
@@ -117,6 +120,7 @@ fun StatesScreen(slots: StateSlots?, tick: Long) {
                         m = m, small = small, buttons = buttons, thumbHeight = thumb,
                         onLoad = { slots.requestLoad(slot.index); requests++ },
                         onSave = { slots.requestSave(slot.index); requests++ },
+                        onDelete = { slots.requestDelete(slot.index); requests++ },
                     )
                 }
             }
@@ -140,8 +144,12 @@ private fun SlotCard(
     thumbHeight: Dp,
     onLoad: () -> Unit,
     onSave: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     val u = m.u
+    // Long-pressing a saved slot hides its picture and offers DELETE; the second tap confirms.
+    var deleteMode by remember(slot.index, slot.present) { mutableStateOf(false) }
+    var confirmDelete by remember(slot.index, slot.present) { mutableStateOf(false) }
     // The slot the hotkeys target gets the OPTION list's white "cursor" fill.
     OptionListWindow(m, Modifier.fillMaxWidth(), fill = if (isCurrent) OptionColors.rowSelected else OptionColors.listFill) {
         Column {
@@ -160,9 +168,6 @@ private fun SlotCard(
                     .height(thumbHeight)
                     .clip(PixelRoundedShape(u * 3))
                     .background(OptionColors.imageWell)
-                    // A tap loads, as LOAD does; not a D-pad stop of its own (the companion's window): LOAD is one.
-                    .focusProperties { canFocus = false }
-                    .soundClickable(enabled = slot.present, onClick = onLoad)
                     // Frame on top of the screenshot: the list window's dark + blue lines.
                     .drawWithContent {
                         drawContent()
@@ -173,31 +178,65 @@ private fun SlotCard(
                         )
                     },
             ) {
-                if (slot.present) {
-                    val thumbPath = slot.thumbPath
-                    // Keyed by the thumbnail's own write time, not the state's: a save writes
-                    // the state, then the thumbnail, and a list read between the two paired the
-                    // new save time with the old picture - cached, so the slot kept showing it.
-                    // The time comes with the list (Slot.thumbModifiedMillis), not read here: an
-                    // unchanged Slot skips this card's redraw, so a file read here went stale.
-                    val thumbKey = thumbPath?.let { "$it@${slot.savedAtMillis}@${slot.thumbModifiedMillis}" }
-                    val bmp by produceKeyedState(thumbKey?.let(StateThumbs::get), thumbKey) {
-                        if (value != null || thumbPath == null || thumbKey == null) return@produceKeyedState
-                        value = withContext(Dispatchers.IO) {
-                            runCatching { BitmapFactory.decodeFile(thumbPath) }.getOrNull()
-                        }?.also { StateThumbs.put(thumbKey, it) }
+                if (deleteMode) {
+                    // A tap outside DELETE (or CONFIRM DELETE?) brings the picture back.
+                    Box(
+                        Modifier.matchParentSize().soundClickable {
+                            deleteMode = false
+                            confirmDelete = false
+                        },
+                    )
+                    OptionButton(
+                        tr(if (confirmDelete) "CONFIRM DELETE?" else "DELETE"),
+                        buttons,
+                        onClick = {
+                            if (confirmDelete) {
+                                onDelete()
+                                deleteMode = false
+                                confirmDelete = false
+                            } else confirmDelete = true
+                        },
+                        emphasis = true,
+                        rainbow = false,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = u * 2),
+                    )
+                } else Box(
+                    Modifier.matchParentSize().pointerInput(slot.index, slot.present) {
+                        detectTapGestures(onLongPress = {
+                            if (slot.present) {
+                                deleteMode = true
+                                confirmDelete = false
+                            }
+                        })
+                    },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (slot.present) {
+                        val thumbPath = slot.thumbPath
+                        // Keyed by the thumbnail's own write time, not the state's: a save writes
+                        // the state, then the thumbnail, and a list read between the two paired the
+                        // new save time with the old picture - cached, so the slot kept showing it.
+                        // The time comes with the list (Slot.thumbModifiedMillis), not read here: an
+                        // unchanged Slot skips this card's redraw, so a file read here went stale.
+                        val thumbKey = thumbPath?.let { "$it@${slot.savedAtMillis}@${slot.thumbModifiedMillis}" }
+                        val bmp by produceKeyedState(thumbKey?.let(StateThumbs::get), thumbKey) {
+                            if (value != null || thumbPath == null || thumbKey == null) return@produceKeyedState
+                            value = withContext(Dispatchers.IO) {
+                                runCatching { BitmapFactory.decodeFile(thumbPath) }.getOrNull()
+                            }?.also { StateThumbs.put(thumbKey, it) }
+                        }
+                        bmp?.let {
+                            Image(
+                                bitmap = it.asImageBitmap(),
+                                contentDescription = tr("Slot {0}", slot.index),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                filterQuality = FilterQuality.None,
+                            )
+                        }
+                    } else {
+                        GbaText(tr("EMPTY"), OptionColors.muted, Color(0xFF101418), small)
                     }
-                    bmp?.let {
-                        Image(
-                            bitmap = it.asImageBitmap(),
-                            contentDescription = tr("Slot {0}", slot.index),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            filterQuality = FilterQuality.None,
-                        )
-                    }
-                } else {
-                    GbaText(tr("EMPTY"), OptionColors.muted, Color(0xFF101418), small)
                 }
             }
             Spacer(Modifier.height(u * 2))
@@ -211,8 +250,8 @@ private fun SlotCard(
             Spacer(Modifier.height(u * 3))
             Row(horizontalArrangement = Arrangement.spacedBy(u * 3)) {
                 // The D-pad starts on the slot the hotkeys target (the companion's window).
-                OptionButton(tr("SAVE"), buttons, onClick = onSave, emphasis = true, rainbow = false, modifier = Modifier.weight(1f).focusStart(isCurrent))
-                OptionButton(tr("LOAD"), buttons, onClick = onLoad, enabled = slot.present, rainbow = false, modifier = Modifier.weight(1f))
+                OptionButton(tr("SAVE"), buttons, onClick = { deleteMode = false; confirmDelete = false; onSave() }, emphasis = true, rainbow = false, modifier = Modifier.weight(1f).focusStart(isCurrent))
+                OptionButton(tr("LOAD"), buttons, onClick = { deleteMode = false; confirmDelete = false; onLoad() }, enabled = slot.present, rainbow = false, modifier = Modifier.weight(1f))
             }
         }
     }

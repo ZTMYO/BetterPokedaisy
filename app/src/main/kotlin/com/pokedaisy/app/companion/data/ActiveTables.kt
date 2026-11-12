@@ -45,6 +45,10 @@ private inline val emerald get() = activeGame == GameKind.EMERALD
  * and everything else. Set with [activeGame] by the Poller. */
 var romLanguage = 'E'
 
+/** A known Chinese translation whose ROM text is Chinese-encoded (so the companion
+ *  reads names from its bundled tables and substitutes the few ROM strings it shows). */
+var cnRomText = false
+
 /** The running retail ROM's game code when it has names of its own ("BPED", "AXVF"); else "". */
 var romGameCode = ""
 

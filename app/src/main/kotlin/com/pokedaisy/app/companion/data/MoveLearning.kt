@@ -45,7 +45,7 @@ object MoveLearning {
     fun tmMoveNames(t: PokedexTables): Map<Int, String> {
         if (!movesAreVanilla) return emptyMap()
         val moves = DexDetails.tmhmMoves(t) ?: return emptyMap()
-        return moves.withIndex().filter { it.value > 0 }.associate { (i, move) -> VANILLA_ITEM_TM01 + i to lookupMove(move).name }
+        return moves.withIndex().filter { it.value > 0 }.associate { (i, move) -> VANILLA_ITEM_TM01 + i to displayMoveName(move) }
     }
 
     fun adviceMon(mon: MonView): AdviceMon = AdviceMon(

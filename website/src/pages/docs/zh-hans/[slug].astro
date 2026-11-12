@@ -1,0 +1,23 @@
+---
+import DocsLayout from '../../../layouts/DocsLayout.astro';
+import DocBlocks from '../../../components/DocBlocks.astro';
+import { loadChineseDocs } from '../../../lib/docs.js';
+export function getStaticPaths() {
+  const docs = loadChineseDocs();
+  return docs.pages.map((page, i) => ({ params: { slug: page.slug }, props: { docs, page, prev: docs.pages[i - 1], next: docs.pages[i + 1] } }));
+}
+const { docs, page, prev, next } = Astro.props;
+const toc = page.blocks.filter((b) => b.t === 'h2').map((b) => ({ id: b.id, text: b.text }));
+---
+<DocsLayout title={`${page.title} · PokeDaisy 手册`} description={page.summary} docs={docs} current={page.slug} toc={toc} chinese>
+  <article class="doc f-card" lang="zh-Hans">
+    <p class="doc-crumb"><a href="/docs/zh-hans/">手册首页</a></p>
+    <h1 class="doc-title">{page.title}</h1>
+    <p class="doc-summary">{page.summary}</p>
+    <div class="prose"><DocBlocks blocks={page.blocks} base="/docs/zh-hans/" /></div>
+    <nav class="doc-foot" aria-label="其他页面">
+      {prev ? <a class="prev f-card" href={`/docs/zh-hans/${prev.slug}/`}><small>上一篇</small><span>{prev.title}</span></a> : <span />}
+      {next && <a class="next f-card" href={`/docs/zh-hans/${next.slug}/`}><small>下一篇</small><span>{next.title}</span></a>}
+    </nav>
+  </article>
+</DocsLayout>

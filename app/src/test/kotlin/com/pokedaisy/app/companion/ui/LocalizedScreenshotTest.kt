@@ -9,6 +9,8 @@ import com.pokedaisy.app.companion.i18n.AppLanguage
 import com.pokedaisy.app.companion.i18n.L10n
 import com.pokedaisy.app.companion.ui.theme.AppTheme
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -52,11 +54,106 @@ class LocalizedScreenshotTest(private val lang: AppLanguage) {
         CompanionScreen(SampleCompanion.snapshot, SampleCompanion.Slots, SampleCompanion.Settings(), initialTab = name)
     }
 
+    private fun chineseDocs(slug: String? = null, search: String = "") {
+        if (lang != AppLanguage.ZH_CN) return
+        val root = generateSequence(java.io.File("").absoluteFile) { it.parentFile }.first { java.io.File(it, "settings.gradle.kts").isFile }
+        val manual = com.pokedaisy.app.DocsApi.parse(java.io.File(root, "app/src/main/assets/docs-zh-hans.json").readText(Charsets.UTF_8))
+        val source = object : DocsSource {
+            override fun cached() = manual
+            override fun refresh() = com.pokedaisy.app.DocsStore.Refresh.Unchanged
+            override fun image(manual: com.pokedaisy.app.DocsApi.Manual, image: com.pokedaisy.app.DocsApi.Block.Image): android.graphics.Bitmap? = null
+        }
+        val ui = DocsUiState().apply { this.manual = manual; loadedLanguage = lang; started = true; query = search; slug?.let(::open) }
+        paparazzi.snapshot(lang.code) { AppTheme { DocsReader(ui, rememberGbaTextMetrics(), source) } }
+    }
+
+    @Test fun chineseManual() = chineseDocs("welcome")
+    @Test fun chineseInstallManual() = chineseDocs("install")
+    @Test fun chineseGuideManual() = chineseDocs("guide")
+    @Test fun chineseDexManual() = chineseDocs("dex")
+    @Test fun chinesePartyManual() = chineseDocs("party")
+    @Test fun chineseBagManual() = chineseDocs("bag")
+    @Test fun chineseBattleManual() = chineseDocs("battle")
+    @Test fun chineseCheatsManual() = chineseDocs("cheats")
+    @Test fun chineseNuzlockeManual() = chineseDocs("nuzlocke")
+    @Test fun chineseAchievementsManual() = chineseDocs("achievements")
+    @Test fun chineseSpeedManual() = chineseDocs("fast-forward")
+    @Test fun chineseSavesManual() = chineseDocs("saves")
+    @Test fun chineseHudManual() = chineseDocs("hud")
+    @Test fun chineseDevicesManual() = chineseDocs("devices")
+    @Test fun chineseLinuxManual() = chineseDocs("linux")
+    @Test fun chineseTroubleshootingManual() = chineseDocs("troubleshooting")
+    @Test fun chineseSupportedGamesManual() = chineseDocs("supported-games")
+    @Test fun chineseLibraryManual() = chineseDocs("library")
+    @Test fun chineseScreenManual() = chineseDocs("screen")
+    @Test fun chineseCompanionManual() = chineseDocs("companion")
+    @Test fun chineseControlsManual() = chineseDocs("controls")
+    @Test fun chineseSettingsReferenceManual() = chineseDocs("settings-reference")
+    @Test fun chineseMapManual() = chineseDocs("map")
+    @Test fun chineseTrainerManual() = chineseDocs("trainer-card")
+    @Test fun chineseManualSearch() = chineseDocs(search = "助手")
+
+    @Test fun chineseGameBagChips() {
+        if (lang != AppLanguage.ZH_CN) return
+        val previous = com.pokedaisy.app.companion.data.activeGame
+        val labels = try {
+            listOf(com.pokedaisy.app.companion.data.GameKind.UNBOUND, com.pokedaisy.app.companion.data.GameKind.ROWE,
+                com.pokedaisy.app.companion.data.GameKind.MARIOMON, com.pokedaisy.app.companion.data.GameKind.CRYSTAL).map {
+                com.pokedaisy.app.companion.data.activeGame = it; companionTabLabel("ITEMS")
+            }
+        } finally { com.pokedaisy.app.companion.data.activeGame = previous }
+        paparazzi.snapshot(lang.code) {
+            AppTheme {
+                androidx.compose.foundation.layout.Row {
+                    labels.forEach { label -> TabChip(label, selected = false, modifier = androidx.compose.ui.Modifier.weight(1f)) {} }
+                }
+            }
+        }
+    }
+
+    @Test fun chineseGen1BattleButtons() {
+        if (lang != AppLanguage.ZH_CN) return
+        val previous = com.pokedaisy.app.companion.data.activeGame
+        com.pokedaisy.app.companion.data.activeGame = com.pokedaisy.app.companion.data.GameKind.CRYSTAL
+        try {
+            paparazzi.snapshot(lang.code) {
+                AppTheme { Gen1ActionButtons(null, null, true, null, androidx.compose.ui.Modifier.fillMaxSize()) }
+            }
+        } finally { com.pokedaisy.app.companion.data.activeGame = previous }
+    }
+
     @Test fun settings() = tab("SETTINGS")
     @Test fun party() = tab("PARTY")
     @Test fun items() = tab("ITEMS")
     @Test fun dex() = tab("DEX")
+    @Test fun dexNameRows() = paparazzi.snapshot(lang.code) {
+        AppTheme {
+            androidx.compose.foundation.layout.Column(modifier = androidx.compose.ui.Modifier.padding(start = 4.dp)) {
+                val m = rememberGbaTextMetrics()
+                DexRow(1, 1, 1, caught = true, seen = true, m = m, small = m) {}
+                DexRow(25, 25, 1, caught = true, seen = true, m = m, small = m) {}
+                GbaText(com.pokedaisy.app.companion.data.dexSpeciesLabel(1017, "OGERPON"),
+                    androidx.compose.ui.graphics.Color.Black, androidx.compose.ui.graphics.Color.LightGray, m)
+                GbaText(com.pokedaisy.app.companion.data.dexSpeciesLabel(1, "改版专属"),
+                    androidx.compose.ui.graphics.Color.Black, androidx.compose.ui.graphics.Color.LightGray, m)
+            }
+        }
+    }
     @Test fun guide() = tab("GUIDE")
+    @Test fun guideGen2() = paparazzi.snapshot(lang.code) {
+        AppTheme {
+            val entry = com.pokedaisy.app.companion.data.GuideEntry(
+                "Why did the POKéMON on this route change?",
+                "The game's clock has three times of day: morning from 4 AM, day from 10 AM and night from 6 PM. Grass and caves have a list for each, and HERE shows the one for the time your game's clock says.",
+                "Look at the clock.",
+            )
+            val section = com.pokedaisy.app.companion.data.GuideSection("TIPS", listOf(entry))
+            val page = com.pokedaisy.app.companion.data.GuidePage("TIPS", listOf(section))
+            val source = GuideSource(com.pokedaisy.app.companion.data.GameGuide(listOf(page)), null, null, null)
+            val ui = GuideUiState().apply { this.page = page.title; open = key(page, section, entry); level = 2 }
+            GuideScreen(source, ui, SampleCompanion.snapshot)
+        }
+    }
     @Test fun map() = tab("MAP")
     @Test fun states() = tab("STATES")
     @Test fun more() = tab("MORE")

@@ -1544,6 +1544,20 @@ object PokedexSource {
     @Volatile private var speciesToNational: IntArray? = null
     @Volatile private var regional: IntArray? = null
     @Volatile private var cachedFor: PokedexTables? = null
+    @Volatile private var activeTables: PokedexTables? = null
+
+    /** The running game's dex tables, for callers without a [PokedexTables] (name tables, guides). */
+    fun useTables(t: PokedexTables?) {
+        if (t == null) return
+        sync(t)
+        activeTables = t
+    }
+
+    /** [species]'s National Dex number on the running game (Hoenn ids aren't in national order); 0 = unknown. */
+    fun nationalOf(species: Int): Int {
+        val t = activeTables ?: return 0
+        return runCatching { nationalOf(t, species) }.getOrDefault(0)
+    }
 
     private fun sync(t: PokedexTables) {
         if (cachedFor == t) return
@@ -1590,7 +1604,7 @@ object PokedexSource {
      * (Glazed runs on Emerald's PokedexTables) - Emerald then Glazed in one session kept Emerald's.
      */
     fun romChanged() {
-        synchronized(this) { cachedFor = null }
+        synchronized(this) { cachedFor = null; activeTables = null }
         DexDetails.romChanged()
         GuideRomSource.romChanged()
         EvolutionSource.romChanged()
@@ -1770,6 +1784,9 @@ object PokedexSource {
     }
 
     private fun ability(t: PokedexTables, id: Int): String {
+        // A known Chinese translation's ability names are Chinese-encoded: use the bundled
+        // Chinese table by id instead (the dex and battle INFO show it).
+        if (cnRomText) chineseAbilityNameById(id)?.let { return it }
         val stride = if (t.abilityNameStride > 0) t.abilityNameStride else t.abilityNameLength
         val at = t.abilityNames + id.toLong() * stride
         if (t.abilityNamePtr) return Gfx.u32(rd(at, 4), 0).takeIf(Gfx::inRom)?.let { Gen3Text.decode(rd(it, t.abilityNameLength)) }.orEmpty()
@@ -1789,15 +1806,22 @@ object PokedexSource {
         val abilities = listOf(abilityAt(bs.abilitiesOff), abilityAt(bs.abilitiesOff + if (bs.abilityU16) 2 else 1))
             .filter { it != 0 }.distinct().map { ability(t, it) }
         val hidden = t.hiddenAbilityOff.takeIf { it >= 0 }?.let { abilityAt(it) }?.takeIf { it != 0 }?.let { ability(t, it) }
-        val category = if (t.entryCategoryPtr) Gfx.u32(e, 0).takeIf(Gfx::inRom)?.let { Gen3Text.decode(rd(it, t.entryCategoryLen + 1)) }.orEmpty()
-            else Gen3Text.decode(e, 0, t.entryCategoryLen)
+        // A known Chinese translation's category/description are Chinese-encoded: use the
+        // bundled genus (English; displaySpeciesCategory turns it into Chinese) and leave
+        // the flavor text out rather than draw glyph codes.
+        val category = when {
+            cnRomText -> chineseSpeciesCategoryEnglish(national)
+                ?: Gen3Text.decode(e, 0, t.entryCategoryLen)
+            t.entryCategoryPtr -> Gfx.u32(e, 0).takeIf(Gfx::inRom)?.let { Gen3Text.decode(rd(it, t.entryCategoryLen + 1)) }.orEmpty()
+            else -> Gen3Text.decode(e, 0, t.entryCategoryLen)
+        }
         return DexEntry(
             national = national,
             species = species,
             category = category,
             heightDm = u16le(e, t.entryHeightOff),
             weightHg = u16le(e, t.entryHeightOff + 2),
-            description = listOfNotNull(
+            description = if (cnRomText) "" else listOfNotNull(
                 descPtr.takeIf(Gfx::inRom),
                 t.descriptionPage2Off.takeIf { it >= 0 }?.let { Gfx.u32(e, it) }?.takeIf(Gfx::inRom),
             ).joinToString(" ") { Gen3Text.decode(rd(it, 200)) },
@@ -1928,6 +1952,26 @@ object Gen3Text {
         t[0xAB] = '！'; t[0xAC] = '？'; t[0xAD] = '。'; t[0xAE] = 'ー'; t[0xB0] = '⋯'
     }
 
+    /** A Chinese fan-translation's charmap in force (sorted [CjkTables] pairs, code << 16 | unicode),
+     * set from the detected ROM's masked sha1; null for every Latin / Japanese game. Codes >= 0x100 are
+     * 2-byte big-endian in the ROM; the charmap's own 1-byte codes and then the western [table] fill in. */
+    @Volatile var cjk: IntArray? = null
+
+    /** The [cjk] char for [code], or null (binary search - the pairs are sorted by code). */
+    private fun cjkChar(pairs: IntArray, code: Int): Char? {
+        var lo = 0; var hi = pairs.size - 1
+        while (lo <= hi) {
+            val mid = (lo + hi) ushr 1
+            val c = pairs[mid] ushr 16
+            when {
+                c < code -> lo = mid + 1
+                c > code -> hi = mid - 1
+                else -> return (pairs[mid] and 0xFFFF).toChar()
+            }
+        }
+        return null
+    }
+
     // Argument bytes after an 0xFC control code (text colour, font, pause, ...),
     // by code - charmap.txt's EXT_CTRL_CODE_* list.
     private val FC_ARGS = intArrayOf(0, 1, 1, 1, 3, 1, 1, 0, 1, 0, 0, 2, 1, 1, 1, 0, 2, 1, 1, 1, 1, 0, 0, 0, 0)
@@ -1959,8 +2003,11 @@ object Gen3Text {
     private val japaneseRev by lazy { reverse(japanese) }
 
     /** [s] in the running game's bytes ([romLanguage]'s table), no terminator; null when a
-     * character has no byte of its own (the multi-letter glyphs aren't used). */
+     * character has no byte of its own (the multi-letter glyphs aren't used). Null too with
+     * [cjk] in force - a Chinese ROM's names can't be encoded in the Latin tables, and that
+     * is exactly how RomNames / BestEffort skip the name check for these translations. */
     fun encode(s: String): ByteArray? {
+        if (cjk != null) return null
         val rev = if (romLanguage == 'J') japaneseRev else westernRev
         return ByteArray(s.length) { i -> (rev[s[i]] ?: return null).toByte() }
     }
@@ -1976,9 +2023,43 @@ object Gen3Text {
 
     /** Up to [max] bytes from [off], stopping at 0xFF; line breaks become
      * spaces, control codes (0xFC + args, e.g. a font change) and placeholders
-     * (0xFD + id, e.g. the player's name) are dropped. */
-    fun decode(b: ByteArray, off: Int = 0, max: Int = b.size - off): String = buildString {
+     * (0xFD + id, e.g. the player's name) are dropped. With [cjk] in force
+     * (a Chinese fan translation), a 2-byte big-endian charmap code wins over
+     * the 1-byte tables - greedy, like pret's assembler is decoded. */
+    fun decode(b: ByteArray, off: Int = 0, max: Int = b.size - off, charmap: IntArray? = cjk): String = buildString {
         val end = minOf(b.size, off + max)
+        val cj = charmap
+        if (cj != null) {
+            var i = off
+            while (i < end) {
+                val c = b[i].toInt() and 0xFF
+                if (c == 0xFF) break
+                if (c == 0xFC && i + 1 < end) {
+                    i += 2 + FC_ARGS.getOrElse(b[i + 1].toInt() and 0xFF) { 0 }
+                    continue
+                }
+                if (c == 0xFD) {
+                    i += 2
+                    continue
+                }
+                if (c == 0xFE || c == 0xFA || c == 0xFB) {
+                    append(' ')
+                    i++
+                    continue
+                }
+                if (i + 1 < end) {
+                    val ch = cjkChar(cj, (c shl 8) or (b[i + 1].toInt() and 0xFF))
+                    if (ch != null) {
+                        append(ch)
+                        i += 2
+                        continue
+                    }
+                }
+                append(cjkChar(cj, c) ?: table[c])
+                i++
+            }
+            return@buildString
+        }
         val jp = romLanguage == 'J'
         val chars = if (jp) japanese else table
         val block = pokeblock[romLanguage] ?: pokeblock.getValue('E')

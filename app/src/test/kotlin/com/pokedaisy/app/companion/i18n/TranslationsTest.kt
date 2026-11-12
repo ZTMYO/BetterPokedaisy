@@ -39,8 +39,10 @@ class TranslationsTest {
             val want = placeholder.findAll(key).map { it.value }.sorted().toList()
             AppLanguage.entries.drop(1).forEach { lang ->
                 val s = t.of(lang).orEmpty()
-                if (s.isBlank()) problems += "\"$key\": empty ${lang.code}"
-                else if (placeholder.findAll(s).map { it.value }.sorted().toList() != want) problems += "\"$key\": ${lang.code} placeholders"
+                if (s.isBlank()) {
+                    // Simplified Chinese is being filled in: a missing string shows English (tr's fallback).
+                    if (lang != AppLanguage.ZH_CN) problems += "\"$key\": empty ${lang.code}"
+                } else if (placeholder.findAll(s).map { it.value }.sorted().toList() != want) problems += "\"$key\": ${lang.code} placeholders"
             }
         }
         assertTrue(problems.joinToString("\n"), problems.isEmpty())
@@ -74,6 +76,20 @@ class TranslationsTest {
         assertEquals(AppLanguage.KO, L10n.language)
         L10n.apply(LANGUAGE_AUTO, null, Locale.forLanguageTag("nl-NL"))
         assertEquals(AppLanguage.EN, L10n.language)
+        // Simplified Chinese follows the device over English, but not other ROM languages.
+        L10n.apply(LANGUAGE_AUTO, null, Locale.forLanguageTag("zh-Hans-CN"))
+        assertEquals(AppLanguage.ZH_CN, L10n.language)
+        L10n.apply(LANGUAGE_AUTO, "BPRE", Locale.forLanguageTag("zh-CN"))
+        assertEquals(AppLanguage.ZH_CN, L10n.language)
+        assertEquals("取消", tr("CANCEL"))
+        L10n.apply(LANGUAGE_AUTO, "BPRF", Locale.forLanguageTag("zh-CN"))
+        assertEquals(AppLanguage.FR, L10n.language)
+        L10n.apply(LANGUAGE_AUTO, null, Locale.forLanguageTag("zh-Hant-TW"))
+        assertEquals(AppLanguage.EN, L10n.language)
+        L10n.apply("ZH_CN", "BPRF", Locale.FRENCH)
+        assertEquals(AppLanguage.ZH_CN, L10n.language)
+        assertEquals("自动", tr("AUTO"))
+        assertEquals("{0} + {1}", tr("{0} + {1}"))
         // An override wins over the ROM.
         L10n.apply("IT", "BPRE")
         assertEquals(AppLanguage.IT, L10n.language)
@@ -86,8 +102,29 @@ class TranslationsTest {
     }
 
     @Test
-    fun placeholders() {
+    fun `core simplified Chinese translations preserve placeholders`() {
+        trCore.forEach { (key, translation) ->
+            val zh = translation.zh.orEmpty()
+            assertTrue("missing Chinese for $key", zh.isNotBlank())
+            assertEquals("Chinese placeholders for $key",
+                placeholder.findAll(key).map { it.value }.sorted().toList(),
+                placeholder.findAll(zh).map { it.value }.sorted().toList())
+        }
+    }
+
+    @Test
+    fun `emulator errors keep file names and exception details`() {
+        L10n.apply("ZH_CN", null)
+        assertEquals("上一个游戏仍在关闭，请重试", tr("The previous game is still closing, try again"))
+        assertEquals("mGBA 无法加载 我的游戏.gba", tr("mGBA could not load {0}", "我的游戏.gba"))
+        assertEquals("模拟器已停止：I/O error", tr("The emulator stopped: {0}", "I/O error"))
         L10n.apply("EN", null)
+        assertEquals("mGBA could not load game.gba", tr("mGBA could not load {0}", "game.gba"))
+    }
+
+    @Test
+    fun placeholders() {
+        L10n.apply("EN", null, Locale.ENGLISH)
         assertEquals("AUTO (ENGLISH)", L10n.settingLabel(LANGUAGE_AUTO))
         assertEquals("3 + 4", tr("{0} + {1}", 3, 4))
     }

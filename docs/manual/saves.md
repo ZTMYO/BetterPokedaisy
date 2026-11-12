@@ -64,7 +64,7 @@ If that folder has no save for the game yet, your current save is copied there (
 
 ## Backups and RESTORE BACKUP
 
-Backups go into a `pokedaisy-backups` folder beside the save, named after the game with the date and time, like `Pokemon Emerald.backup-20261007-233512.sav`. Since they sit next to your saves (not hidden in the app), a file manager reaches them, and they stay even if you uninstall PokeDaisy.
+Backups go into a `pokedaisy-backups` folder beside the save, named after the game with the date and time, like `Pokemon Emerald.backup-20261007-233512.sav`. Whether they survive uninstall depends on where the saves are. Android removes app-specific storage, including the default `Android/data/com.pokedaisy.app/files/`, when an app is uninstalled. Before uninstalling, copy any saves and backups you need outside the app-specific folder.
 
 To bring one back, long-press the game in the library and tap `RESTORE BACKUP`. Pick a backup by its date and time, then confirm with `LOAD`. Your current save is kept as a dated copy first, so restoring is never a one-way trip.
 

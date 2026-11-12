@@ -5,6 +5,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.FocusRequester
 import com.pokedaisy.app.companion.i18n.tk
 import com.pokedaisy.app.companion.i18n.tr
+import com.pokedaisy.app.companion.data.displayRegionName
 import android.graphics.Bitmap
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.Canvas
@@ -190,7 +191,7 @@ fun MapScreen(
                 },
                 tile = model.tile,
                 cell = cursorTile ?: sel?.tiles?.firstOrNull()?.let { it.x to it.y },
-                label = gameCase(name),
+                label = gameCase(com.pokedaisy.app.companion.data.displayLocationName(name)),
                 onCell = { tx, ty ->
                     cursorTile = tx to ty
                     selection = if (playerTile != null && tx to ty == playerTile) null else model.select(shown, tx, ty)
@@ -227,8 +228,8 @@ fun MapScreen(
                         ),
                         headTile = playerTile,
                         cursor = sel?.tiles ?: if (playerRegion == shown) model.tilesOf(playerSection) else emptyList(),
-                        label = gameCase(name),
-                        dungeon = dungeon?.let(::gameCase),
+                        label = gameCase(com.pokedaisy.app.companion.data.displayLocationName(name)),
+                        dungeon = dungeon?.let { gameCase(com.pokedaisy.app.companion.data.displayLocationName(it)) },
                         onTap = { tx, ty ->
                             cursorTile = tx to ty
                             selection = if (playerTile != null && tx to ty == playerTile) null else model.select(shown, tx, ty)
@@ -252,7 +253,7 @@ fun MapScreen(
                     MapButtons(
                         bottomRow = bottomRow,
                         map = mapFocus, group = buttonsFocus,
-                        regionLabel = if (model.images.size > 1) regionName(model.images, (shown + 1) % model.images.size) else null,
+                        regionLabel = if (model.images.size > 1) displayRegionName(regionName(model.images, (shown + 1) % model.images.size)) else null,
                         awayFromPlayer = selection != null || (playerRegion != null && shown != playerRegion),
                         onPlaces = { placesOpen = true },
                         onFly = openFly,
@@ -749,7 +750,7 @@ private fun PlacesList(model: RegionMapModel, onPick: (Int) -> Unit, onMe: () ->
                             val s = model.sections.getValue(id)
                             OptionLine(
                                 // Only places off the first map say which one (FireRed's Sevii Islands).
-                                gameCase(s.name), if (s.region > 0) regionName(model.images, s.region) else null,
+                                gameCase(com.pokedaisy.app.companion.data.displayLocationName(s.name)), if (s.region > 0) displayRegionName(regionName(model.images, s.region)) else null,
                                 selected = false, m, labelWeight = 0.62f, divider = true,
                             ) { onPick(id) }
                         }
@@ -783,7 +784,7 @@ private fun FlyList(model: RegionMapModel?, targets: com.pokedaisy.app.companion
                         val ds = if (activeGame.isDsGame) com.pokedaisy.app.companion.data.gen4ConfigFor(activeGame)?.flySpotName(mapsec) else null
                         val s = if (ds != null) null else model?.sections?.get(mapsec)
                         OptionLine(
-                            gameCase(ds ?: s?.name ?: "#$mapsec"), s?.takeIf { it.region > 0 && model != null }?.let { regionName(model!!.images, it.region) },
+                            gameCase(com.pokedaisy.app.companion.data.displayLocationName(ds ?: s?.name ?: "#$mapsec")), s?.takeIf { it.region > 0 && model != null }?.let { displayRegionName(regionName(model!!.images, it.region)) },
                             selected = false, m, labelWeight = 0.62f, divider = true,
                         ) { onPick(mapsec) }
                     }
@@ -839,7 +840,7 @@ private fun BoxScope.NoRegionMap(snapshot: SnapshotView) {
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         if (location.mapSecName.isNotEmpty()) {
-            Text(location.mapSecName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Center)
+            Text(com.pokedaisy.app.companion.data.displayLocationName(location.mapSecName), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Center)
         }
         Text(
             tr("({0}, {1}) facing {2}", snapshot.x, snapshot.y, directionText(snapshot.facingDirection)),

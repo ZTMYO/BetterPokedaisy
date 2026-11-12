@@ -40,10 +40,15 @@ private val natureNames = listOf(
     "Calm", "Gentle", "Sassy", "Careful", "Quirky",
 )
 
-fun natureName(nature: Int): String =
+fun natureName(nature: Int): String {
     // Monomyth's own (flavour-only) natures, in its own case.
-    if (nature >= MONOMYTH_NATURE_BASE) natureNamesMonomyth.getOrElse(nature - MONOMYTH_NATURE_BASE) { "?" }
-    else localText?.natures?.getOrNull(nature) ?: gameCase(natureNames.getOrElse(nature) { "?" })
+    if (nature >= MONOMYTH_NATURE_BASE) return natureNamesMonomyth.getOrElse(nature - MONOMYTH_NATURE_BASE) { "?" }
+    if (com.pokedaisy.app.companion.i18n.L10n.language == com.pokedaisy.app.companion.i18n.AppLanguage.ZH_CN &&
+        nature in chineseNatureNames.indices) {
+        return chineseNatureNames[nature].substringBefore('|')
+    }
+    return localText?.natures?.getOrNull(nature) ?: gameCase(natureNames.getOrElse(nature) { "?" })
+}
 
 // gNatureStatTable: nature / 5 is the raised stat, nature % 5 the lowered one,
 // counting ATTACK, DEFENSE, SPEED, SP. ATK, SP. DEF; equal = neutral.

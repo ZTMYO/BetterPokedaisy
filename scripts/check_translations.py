@@ -7,7 +7,10 @@ same {0}-style placeholders as the English. Keys must be plain literals: an
 interpolated "$x" key can't be looked up. Also lists table entries nothing uses
 (-v). TranslationsTest runs the same check on the JVM. Usage:
 
-    python3 scripts/check_translations.py [-v] [files...]
+    python3 scripts/check_translations.py [-v] [--require-zh] [files...]
+
+Simplified Chinese is available in the app. --require-zh reports every entry
+still missing Chinese and checks placeholders.
 """
 import re
 import sys
@@ -21,7 +24,8 @@ CALL = re.compile(r'\bt[rk]\(\s*' + STR)
 ENTRY = re.compile(
     STR + r'\s+to\s+Tr\(\s*ja\s*=\s*' + STR + r'\s*,\s*fr\s*=\s*' + STR + r'\s*,\s*de\s*=\s*' + STR
     + r'\s*,\s*it\s*=\s*' + STR + r'\s*,\s*es\s*=\s*' + STR
-    + r'\s*,\s*br\s*=\s*' + STR + r'\s*,\s*pt\s*=\s*' + STR + r'\s*,\s*ko\s*=\s*' + STR + r'\s*,?\s*\)'
+    + r'\s*,\s*br\s*=\s*' + STR + r'\s*,\s*pt\s*=\s*' + STR + r'\s*,\s*ko\s*=\s*' + STR
+    + r'(?:\s*,\s*zh\s*=\s*' + STR + r')?\s*,?\s*\)'
 )
 PH = re.compile(r'\{\d+\}')
 # String literals first, so a "*/*" or "//" inside one isn't taken for a comment.
@@ -36,7 +40,7 @@ def code_only(text):
 def tables():
     out, dupes = {}, []
     for f in sorted(I18N.glob("Tr*.kt")):
-        for m in ENTRY.finditer(f.read_text()):
+        for m in ENTRY.finditer(f.read_text(encoding="utf-8")):
             if m.group(1) in out:
                 dupes.append(f"{f.name}: {m.group(1)!r} is already in {out[m.group(1)][0]} - keep one")
             out[m.group(1)] = (f.name, m.groups()[1:])
@@ -44,14 +48,17 @@ def tables():
 
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="backslashreplace")
     verbose = "-v" in sys.argv
-    only = [Path(a).resolve() for a in sys.argv[1:] if a != "-v"]
+    require_zh = "--require-zh" in sys.argv
+    only = [Path(a).resolve() for a in sys.argv[1:] if a not in ("-v", "--require-zh")]
     table, dupes = tables()
     used, errors = set(), list(dupes)
     for f in sorted(SRC.rglob("*.kt")):
         if f.parent == I18N and f.name.startswith("Tr"):
             continue
-        text = code_only(f.read_text())
+        text = code_only(f.read_text(encoding="utf-8"))
         for m in CALL.finditer(text):
             key = m.group(1)
             used.add(key)
@@ -64,7 +71,12 @@ def main():
                 errors.append(f"{where}: no translation for {key!r}")
     for key, (fname, langs) in table.items():
         want = sorted(PH.findall(key))
-        for lang, s in zip(("ja", "fr", "de", "it", "es", "br", "pt", "ko"), langs):
+        zh = langs[-1]
+        if zh is None and require_zh:
+            errors.append(f"{fname}: {key!r} has no zh")
+        for lang, s in zip(("ja", "fr", "de", "it", "es", "br", "pt", "ko", "zh"), langs):
+            if s is None:
+                continue
             if not s.strip():
                 errors.append(f"{fname}: {key!r} has an empty {lang}")
             elif sorted(PH.findall(s)) != want:
@@ -74,7 +86,8 @@ def main():
     if verbose:
         for key in sorted(set(table) - used):
             print(f"unused: {key!r} ({table[key][0]})")
-    print(f"{len(table)} entries, {len(used)} keys used, {len(errors)} problems")
+    zh_count = sum(langs[-1] is not None for _, langs in table.values())
+    print(f"{len(table)} entries, {len(used)} keys used, {zh_count} zh, {len(errors)} problems")
     sys.exit(1 if errors else 0)
 
 

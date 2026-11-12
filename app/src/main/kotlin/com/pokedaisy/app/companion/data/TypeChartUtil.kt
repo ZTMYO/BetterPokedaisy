@@ -177,7 +177,13 @@ fun gameCase(name: String): String = when {
  * Item [id]'s description as the running game's bag shows it - read from the player's own
  * ROM (RomItemText; the games' text isn't bundled), "" without one.
  */
-fun itemDescription(id: Int): String = when (activeGame) {
+fun itemDescription(id: Int): String {
+    // Gen 3 items: the bundled Chinese text first (the English name in its row still has to
+    // match the running game's), then whatever the ROM itself says.
+    if (!activeGame.isGen1 && !activeGame.isGen2 && !activeGame.isDsGame) {
+        chineseItemDescription(id)?.let { return it }
+    }
+    return when (activeGame) {
     // Gen 1 items have no descriptions of their own: ours, and what each TM / HM teaches.
     // ... in English: the German / French / Italian / Spanish carts get none rather than English under their names.
     // Red and Blue have Yellow's items (gen_gen1_tables.py checks it): its text fits them.
@@ -193,6 +199,7 @@ fun itemDescription(id: Int): String = when (activeGame) {
     GameKind.CRYSTAL, GameKind.CRYSTAL_CLEAR, GameKind.PRISM, GameKind.GOLD, GameKind.SILVER, GameKind.POLISHED_CRYSTAL,
     GameKind.CRYSTAL_LEGACY -> activeGen2.pokedex?.gen2?.let { Gen2Dex.itemDescription(it, id) }.orEmpty()
     else -> RomItemText.description(id)
+    }
 }
 
 // Display order/labels for Item.pocket (POCKET_* in Telemetry.kt), matching

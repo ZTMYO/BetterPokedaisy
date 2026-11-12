@@ -1,0 +1,10 @@
+# 宝可梦水银 FC ~致150年后的你~ v1.33 (32 MB, 遮蔽 sha1 2d0d2b26…) — 国产
+# FireRed 深度改版（未来/穿越题材原创剧情）。
+# 静态校验（analysis/static_check.py）：vanilla FireRed 的 gItems @0x083DB028
+# 描述指针 120/120 在 ROM 内（ID 连续 88/120 —— 改版中途插入新道具所致）、
+# gMonIconTable @0x083D37A0 24/24、调色板索引 40/40、sItemIconTable 24/24 全部
+# 有效 —— 大量原生表保持原位，RAM 全局地址高概率沿用 FireRed rev0。
+# ⚠ 尚未动态验证（新游戏无存档）：拿到第一只宝可梦后须按仓库铁律补验
+# （≥3 次独立采集逐字节一致，ROM 表须端到端解码确认）。
+[config.mercury_cn]
+base = 'firered_rev0'

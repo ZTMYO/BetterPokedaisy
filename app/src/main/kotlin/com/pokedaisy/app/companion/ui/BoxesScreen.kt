@@ -512,7 +512,7 @@ private fun MonPanel(mon: MonView?, dex: PokedexTables?, m: GbaTextMetrics, modi
             if (mon.heldItemId != 0) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 3)) {
                     ItemIcon(com.pokedaisy.app.companion.data.spriteAsset("items", mon.heldItemId), size = small.lineHeight)
-                    GbaText(itemName(mon.heldItemId), text, shadow, small)
+                    GbaText(com.pokedaisy.app.companion.data.displayItemName(mon.heldItemId, itemName(mon.heldItemId)), text, shadow, small)
                 }
             }
         }

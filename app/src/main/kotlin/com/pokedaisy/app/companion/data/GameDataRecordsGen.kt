@@ -4,7 +4,7 @@ package com.pokedaisy.app.companion.data
 // TOML there and run `make gamedata` (gamedata/README.md). Each one is built on first use, so
 // they can name each other and vals in any other file, whichever file is initialised first.
 
-// ---- gamedata/gen3/records/emerald.toml ----
+// ---- gamedata\gen3\records\emerald.toml ----
 
 // Emerald's own item.c: gBagPockets[ITEMS_POCKET=0/BALLS_POCKET=1/
 // TMHM_POCKET=2/BERRIES_POCKET=3/KEYITEMS_POCKET=4] - a different order.
@@ -262,7 +262,7 @@ val FLASH_EMERALD_LEGACY: FlashFns by lazy {
     )
 }
 
-// ---- gamedata/gen3/records/expansion_flash.toml ----
+// ---- gamedata\gen3\records\expansion_flash.toml ----
 
 // Pokemon Lazarus (v2.0).gba: found by scripts/find_flash_expansion.py.
 val FLASH_LAZARUS: FlashFns by lazy {
@@ -413,7 +413,7 @@ val FLASH_SOULGOLD_V1_2_1: FlashFns by lazy {
     )
 }
 
-// ---- gamedata/gen3/records/firered.toml ----
+// ---- gamedata\gen3\records\firered.toml ----
 
 // FireRed's own gBagPockets[] index order (item.c: gBagPockets[POCKET_X-1] =
 // ...). Every FireRed-engine config (rev0/rev1/Unbound/Gaia/Radical Red)
@@ -893,7 +893,7 @@ val FLASH_LEAFGREEN_REV1: FlashFns by lazy {
     )
 }
 
-// ---- gamedata/gen3/records/ported.toml ----
+// ---- gamedata\gen3\records\ported.toml ----
 
 // FLASH (Flash.kt): retail Ruby rev 1 and rev 2 (the same addresses and code), pret's pokeruby built as ruby_rev1 /
 // ruby_rev2 (byte for byte retail) and its ELF. FLASH is field move 1 here as in Emerald: the Knuckle Badge. Its party
@@ -951,7 +951,7 @@ val FLASH_SAPPHIRE_REV0: FlashFns by lazy {
     )
 }
 
-// ---- gamedata/gen3/records/recharged_emerald.toml ----
+// ---- gamedata\gen3\records\recharged_emerald.toml ----
 
 // Pokemon Recharged Emerald (v2.2.5).gba: found by scripts/find_tm_flash_recharged_emerald.py.
 val TM_RECHARGED_EMERALD_V2_2_5: TmFns by lazy {

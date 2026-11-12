@@ -85,11 +85,9 @@ import com.pokedaisy.app.companion.ui.AppBackdrop
 import com.pokedaisy.app.companion.ui.AspectPicker
 import com.pokedaisy.app.companion.ui.aspectLabel
 import com.pokedaisy.app.companion.ui.portraitPlaceLabel
-import com.pokedaisy.app.companion.ui.CoffeeCup
 import com.pokedaisy.app.companion.ui.DiscordMark
 import com.pokedaisy.app.companion.Discord
 import com.pokedaisy.app.companion.ui.GbaText
-import com.pokedaisy.app.companion.ui.GitHubMark
 import com.pokedaisy.app.companion.ui.GoldTrophy
 import com.pokedaisy.app.companion.ui.GroupedRows
 import com.pokedaisy.app.companion.ui.filterRows
@@ -1328,7 +1326,7 @@ class SettingsActivity : ComponentActivity() {
         }
     }
 
-    /** Version, author, Buy Me a Coffee, the Discord and the repo, under the settings list. */
+    /** Version and authors, under the settings list. */
     @Composable
     private fun AboutFooter(m: GbaTextMetrics) {
         val small = rememberGbaTextMetrics(textScale = 1f)
@@ -1338,30 +1336,14 @@ class SettingsActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(horizontal = m.u * 8, vertical = m.u * 3),
             ) {
                 GbaText(
-                    tr("POKéDAISY {0}  ·  by {1}", BuildConfig.VERSION_NAME, "Lidor Itzhari (@lidor30)"),
+                    tr(
+                        "POKéDAISY {0}  ·  by {1}",
+                        BuildConfig.VERSION_NAME,
+                        "Lidor Itzhari (@lidor30)  ·  ZTMYO",
+                    ),
                     OptionColors.label, OptionColors.labelShadow, small, modifier = Modifier.weight(1f),
                 )
-                FooterLink(tr("Buy me a coffee"), m, small, Modifier.padding(start = m.u * 6), { CoffeeCup() }) {
-                    openUrl(COFFEE_URL)
-                }
-                GbaText("  ·  ", OptionColors.label, OptionColors.labelShadow, small)
-                FooterLink("Discord", m, small, icon = { DiscordMark() }) { openUrl(Discord.URL) }
-                GbaText("  ·  ", OptionColors.label, OptionColors.labelShadow, small)
-                FooterLink("GitHub", m, small, icon = { GitHubMark() }) { openUrl(REPO_URL) }
             }
-        }
-    }
-
-    /** A pixel [icon] then [text] in the value red, the whole of it one tap target. */
-    @Composable
-    private fun FooterLink(
-        text: String, m: GbaTextMetrics, small: GbaTextMetrics, modifier: Modifier = Modifier,
-        icon: @Composable () -> Unit, onClick: () -> Unit,
-    ) {
-        Row(modifier.clickable(onClick = onClick), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(small.lineHeight)) { icon() }
-            Spacer(Modifier.width(m.u * 3))
-            GbaText(text, OptionColors.value, OptionColors.valueShadow, small)
         }
     }
 
@@ -2278,7 +2260,6 @@ class SettingsActivity : ComponentActivity() {
     companion object {
         private val FOLDER_PAGES = setOf(Screen.ROMS_FOLDERS, Screen.SAVES_FOLDER, Screen.SAVE_SEARCH, Screen.STATES_FOLDER, Screen.BACKUPS)
         val RATES = floatArrayOf(0f, 1.5f, 2f, 3f, 4f, 5f, 6f, 8f, 10f)
-        const val REPO_URL = "https://github.com/lidor30/pokedaisy"
         /** A ROM path: open straight on that game's CHEATS (its library menu). */
         const val EXTRA_CHEATS_ROM = "cheats_rom"
         /** Opens one page alone ([SCREEN_HELP]: the manual); BACK finishes. */
@@ -2320,7 +2301,6 @@ class SettingsActivity : ComponentActivity() {
                 tr("{0} were already in the list.", r.duplicates).takeIf { r.duplicates > 0 },
             ).joinToString(" ")
         }
-        const val COFFEE_URL = "https://buymeacoffee.com/lidor30g"
 
         fun rateLabel(v: Float) = if (v <= 0f) tk("INFINITE") else if (v % 1f == 0f) "${v.toInt()}×" else "$v×"
 

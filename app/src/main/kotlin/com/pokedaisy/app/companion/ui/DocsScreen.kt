@@ -66,6 +66,8 @@ import kotlinx.coroutines.withContext
  * the site's local build instead.
  */
 interface DocsSource {
+    /** A source bound to the selected language; previews may keep their own source. */
+    fun forLanguage(language: com.pokedaisy.app.companion.i18n.AppLanguage): DocsSource = this
     /** The copy kept from last time, or null. Blocking. */
     fun cached(): DocsApi.Manual?
     /** Asks the site for a newer manual. Blocking. */
@@ -80,10 +82,12 @@ object DocsSources {
     fun of(context: Context): DocsSource = override ?: StoreDocsSource(context)
 }
 
-class StoreDocsSource(context: Context) : DocsSource {
+class StoreDocsSource(context: Context, private val chinese: Boolean = false) : DocsSource {
     private val app = context.applicationContext
-    override fun cached() = DocsStore.cached(app)
-    override fun refresh() = DocsStore.refresh(app).also { if (it is DocsStore.Refresh.Updated) DocsStore.pruneImages(app, it.manual) }
+    override fun forLanguage(language: com.pokedaisy.app.companion.i18n.AppLanguage): DocsSource =
+        StoreDocsSource(app, language == com.pokedaisy.app.companion.i18n.AppLanguage.ZH_CN)
+    override fun cached() = DocsStore.cached(app, chinese)
+    override fun refresh() = DocsStore.refresh(app, chinese).also { if (it is DocsStore.Refresh.Updated) DocsStore.pruneImages(app, it.manual) }
     override fun image(manual: DocsApi.Manual, image: Block.Image) = DocsStore.image(app, manual, image)
 }
 
@@ -105,6 +109,18 @@ class DocsUiState(initialPage: String? = null, initialQuery: String = "") {
     internal val contents = LazyListState()
     internal var search: DocsSearch? = null
     internal var started = false
+    internal var loadedLanguage: com.pokedaisy.app.companion.i18n.AppLanguage? = null
+    internal var loadJob: kotlinx.coroutines.Job? = null
+
+    /** Invalidate only the manual and search index when switching languages; keep the reading position. */
+    internal fun selectLanguage(language: com.pokedaisy.app.companion.i18n.AppLanguage) {
+        if (loadedLanguage == language) return
+        loadJob?.cancel()
+        loadedLanguage = language
+        manual = null
+        search = null
+        started = false
+    }
 
     /** Opens [slug] (at [anchor], a heading's id), remembering the page it was opened from. */
     fun open(slug: String, anchor: String? = null) {
@@ -141,22 +157,28 @@ fun DocsReader(
     onOpenUrl: ((String) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
+    val language = com.pokedaisy.app.companion.i18n.L10n.language
+    val localizedSource = remember(source, language) { source.forLanguage(language) }
     fun load() {
+        ui.loadJob?.cancel()
         ui.status = DocsUiState.Status.LOADING
-        scope.launch {
-            val kept = ui.manual ?: withContext(Dispatchers.IO) { source.cached() }
+        ui.loadJob = scope.launch {
+            val kept = ui.manual ?: withContext(Dispatchers.IO) { localizedSource.cached() }
             if (kept != null && ui.manual == null) { ui.manual = kept; ui.search = null }
             if (kept != null) ui.status = DocsUiState.Status.READY
-            when (val r = withContext(Dispatchers.IO) { source.refresh() }) {
+            when (val r = withContext(Dispatchers.IO) { localizedSource.refresh() }) {
                 is DocsStore.Refresh.Updated -> { ui.manual = r.manual; ui.search = null; ui.status = DocsUiState.Status.READY }
                 DocsStore.Refresh.Unchanged -> ui.status = DocsUiState.Status.READY
                 is DocsStore.Refresh.Failed -> if (ui.manual == null) ui.status = DocsUiState.Status.OFFLINE
             }
         }
     }
-    LaunchedEffect(Unit) { if (!ui.started) { ui.started = true; load() } }
+    LaunchedEffect(language) {
+        ui.selectLanguage(language)
+        if (!ui.started || (ui.manual == null && ui.loadJob?.isActive != true)) { ui.started = true; load() }
+    }
 
-    val manual = ui.manual
+    val manual = ui.manual.takeIf { ui.loadedLanguage == language }
     Column(modifier.fillMaxSize()) {
         val page = ui.page?.let { manual?.page(it) }
         when {
@@ -173,7 +195,7 @@ fun DocsReader(
                     }
                 }
             }
-            page != null -> DocsPage(ui, manual, page, m, source, onOpenUrl)
+            page != null -> DocsPage(ui, manual, page, m, localizedSource, onOpenUrl)
             else -> DocsContents(ui, manual, m, searchable)
         }
     }

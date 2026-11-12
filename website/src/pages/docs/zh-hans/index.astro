@@ -1,0 +1,18 @@
+---
+import DocsLayout from '../../../layouts/DocsLayout.astro';
+import DocSearch from '../../../components/DocSearch.astro';
+import { loadChineseDocs } from '../../../lib/docs.js';
+const docs = loadChineseDocs();
+const bySlug = new Map(docs.pages.map((p) => [p.slug, p]));
+---
+<DocsLayout title="PokeDaisy 简体中文手册" description="了解 PokeDaisy 的使用方法。" docs={docs} chinese search={false}>
+  <section class="doc f-card" lang="zh-Hans">
+    <h1 class="doc-title">PokeDaisy 手册</h1>
+    <p class="doc-summary">搜索或浏览使用说明。尚未完成翻译的页面会标记“未译”并保留英文。</p>
+    <DocSearch big chinese />
+    {docs.sections.map((section) => <section id={section.id}>
+      <h2 class="d-h2">{section.title}</h2>
+      <ul class="d-list">{section.pages.map((slug) => <li><a href={`/docs/zh-hans/${slug}/`}>{bySlug.get(slug).title}</a></li>)}</ul>
+    </section>)}
+  </section>
+</DocsLayout>

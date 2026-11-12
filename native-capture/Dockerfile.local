@@ -1,0 +1,25 @@
+# 本地变体：国内网络（HTTP 被代理 502，slim 镜像无 CA 无法 bootstrap HTTPS）。
+# 方案：宿主机先下载 ca-certificates 的 deb 打进镜像，装好后 HTTPS 即通。
+# 用法: docker build -f native-capture/Dockerfile.local -t pokedaisy-capture native-capture
+FROM debian:bookworm-slim
+ENV DEBIAN_FRONTEND=noninteractive
+COPY debs/ /tmp/debs/
+RUN set -e; \
+    dpkg -i /tmp/debs/libssl3.deb /tmp/debs/openssl.deb /tmp/debs/ca-certificates.deb; \
+    update-ca-certificates; \
+    echo 'Types: deb' > /etc/apt/sources.list.d/debian.sources; \
+    echo 'URIs: https://mirrors.tuna.tsinghua.edu.cn/debian' >> /etc/apt/sources.list.d/debian.sources; \
+    echo 'Suites: bookworm bookworm-updates' >> /etc/apt/sources.list.d/debian.sources; \
+    echo 'Components: main' >> /etc/apt/sources.list.d/debian.sources; \
+    echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' >> /etc/apt/sources.list.d/debian.sources; \
+    echo '' >> /etc/apt/sources.list.d/debian.sources; \
+    echo 'Types: deb' >> /etc/apt/sources.list.d/debian.sources; \
+    echo 'URIs: https://mirrors.tuna.tsinghua.edu.cn/debian-security' >> /etc/apt/sources.list.d/debian.sources; \
+    echo 'Suites: bookworm-security' >> /etc/apt/sources.list.d/debian.sources; \
+    echo 'Components: main' >> /etc/apt/sources.list.d/debian.sources; \
+    echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' >> /etc/apt/sources.list.d/debian.sources; \
+    apt-get update -qq \
+    && apt-get install -y -qq --no-install-recommends gcc libc6-dev libmgba-dev \
+    && rm -rf /var/lib/apt/lists/* /tmp/debs
+WORKDIR /work
+ENTRYPOINT ["/bin/bash"]

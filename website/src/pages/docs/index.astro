@@ -33,6 +33,7 @@ const jsonLd = [{
         {CREATURE_IDS.map((id, i) => <span style={`--i:${i}`}><Pixel name={id} scale={1} /></span>)}
       </div>
     </div>
+    <p><a href="/docs/zh-hans/" lang="zh-Hans">简体中文手册</a></p>
     <DocSearch big />
     {docs.sections.map((s) => (
       <div class="docs-group" id={s.id}>

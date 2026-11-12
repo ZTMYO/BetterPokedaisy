@@ -58,8 +58,8 @@ internal fun NuzlockeScreen(area: Int, areaName: String, modifier: Modifier = Mo
         add(groupTitle(tk("HERE")))
         val here = run.encounterAt(area)
         add(
-            if (here == null) SettingRow(areaName.ifEmpty { "?" }, tk("FREE"), subtitle = tk("Your first wild POKéMON here is this area's catch")) {}
-            else SettingRow(areaName, here.outcomeLabel(), labelIcon = icon(here.species), subtitle = speciesName(here.species)) { pick = here },
+            if (here == null) SettingRow(com.pokedaisy.app.companion.data.displayLocationName(areaName).ifEmpty { "?" }, tk("FREE"), subtitle = tk("Your first wild POKéMON here is this area's catch")) {}
+            else SettingRow(com.pokedaisy.app.companion.data.displayLocationName(areaName), here.outcomeLabel(), labelIcon = icon(here.species), subtitle = com.pokedaisy.app.companion.data.displaySpeciesName(here.species)) { pick = here },
         )
         add(groupTitle(tk("TEAM")))
         if (run.alive.isEmpty()) add(SettingRow(tk("Nobody yet"), null, enabled = false) {})
@@ -74,7 +74,7 @@ internal fun NuzlockeScreen(area: Int, areaName: String, modifier: Modifier = Mo
         add(groupTitle(tk("ENCOUNTERS")))
         if (run.encounters.isEmpty()) add(SettingRow(tk("None yet"), null, enabled = false) {})
         run.encounters.asReversed().forEach { e ->
-            add(SettingRow(e.areaName, e.outcomeLabel(), labelIcon = icon(e.species), subtitle = speciesName(e.species)) { pick = e })
+            add(SettingRow(com.pokedaisy.app.companion.data.displayLocationName(e.areaName), e.outcomeLabel(), labelIcon = icon(e.species), subtitle = com.pokedaisy.app.companion.data.displaySpeciesName(e.species)) { pick = e })
         }
         if (run.dead.isNotEmpty()) {
             add(groupTitle(tk("GRAVEYARD")))
@@ -115,7 +115,7 @@ internal fun NuzlockeScreen(area: Int, areaName: String, modifier: Modifier = Mo
         pick?.let { e ->
             val options = listOf(NuzlockeOutcome.CAUGHT, NuzlockeOutcome.MISSED, null)
             OptionSelector(
-                e.areaName, options, e.outcome.takeIf { it != NuzlockeOutcome.NOW },
+                com.pokedaisy.app.companion.data.displayLocationName(e.areaName), options, e.outcome.takeIf { it != NuzlockeOutcome.NOW },
                 { o -> when (o) { NuzlockeOutcome.CAUGHT -> tr("CAUGHT|run"); NuzlockeOutcome.MISSED -> tr("MISSED"); else -> tr("NOT USED") } }, m,
                 onPick = { Nuzlocke.setOutcome(e.area, it); pick = null },
                 onDismiss = { pick = null },
@@ -167,7 +167,7 @@ private fun NuzlockeOff(modifier: Modifier = Modifier) {
 
 /** Where a living Pokémon joined the run. */
 private fun joinedLine(mon: NuzlockeMon): String =
-    if (mon.areaName.isEmpty()) tr("With you from the start") else tr("Joined in {0}", mon.areaName)
+    if (mon.areaName.isEmpty()) tr("With you from the start") else tr("Joined in {0}", com.pokedaisy.app.companion.data.displayLocationName(mon.areaName))
 
 /** NUZLOCKE's mark on a party slot: a fainted-for-good Pokémon's gravestone, on a tag like the held item's. */
 @Composable

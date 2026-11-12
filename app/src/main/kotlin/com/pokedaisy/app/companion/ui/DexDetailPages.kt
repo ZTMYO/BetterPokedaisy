@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import com.pokedaisy.app.companion.data.AreaKind
 import com.pokedaisy.app.companion.data.CatchSpot
 import com.pokedaisy.app.companion.data.DexDetails
@@ -44,11 +45,21 @@ import com.pokedaisy.app.companion.data.hasCatchSpots
 import com.pokedaisy.app.companion.data.hasEvolutions
 import com.pokedaisy.app.companion.data.hasLearnsets
 import com.pokedaisy.app.companion.data.itemName
+import com.pokedaisy.app.companion.data.displayItemNameMarked
+import com.pokedaisy.app.companion.data.displayLocationName
+import com.pokedaisy.app.companion.data.displayMoveName
+import com.pokedaisy.app.companion.data.displayMoveNameMarked
+import com.pokedaisy.app.companion.data.displayRegionName
+import com.pokedaisy.app.companion.data.displaySpeciesName
 import com.pokedaisy.app.companion.data.lookupLocation
 import com.pokedaisy.app.companion.data.lookupMove
+import com.pokedaisy.app.companion.data.untranslatedGameText
+import com.pokedaisy.app.companion.data.UnboundChineseBattleNames
 import com.pokedaisy.app.companion.data.speciesName
 import com.pokedaisy.app.companion.data.spriteAsset
 import com.pokedaisy.app.companion.data.typeName
+import com.pokedaisy.app.companion.i18n.AppLanguage
+import com.pokedaisy.app.companion.i18n.L10n
 import com.pokedaisy.app.companion.i18n.tk
 import com.pokedaisy.app.companion.i18n.tr
 import kotlinx.coroutines.Dispatchers
@@ -156,8 +167,12 @@ private fun rowsOf(t: PokedexTables, links: List<EvoLink>) =
     links.map { FamilyRow(it, PokedexSource.nationalOf(t, it.from), PokedexSource.nationalOf(t, it.to)) }
 
 @Composable
-private fun FamilyMon(species: Int, national: Int, current: Int, m: GbaTextMetrics, onOpen: (Int) -> Unit, modifier: Modifier) {
+internal fun FamilyMon(species: Int, national: Int, current: Int, m: GbaTextMetrics, onOpen: (Int) -> Unit, modifier: Modifier) {
     val here = species == current
+    val fallback = displaySpeciesName(species)
+    val displayName by produceKeyedState(UnboundChineseBattleNames.cachedSpecies(species) ?: fallback, species, fallback, L10n.language) {
+        value = withContext(Dispatchers.IO) { UnboundChineseBattleNames.species(species) ?: fallback }
+    }
     val noRipple = remember { MutableInteractionSource() }
     val focused by noRipple.collectIsFocusedAsState()
     Row(
@@ -169,7 +184,7 @@ private fun FamilyMon(species: Int, national: Int, current: Int, m: GbaTextMetri
         SpeciesIcon(spriteAsset("pokemon", species), size = m.lineHeight * 1.5f)
         Spacer(Modifier.width(m.u * 2))
         GbaText(
-            speciesName(species),
+            displayName,
             if (here) OptionColors.value else OptionColors.label,
             if (here) OptionColors.valueShadow else OptionColors.labelShadow,
             m, Modifier.weight(1f),
@@ -194,9 +209,9 @@ fun evoReqText(r: EvoReq): String = when (r) {
         EvoTime.NIGHT -> tr("at night")
     }
     EvoReq.Trade -> tr("Trade")
-    is EvoReq.TradeFor -> tr("Trade for {0}", speciesName(r.species))
-    is EvoReq.UseItem -> tr("Use {0}", itemName(r.item))
-    is EvoReq.Hold -> tr("holding {0}", itemName(r.item))
+    is EvoReq.TradeFor -> tr("Trade for {0}", displaySpeciesName(r.species))
+    is EvoReq.UseItem -> tr("Use {0}", displayItemNameMarked(r.item, itemName(r.item)))
+    is EvoReq.Hold -> tr("holding {0}", displayItemNameMarked(r.item, itemName(r.item)))
     is EvoReq.Gender -> if (r.female) "♀" else "♂"
     is EvoReq.Stats -> when {
         r.cmp > 0 -> tr("ATTACK > DEFENSE")
@@ -205,9 +220,9 @@ fun evoReqText(r: EvoReq): String = when (r) {
     }
     EvoReq.Random -> tr("by chance (personality)")
     is EvoReq.Beauty -> tr("BEAUTY {0}+", r.min)
-    is EvoReq.KnowsMove -> tr("knows {0}", lookupMove(r.move).name)
+    is EvoReq.KnowsMove -> tr("knows {0}", displayMoveNameMarked(r.move, lookupMove(r.move).name))
     is EvoReq.KnowsMoveType -> tr("knows a {0} move", typeInText(typeName(r.type)))
-    is EvoReq.SpeciesInParty -> tr("{0} in the party", speciesName(r.species))
+    is EvoReq.SpeciesInParty -> tr("{0} in the party", displaySpeciesName(r.species))
     is EvoReq.TypeInParty -> tr("a {0} type in the party", typeInText(typeName(r.type)))
     EvoReq.DarkInParty -> tr("a {0} type in the party", activeTypeNames.values.firstOrNull { it.equals("DARK", ignoreCase = true) } ?: "DARK")
     is EvoReq.AtPlace -> tr("at {0}", placeName(r.mapsec))
@@ -228,18 +243,18 @@ fun evoReqText(r: EvoReq): String = when (r) {
     is EvoReq.Recoil -> tr("{0}+ recoil damage taken", r.hp)
     is EvoReq.Scroll -> if (r.dark) tr("Scroll of Darkness") else tr("Scroll of Waters")
     is EvoReq.Steps -> tr("walk {0} steps", r.steps)
-    is EvoReq.BagCount -> tr("{0} {1} in the bag", r.count, itemName(r.item))
-    is EvoReq.Defeat -> if (r.species > 0) tr("defeat {0} {1} holding {2}", r.count, speciesName(r.species), itemName(r.item))
-        else tr("defeat {0} holding {1}", r.count, itemName(r.item))
-    is EvoReq.UsedMove -> tr("use {0} {1} times", lookupMove(r.move).name, r.times)
-    is EvoReq.Region -> (if (r.not) tr("outside {0}", regionName(r.region)) else tr("in {0}", regionName(r.region)))
+    is EvoReq.BagCount -> tr("{0} {1} in the bag", r.count, displayItemNameMarked(r.item, itemName(r.item)))
+    is EvoReq.Defeat -> if (r.species > 0) tr("defeat {0} {1} holding {2}", r.count, displaySpeciesName(r.species), displayItemNameMarked(r.item, itemName(r.item)))
+        else tr("defeat {0} holding {1}", r.count, displayItemNameMarked(r.item, itemName(r.item)))
+    is EvoReq.UsedMove -> tr("use {0} {1} times", displayMoveNameMarked(r.move, lookupMove(r.move).name), r.times)
+    is EvoReq.Region -> (if (r.not) tr("outside {0}", displayRegionName(regionName(r.region))) else tr("in {0}", displayRegionName(regionName(r.region))))
     is EvoReq.Hours -> "%02d:00-%02d:00".format(r.from, r.to)
     EvoReq.Spin -> tr("Spin around")
     EvoReq.AfterBattle -> tr("After a battle")
     EvoReq.InBattle -> tr("in battle")
     EvoReq.OverworldTrigger -> tr("Special spot")
     EvoReq.SpareSlot -> tr("a free slot and a POKé BALL")
-    is EvoReq.SplitFrom -> tr("When it becomes {0}", speciesName(r.species))
+    is EvoReq.SplitFrom -> tr("When it becomes {0}", displaySpeciesName(r.species))
     EvoReq.Special -> tr("Special condition")
 }
 
@@ -250,7 +265,7 @@ private fun regionName(id: Int): String =
 /** A region map section's name, as the MAP tab has it ("MAP 3.43" for a map with no section table). */
 private fun placeName(mapsec: Int): String =
     if (mapsec < 0) tr("MAP {0}", "${(-1 - mapsec) shr 8}.${(-1 - mapsec) and 0xFF}")
-    else lookupLocation(mapsec).mapSecName.ifBlank { tr("AREA {0}", mapsec) }
+    else displayLocationName(lookupLocation(mapsec).mapSecName).ifBlank { tr("AREA {0}", mapsec) }
 
 // ---- AREA --------------------------------------------------------------------
 
@@ -310,7 +325,7 @@ private fun areaPlaces(spots: List<CatchSpot>, g: GuideTables, species: Int): Li
             if (th.id != species || th.kind !in setOf(AreaKind.MON, AreaKind.EGG, AreaKind.TRADE)) continue
             val what = when (th.kind) {
                 AreaKind.EGG -> tr("AN EGG")
-                AreaKind.TRADE -> tr("TRADE FOR {0}", speciesName(th.wants))
+                AreaKind.TRADE -> tr("TRADE FOR {0}", displaySpeciesName(th.wants))
                 else -> tr("GIFT")
             }
             lines.getOrPut(sec) { ArrayList() }.add(what to th.where)
@@ -350,7 +365,7 @@ internal fun DexMovesSection(t: PokedexTables, g: GuideTables?, species: Int, m:
         return
     }
     val expansionList = mv.teach?.all { it.label.isEmpty() } == true
-    val teach = mv.teach?.let { list -> if (expansionList) list.sortedBy { lookupMove(it.move).name } else list }
+    val teach = mv.teach?.let { list -> if (expansionList) list.sortedBy { displayMoveName(it.move) } else list }
     // Nothing to tap: one D-pad stop that scrolls (the companion's window).
     val scroll = rememberLazyListState()
     LazyColumn(Modifier.fillMaxSize().dpadScroll(scroll, RectangleShape, small.lineHeight * 3), state = scroll) {
@@ -373,16 +388,24 @@ private fun LazyListScope.header(text: String, small: GbaTextMetrics) = item {
 }
 
 @Composable
-private fun MoveLine(label: String, move: Int, small: GbaTextMetrics) {
+internal fun MoveLine(label: String, move: Int, small: GbaTextMetrics) {
     val u = small.u
     val info = lookupMove(move)
+    val fallback = if (move == 0) info.name else displayMoveNameMarked(move, info.name)
+    val displayName by produceKeyedState(UnboundChineseBattleNames.cachedMove(move) ?: fallback, move, fallback, L10n.language) {
+        value = if (move == 0) fallback else withContext(Dispatchers.IO) {
+            UnboundChineseBattleNames.move(move) ?: fallback
+        }
+    }
     Row(
         Modifier.fillMaxWidth().drawBehind { drawRowDivider(OptionColors.divider, u.toPx(), 0f) }.padding(vertical = u * 2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (label.isNotEmpty()) GbaText(label, OptionColors.value, OptionColors.valueShadow, small, Modifier.width(u * 40))
-        GbaText(info.name, OptionColors.label, OptionColors.labelShadow, small, Modifier.weight(1f))
-        typeName(info.type).takeIf { it.isNotEmpty() }?.let { TypeBadge(it, fontSize = 11.sp) }
+        if (label.isNotEmpty()) GbaText(label, OptionColors.value, OptionColors.valueShadow, small,
+            Modifier.width(u * if (L10n.language == AppLanguage.ZH_CN) 72 else 40))
+        GbaText(displayName, OptionColors.label, OptionColors.labelShadow, small, Modifier.weight(1f),
+            maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 1)
+        typeName(info.type).takeIf { it.isNotEmpty() }?.let { MoveTypeBadge(it, fontSize = 11.sp, iconSize = 13.dp) }
     }
 }
 

@@ -4,16 +4,17 @@
 // On /docs/?q=... it starts with that query (search engines' site search lands there).
 import { DOCS_API_PATH } from '../lib/docs.js';
 
-interface Props { big?: boolean; autofocus?: boolean }
-const { big = false } = Astro.props;
+interface Props { big?: boolean; autofocus?: boolean; chinese?: boolean }
+const { big = false, chinese = false } = Astro.props;
+const base = chinese ? '/docs/zh-hans/' : '/docs/';
 ---
-<div class:list={['dsearch', big && 'big']} data-docsearch data-api={DOCS_API_PATH}>
+<div class:list={['dsearch', big && 'big']} data-docsearch data-api={chinese ? '/api/docs/v1/zh-hans/docs.json' : DOCS_API_PATH} data-base={base} data-chinese={chinese}>
   <label class="dsearch-box f-card">
     <svg class="dsearch-icon" viewBox="0 0 12 12" aria-hidden="true" shape-rendering="crispEdges">
       <path fill="currentColor" d="M3 0h4v1H3zM2 1h1v1H2zM7 1h1v1H7zM1 2h1v4H1zM8 2h1v4H8zM2 6h1v1H2zM7 6h1v1H7zM3 7h4v1H3zM8 7h1v1H8zM9 8h1v1H9zM10 9h1v1h-1zM11 10h1v2h-1z"/>
     </svg>
-    <span class="sr-only">Search the docs</span>
-    <input type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" aria-controls="dsearch-results" aria-autocomplete="list" />
+    <span class="sr-only">{chinese ? '搜索手册' : 'Search the docs'}</span>
+    <input type="search" placeholder={chinese ? '搜索手册' : 'Search the docs'} autocomplete="off" spellcheck="false" aria-controls="dsearch-results" aria-autocomplete="list" />
     <kbd class="dsearch-kbd" aria-hidden="true">/</kbd>
   </label>
   <ol class="dsearch-results f-card" id="dsearch-results" role="listbox" hidden></ol>
@@ -84,13 +85,13 @@ const { big = false } = Astro.props;
       list.innerHTML = hits.length
         ? hits.map((h: any) => `
             <li role="option" aria-selected="false">
-              <a href="/docs/${h.page}/${h.anchor ? '#' + h.anchor : ''}">
-                <span class="dsearch-where">${esc(h.heading ? h.pageTitle.toUpperCase() : 'PAGE')}</span>
+              <a href="${root.dataset.base}${h.page}/${h.anchor ? '#' + h.anchor : ''}">
+                <span class="dsearch-where">${esc(h.heading ? h.pageTitle.toUpperCase() : (root.dataset.chinese === 'true' ? '页面' : 'PAGE'))}</span>
                 <span class="dsearch-title">${esc(h.heading ?? h.pageTitle)}</span>
                 <span class="dsearch-snip">${marked(h.snippet.text, h.snippet.marks)}</span>
               </a>
             </li>`).join('')
-        : `<li class="dsearch-empty">Nothing found for “${esc(q)}”. Try a shorter word, or a button or setting name.</li>`;
+        : `<li class="dsearch-empty">${root.dataset.chinese === 'true' ? `没有找到“${esc(q)}”。请尝试更短的词或设置名称。` : `Nothing found for “${esc(q)}”. Try a shorter word, or a button or setting name.`}</li>`;
       list.hidden = false;
       select(hits.length ? 0 : -1);
     };

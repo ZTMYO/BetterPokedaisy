@@ -25,7 +25,7 @@ class PerformanceGuardsTest {
         }.toList()
         assertTrue("build fonts through pixelFontFamily / gameFontFamily / readingFontFamily (PixelTypeface.kt), not at $offenders", offenders.isEmpty())
         val typeface = read("PixelTypeface.kt")
-        assertTrue("pixelFontFamily must return its cached family", "pixelFamily?.let { return it }" in typeface)
+        assertTrue("pixelFontFamily must reuse a cached family for each fallback order", "pixelFamilies.getOrPut(preferChinese)" in typeface)
         assertTrue("gameFontFamily must reuse a family it already built", "gameFamilies[stamp]?.let { return it }" in typeface)
         assertTrue("readingFontFamily must return its cached family", "readingFamily?.let { return it }" in typeface)
     }

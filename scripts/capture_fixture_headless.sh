@@ -76,10 +76,15 @@ echo "dump /work/out" >>"$work/cmds.txt"
 
 docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -q -t "$IMAGE" "$CAPTURE_DIR"
 # Built from the repo root: mgba_dump compiles in the app's own C files (pk_wide.c, pk_cheats.c, ...).
-docker run --rm -v "$CAPTURE_DIR/..:/repo" -v "$work:/work" -w /repo/native-capture "$IMAGE" \
+# Git Bash on Windows: mounts take Windows paths (cygpath); MSYS_NO_PATHCONV keeps the container's
+# -w paths from being rewritten into local ones.
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+winpath() { cygpath -w "$1" 2>/dev/null || echo "$1"; }
+MSYS_NO_PATHCONV=1 docker run --rm \
+    -v "$(winpath "$REPO_ROOT"):/repo:ro" -v "$(winpath "$work"):/work" -w /repo/native-capture "$IMAGE" \
     -c "gcc -O2 -Wall -o /work/mgba_dump mgba_dump.c -I/usr/include -L/usr/lib/aarch64-linux-gnu -lmgba -lm"
 
-docker run --rm -v "$work:/work" -w /work "$IMAGE" \
+MSYS_NO_PATHCONV=1 docker run --rm -v "$(winpath "$work"):/work" -w /work "$IMAGE" \
     -c "./mgba_dump rom.gba ${save_arg[*]} < cmds.txt" 2>&1 | tail -5
 
 if [[ ! -f "$work/out/ewram.bin" ]]; then

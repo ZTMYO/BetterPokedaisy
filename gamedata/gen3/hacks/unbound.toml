@@ -63,3 +63,12 @@ language = 'F'
 gameCode = { ref = 'UNBOUND_FR_TEXT' }
 pokedex = 'POKEDEX_UNBOUND_FR'
 guideTables = 'GUIDE_TABLES_UNBOUND_FR'
+
+# 解放（无界）v2.1.1.1 新汉化 beta0.281 (32 MB, 遮蔽 sha1 40104331…) — 对英文
+# v2.1.1.1 的纯翻译。静态校验（analysis/static_check.py）：CFRU 重定向的
+# gItems @0x08876200 前 120 项中 119 个 ID 连续、120/120 描述指针在 ROM 内且互
+# 不相同；sItemIconTable @0x083D4294 24/24 有效 —— 数据布局与英文版一致 ⇒ RAM
+# 布局一致（翻译补丁只改文本/图，不动代码与全局变量）。先例：unbound_fr。
+# 中文图鉴名/道具名待 CJK 解码器（阶段3）；此前名称显示可能为乱码。
+[config.unbound_cn]
+base = 'unbound_with_dex'

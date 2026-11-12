@@ -106,17 +106,11 @@ private fun MoveListRow(
                 GbaText(tr("PP {0}", mv.pp), AppColors.text, MoveTextShadow, small)
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 3)) {
-                ListPill(com.pokedaisy.app.companion.data.typeLabel(mv.type), AppColors.typeColors[mv.type] ?: AppColors.muted, small)
+                MoveTypeIcon(mv.type, size = u * 12)
                 GbaText(tr("PWR {0}", powerLabel(mv.power)), AppColors.muted, Color.Transparent, small, Modifier.weight(1f))
                 val v = mv.vs.firstOrNull()
                 if (showHints && v != null) {
-                    val words = when {
-                        v.pct == 0 -> tr("IMMUNE {0}", v.label)
-                        v.pct > 100 -> tr("SUPER {0}", v.label)
-                        v.pct < 100 -> tr("RESISTED {0}", v.label)
-                        else -> tr("NEUTRAL {0}", v.label)
-                    }
-                    ListPill(words, verdictColor(v.pct), small)
+                    EffectLabel(v.pct, lethal = v.lethal)
                 }
             }
         }

@@ -45,11 +45,32 @@ object RomItemText {
         private set
 
     private val cache = ConcurrentHashMap<Int, String>()
+    private val nameCache = ConcurrentHashMap<Int, String>()
+    @Volatile private var readChineseNames = false
 
     /** The running game's table (null = none: "" for every item). Clears what an earlier ROM left. */
-    fun use(t: ItemDescTable?) {
+    fun use(t: ItemDescTable?, chineseNames: Boolean = false) {
         table = t
+        readChineseNames = chineseNames
         cache.clear()
+        nameCache.clear()
+    }
+
+    /** Names are enabled only for a ROM build whose table and encoding were verified. */
+    fun name(id: Int): String? {
+        if (!readChineseNames || id <= 0) return null
+        val t = table ?: return null
+        if (id < t.first || id - t.first >= t.count || t.idOff != 14 || t.stride != 44) return null
+        nameCache[id]?.let { return it }
+        val text = runCatching {
+            val at = t.base + (id - t.first).toLong() * t.stride
+            val data = PokedexSource.reader.readCoreMemory(at, 16)
+            val storedId = (data[14].toInt() and 0xff) or ((data[15].toInt() and 0xff) shl 8)
+            if (storedId != id || (0 until 14).none { (data[it].toInt() and 0xff) == 0xff }) return@runCatching null
+            Gen3Text.decode(data, 0, 14).trim().takeIf { it.isNotEmpty() && Gen3Text.UNKNOWN !in it }
+        }.getOrNull() ?: return null
+        nameCache[id] = text
+        return text
     }
 
     /** Item [id]'s description as the game's bag shows it, or "" (no table, no ROM, no text). */

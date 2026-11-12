@@ -303,7 +303,7 @@ object MoveAdvisor {
             if (lost.isNotEmpty()) r += AdviceReason("LOSES 2x ON {0}", listOf(typeList(lost)), good = false)
             // What the forgotten move adds to the rest: a weak effect, or hits the others already land harder.
             val adds = (score(mon, current, ref) - score(mon, current - out, ref)) / ref
-            if (adds < MIN_GAIN) r += AdviceReason("{0} DOES LITTLE", listOf(lookupMove(out).name), good = true)
+            if (adds < MIN_GAIN) r += AdviceReason("{0} DOES LITTLE", listOf(displayMoveName(out)), good = true)
         }
         return r.sortedByDescending { it.good }.take(3)
     }
@@ -317,7 +317,7 @@ object MoveAdvisor {
             val mine = attackValue(mon, move) ?: 0f
             current.filter { !isStatus(it) && lookupMove(it).type == info.type && (attackValue(mon, it) ?: 0f) >= mine }
                 .maxByOrNull { attackValue(mon, it) ?: 0f }
-                ?.let { r += AdviceReason("{0} IS BETTER", listOf(lookupMove(it).name), good = false) }
+                ?.let { r += AdviceReason("{0} IS BETTER", listOf(displayMoveName(it)), good = false) }
             if (statShare(mon, info.type) < 0.8f) r += AdviceReason(if (isPhysical(info.type)) "RUNS ON ATTACK, ITS WEAKER STAT" else "RUNS ON SP. ATK, ITS WEAKER STAT", good = false)
             if (st != null && st.accuracy in 1..84) r += AdviceReason("ACCURACY {0}%", listOf("${st.accuracy}"), good = false)
         } else if (st != null && tierFor(mon, st.effect).second <= 1f) {

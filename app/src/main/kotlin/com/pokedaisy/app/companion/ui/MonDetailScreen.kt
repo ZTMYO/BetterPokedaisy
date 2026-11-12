@@ -262,7 +262,7 @@ fun MonDetailScreen(
         if (evolveResult == null && target != null) {
             OptionConfirm(
                 tk("TRADE EVOLUTION"),
-                tr("{0} evolves into {1}, as if it had been traded. It stays yours.", evolving.name, com.pokedaisy.app.companion.data.speciesName(target)),
+                tr("{0} evolves into {1}, as if it had been traded. It stays yours.", evolving.name, com.pokedaisy.app.companion.data.displaySpeciesName(target)),
                 tk("EVOLVE"), m,
                 onConfirm = {
                     val slot = index
@@ -697,7 +697,7 @@ private fun MoveRow(mv: MoveView?, m: GbaTextMetrics, small: GbaTextMetrics, mod
                 if (forget) { Spacer(Modifier.width(u * 4)); ForgetTag() }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TypeBadge(mv.type)
+                MoveTypeBadge(mv.type)
                 MoveKindIcon(mv, m)
                 Spacer(Modifier.weight(1f))
                 Stat(tr("PWR"), powerLabel(mv.power), small)
@@ -707,7 +707,7 @@ private fun MoveRow(mv: MoveView?, m: GbaTextMetrics, small: GbaTextMetrics, mod
             // In battle: how the move fares against each foe.
             if (mv.vs.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    mv.vs.forEach { MultiplierChip(it.label, it.pct) }
+                    mv.vs.forEach { EffectLabel(it.pct, lethal = it.lethal) }
                 }
             }
         }

@@ -47,9 +47,9 @@ import com.pokedaisy.app.companion.data.TypeMatchup
 import com.pokedaisy.app.companion.data.formatMultiplier
 import com.pokedaisy.app.companion.data.typeIdOf
 import com.pokedaisy.app.companion.data.typeMultiplierPct
-import com.pokedaisy.app.companion.data.withMovesVs
 import com.pokedaisy.app.companion.i18n.tk
 import com.pokedaisy.app.companion.i18n.tr
+import com.pokedaisy.app.companion.data.withMovesVs
 import com.pokedaisy.app.companion.ui.theme.LocalGameFont
 import com.pokedaisy.app.companion.ui.theme.AppColors
 import com.pokedaisy.app.companion.ui.theme.pixelFontFamily
@@ -86,11 +86,11 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
  * beside SUGGESTIONS: [BattleStatsScreen].
  *
  * FOE DETAILS (GitHub #34): under the foe's matchups (scroll down) come its
- * ability, held item, stats with their stages, and its moveset - each move with
- * what it does to the player's battler. [onToggleFoeDetails] adds a button,
- * floating bottom-right, that hands the foe nearly the whole window
- * ([foeDetails], kept across battles): the player's side shrinks to a strip of
- * sprite and HP. [dexTables] names the foe's ability from the ROM.
+ * ability, held item, its battle stats with stages, and its six IVs.
+ * [onToggleFoeDetails] adds a button, floating bottom-right, that hands the foe
+ * nearly the whole window ([foeDetails], kept across battles): the player's side
+ * shrinks to a strip of sprite and HP. [dexTables] names the foe's ability from
+ * the ROM.
  */
 @Composable
 fun BattleInfoScreen(
@@ -109,6 +109,8 @@ fun BattleInfoScreen(
     isCaught: (Int) -> Boolean = { false },
     onSelectFoe: (Int) -> Unit = {},
     onShowStats: (() -> Unit)? = null,
+    /** SETTINGS > FOE IVS: the foe's six IVs also shown inline under its battle stats. */
+    showFoeIvs: Boolean = false,
     foeDetails: Boolean = false,
     onToggleFoeDetails: (() -> Unit)? = null,
     dexTables: PokedexTables? = null,
@@ -117,7 +119,7 @@ fun BattleInfoScreen(
     val m = rememberGbaTextMetrics(gameScaled = false)
     val small = rememberGbaTextMetrics(1f, gameScaled = false)
     val gap = m.u * 3
-    // The foe's moves, each with what it does to the player's battler(s).
+    // The foe's moves and what they do to the player's battler(s), at the column's bottom.
     val foes = remember(opponent, player) { opponent.map { it.withMovesVs(player) } }
     // Room under the scrolling foe column for the floating button, so nothing ends up behind it.
     val buttonRoom = if (onToggleFoeDetails != null) m.rowHeight + m.u * 4 else 0.dp
@@ -144,8 +146,11 @@ fun BattleInfoScreen(
                     Separator(m, Modifier.fillMaxHeight(), vertical = true)
                     Column(Modifier.weight(1f).fillMaxHeight().padding(start = gap)) {
                         Separator(m, Modifier.fillMaxWidth().padding(vertical = m.u * 2))
-                        FoeDetailsColumn(foes, player.size, showHints, matchups = showHints, dexTables, m, small,
-                            Modifier.fillMaxWidth().weight(1f), expanded = true, bottomRoom = buttonRoom)
+                        FoeDetailsColumn(
+                            foes, player.size, showHints, showIvs = showFoeIvs, matchups = showHints,
+                            dexTables = dexTables, m = m, small = small,
+                            modifier = Modifier.fillMaxWidth().weight(1f), expanded = true, bottomRoom = buttonRoom,
+                        )
                     }
                 }
             } else Column(Modifier.fillMaxSize()) {
@@ -162,8 +167,11 @@ fun BattleInfoScreen(
                     MovesColumn(player, opponent.size, showHints, m, small, Modifier.weight(1f).fillMaxHeight().padding(end = gap))
                     if (showHints || onToggleFoeDetails != null) {
                         Separator(m, Modifier.fillMaxHeight(), vertical = true)
-                        FoeDetailsColumn(foes, player.size, showHints, matchups = showHints, dexTables, m, small,
-                            Modifier.weight(1f).fillMaxHeight().padding(start = gap), bottomRoom = buttonRoom)
+                        FoeDetailsColumn(
+                            foes, player.size, showHints, showIvs = showFoeIvs, matchups = showHints,
+                            dexTables = dexTables, m = m, small = small,
+                            modifier = Modifier.weight(1f).fillMaxHeight().padding(start = gap), bottomRoom = buttonRoom,
+                        )
                     }
                 }
             }
@@ -273,6 +281,7 @@ internal fun FoeFacts(
             }
         }
         if (stats != null && stats.size == 5) {
+            GbaText(tr("STAT"), OptionColors.label, OptionColors.labelShadow, small, maxLines = 1)
             // The summary's order: Attack, Defense, Sp. Atk, Sp. Def, Speed.
             val order = listOf(0 to "ATTACK", 1 to "DEFENSE", 3 to "SP. ATK", 4 to "SP. DEF", 2 to "SPEED")
             val across = if (wide) 5 else 3
@@ -306,7 +315,7 @@ internal fun rememberFoeAbility(foe: MonView, dexTables: PokedexTables?): String
     foe.abilityName, dexTables, foe.abilityId,
     cached = { foe.abilityName ?: dexTables?.let { PokedexSource.cachedAbilityName(it, foe.abilityId) } },
     load = { dexTables?.let { PokedexSource.abilityName(it, foe.abilityId) } },
-)
+)?.let { com.pokedaisy.app.companion.data.displayAbilityName(it) }
 
 @Composable
 private fun FactPair(label: String, value: String, small: GbaTextMetrics, modifier: Modifier) {
@@ -467,7 +476,7 @@ internal fun BattleMoveRow(
                 if (!wideFont && showHints && foeCount <= 1) MoveVerdict(mv, foeCount, short = shortVerdict, threat = threat)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TypeBadge(mv.type)
+                MoveTypeBadge(mv.type)
                 MoveKindIcon(mv, m)
                 if (wideFont && showHints && foeCount <= 1) {
                     Spacer(Modifier.width(u * 4))
@@ -488,26 +497,14 @@ internal fun BattleMoveRow(
  * chip per foe in a double battle. Status moves ignore the type chart. */
 @Composable
 private fun MoveVerdict(mv: MoveView, foeCount: Int, short: Boolean = false, threat: Boolean = false) {
-    // A foe's move against the player: what's good for it is bad news.
-    fun color(pct: Int) = if (threat) threatColor(pct) else verdictColor(pct)
     when {
-        mv.pp == 0 -> VerdictPill(tr("NO PP"), VerdictGrey)
-        mv.power == 0 -> if (!short) VerdictPill(tr("STATUS"), VerdictGrey)   // short: its "PWR -" says it
+        mv.pp == 0 -> Text(tr("NO PP"), color = VerdictGrey, fontSize = 10.sp, fontFamily = pixelFontFamily(), maxLines = 1)
+        mv.power == 0 -> if (!short) Text(tr("STATUS"), color = VerdictGrey, fontSize = 10.sp, fontFamily = pixelFontFamily(), maxLines = 1)
         mv.vs.isEmpty() -> {}
-        foeCount > 1 || mv.vs.size > 1 -> Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            mv.vs.forEach { v -> VerdictPill("${v.vsName} ${v.label}", color(v.pct)) }
+        foeCount > 1 || mv.vs.size > 1 -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal) }
         }
-        // Just the multiplier, where the line is short (its colour still says which).
-        short -> mv.vs[0].let { v -> VerdictPill(v.label, color(v.pct)) }
-        else -> mv.vs[0].let { v ->
-            val words = when {
-                v.pct == 0 -> tr("IMMUNE {0}", v.label)
-                v.pct > 100 -> tr("SUPER {0}", v.label)
-                v.pct < 100 -> tr("RESISTED {0}", v.label)
-                else -> tr("NEUTRAL {0}", v.label)
-            }
-            VerdictPill(words, color(v.pct))
-        }
+        else -> EffectLabel(mv.vs[0].pct, fontSize = 11.sp, lethal = mv.vs[0].lethal)
     }
 }
 
@@ -558,16 +555,18 @@ internal val StatsPurple = Color(0xFF9070D0)
 internal val StatsPurpleDark = Color(0xFF5C4490)
 
 /** The foe's defensive chart - what to hit it with (strongest first), and what
- * not to - then [FoeFacts] and its moves with what each does to the player's
- * battler(s) ([playerCount]). Scrolls when it's long, with a fade at the bottom
- * edge while there's more below; a single battle's matchups fit above the fold,
- * as they did before the rest was added. [matchups] off (hints off) leaves them
- * out. [expanded] (FOE DETAILS) puts the facts and moves first, the moves two by
- * two, and the matchups after, a line a group. [bottomRoom] keeps the end clear
- * of the floating button. */
+ * not to - then [FoeFacts], its IVs when SETTINGS > FOE IVS is on, and at the
+ * bottom its moves with what each does to the player's battler(s) ([playerCount]).
+ * Scrolls when it's long, with a fade at the bottom edge while there's more
+ * below; a single battle's matchups fit above the fold, as they did before the
+ * rest was added. [matchups] off (hints off) leaves them out. [expanded] (FOE
+ * DETAILS) puts the facts and IVs first and the moves two by two; the normal
+ * column lists a move a row. [bottomRoom] keeps the end clear of the floating
+ * button. */
 @Composable
 private fun FoeDetailsColumn(
-    opponent: List<MonView>, playerCount: Int, showHints: Boolean, matchups: Boolean, dexTables: PokedexTables?,
+    opponent: List<MonView>, playerCount: Int, showHints: Boolean, showIvs: Boolean,
+    matchups: Boolean, dexTables: PokedexTables?,
     m: GbaTextMetrics, small: GbaTextMetrics, modifier: Modifier,
     expanded: Boolean = false, bottomRoom: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
@@ -587,17 +586,12 @@ private fun FoeDetailsColumn(
                 if (expanded) {
                     if (opponent.size > 1) GbaText(foe.name, OptionColors.value, OptionColors.valueShadow, small)
                     FoeFacts(foe, dexTables, m, small, wide = true)
-                    if (foe.moves.isEmpty()) GbaText(tr("NO MOVE DATA"), OptionColors.muted, OptionColors.mutedShadow, small)
-                    else foe.moves.chunked(2).forEach { pair ->
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.u * 6)) {
-                            for (j in 0 until 2) BattleMoveRow(pair.getOrNull(j), showHints, playerCount, m, small,
-                                Modifier.weight(1f).height(moveRow), threat = true, shortVerdict = true)
-                        }
-                    }
+                    if (showIvs) FoeIvs(foe, m, small)
                     if (matchups && groups.isNotEmpty()) {
                         Separator(m, Modifier.fillMaxWidth())
                         groups.forEach { (label, list) -> MatchupGroup(label, list, small, inline = true) }
                     }
+                    FoeMoves(foe, showHints, playerCount, m, small, moveRow, twoColumns = true)
                     return@forEachIndexed
                 }
                 if (matchups) {
@@ -607,28 +601,62 @@ private fun FoeDetailsColumn(
                     Separator(m, Modifier.fillMaxWidth())
                 }
                 FoeFacts(foe, dexTables, m, small, wide = false)
-                if (foe.moves.isNotEmpty()) {
-                    GbaText(tr("{0}'S MOVES", foe.name), OptionColors.value, OptionColors.valueShadow, small)
-                    foe.moves.forEach { mv ->
-                        BattleMoveRow(mv, showHints, playerCount, m, small, Modifier.fillMaxWidth().height(moveRow), threat = true)
-                    }
-                }
+                if (showIvs) FoeIvs(foe, m, small)
+                FoeMoves(foe, showHints, playerCount, m, small, moveRow, twoColumns = false)
             }
         }
-        if (scroll.canScrollForward) {
-            Box(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(m.u * 12)
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, OptionColors.titleFill))),
-            )
+    }
+}
+
+/** The foe's own moves, last in the column: two by two in FOE DETAILS, a row each otherwise. */
+@Composable
+private fun FoeMoves(
+    foe: MonView, showHints: Boolean, playerCount: Int, m: GbaTextMetrics, small: GbaTextMetrics,
+    moveRow: androidx.compose.ui.unit.Dp, twoColumns: Boolean,
+) {
+    if (foe.moves.isEmpty()) return
+    Separator(m, Modifier.fillMaxWidth())
+    GbaText(tr("{0}'S MOVES", foe.name), OptionColors.value, OptionColors.valueShadow, small)
+    if (twoColumns) {
+        foe.moves.chunked(2).forEach { pair ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.u * 6)) {
+                for (j in 0 until 2) BattleMoveRow(pair.getOrNull(j), showHints, playerCount, m, small,
+                    Modifier.weight(1f).height(moveRow), threat = true, shortVerdict = true)
+            }
+        }
+    } else {
+        foe.moves.forEach { mv ->
+            BattleMoveRow(mv, showHints, playerCount, m, small, Modifier.fillMaxWidth().height(moveRow), threat = true)
+        }
+    }
+}
+
+/** The foe's six IVs, one compact row: 31 is a gold V. No stats, no row. */
+@Composable
+private fun FoeIvs(foe: MonView, m: GbaTextMetrics, small: GbaTextMetrics) {
+    val ivs = foe.stats?.ivs ?: return
+    if (ivs.size < 6) return
+    GbaText(tr("IV"), OptionColors.label, OptionColors.labelShadow, small, maxLines = 1)
+    // IVs are HP first, then Attack, Defense, Speed, Sp. Atk, Sp. Def; show them in the
+    // summary's order.
+    val order = listOf(0 to "HP", 1 to "ATTACK", 2 to "DEFENSE", 4 to "SP. ATK", 5 to "SP. DEF", 3 to "SPEED")
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.u * 2)) {
+        order.forEach { (i, label) ->
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                GbaText(tr(label), OptionColors.label, OptionColors.labelShadow, small, maxLines = 1)
+                val iv = ivs[i]
+                if (iv == 31) GbaText("V", ShinyGold, ShinyAmber, m, maxLines = 1)
+                else GbaText("$iv", OptionColors.value, OptionColors.valueShadow, m, maxLines = 1)
+            }
         }
     }
 }
 
 /**
  * What the foe's own types do to [mon] - its types (its likely same-type
- * attacks) are the guess the card can fit; its real moves are under its matchups: "ROCK 2x" in
- * red when one lands super effectively, "RESISTS" in green when
- * every one is resisted, nothing when it's neutral.
+ * attacks) are the guess the card can fit: "ROCK 2x" in red when one lands
+ * super effectively, "RESISTS" in green when every one is resisted, nothing
+ * when it's neutral.
  */
 @Composable
 internal fun ThreatPill(mon: MonView, threats: List<MonView>) {

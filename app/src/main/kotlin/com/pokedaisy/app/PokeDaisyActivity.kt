@@ -350,6 +350,19 @@ class PokeDaisyActivity : Activity() {
         override val currentIndex get() = if (::engine.isInitialized) engine.currentSlot else 0
         override fun requestSave(index: Int) { if (::engine.isInitialized && !coopRefuses()) engine.requestSaveState(index) }
         override fun requestLoad(index: Int) { if (::engine.isInitialized && !coopRefuses()) engine.requestLoadState(index) }
+        override fun requestDelete(index: Int) {
+            val s = states ?: return
+            if (index !in SaveStates.SLOT_MIN..SaveStates.SLOT_MAX) return
+            val state = s.stateFile(index)
+            runCatching {
+                state.delete()
+                s.thumbFile(index).delete()
+                s.bakFile(index).delete()
+                s.bakThumbFile(index).delete()
+                com.pokedaisy.app.companion.data.SnapshotCache.fileFor(state).delete()
+                com.pokedaisy.app.achievements.RetroAchievements.progressFile(state).delete()
+            }
+        }
         override fun requestUndoSave() { if (::engine.isInitialized && !coopRefuses()) engine.requestUndoSave() }
         override fun requestUndoLoad() { if (::engine.isInitialized && !coopRefuses()) engine.requestUndoLoad() }
     }
@@ -3133,7 +3146,12 @@ class PokeDaisyActivity : Activity() {
         presentation = null
         SecondScreenHolder.close()
         ffMusicPlayer.release()
-        if (::engine.isInitialized && romKey.isNotEmpty()) {
+        if (!::engine.isInitialized) {
+            // The app is showing the library: no game has started in this process.
+            if (::view.isInitialized) view.onPause()
+            return
+        }
+        if (romKey.isNotEmpty()) {
             Prefs(this).setSpeedIndexFor(romKey, engine.speedIndex)
         }
         // The screen went off: the game holds on its frame with the core up and goes on from there on wake
@@ -4150,7 +4168,7 @@ class PokeDaisyActivity : Activity() {
             }
             GameStatusBar(
                 gameName = name,
-                location = snap.location.mapSecName.takeIf { snap.connected },
+                location = com.pokedaisy.app.companion.data.displayLocationName(snap.location.mapSecName).takeIf { snap.connected },
                 money = snap.money.takeIf { snap.connected },
                 time = time,
             )

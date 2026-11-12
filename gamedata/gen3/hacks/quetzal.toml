@@ -241,3 +241,10 @@ monIconPaletteTable = 0x08F87434
 itemIconTable = 0x09061828
 pokedex = 'POKEDEX_QUETZAL_MOEMON_V084_ES'
 guideTables = 'GUIDE_TABLES_QUETZAL_MOEMON_V084_ES'
+
+# 格查尔 Alpha 9 v0 机翻汉化「作弊随时开关」(32 MB, 遮蔽 sha1 a905bb87…) — 对
+# 英文 Alpha 9 v0 的机器翻译。静态校验（analysis/static_check.py）：gItems
+# @0x091E0594 的 60/60 个条目描述指针全部落在 ROM 内且互不相同 —— 表未被移动。
+# 注意：机翻文本未经校对；图鉴名/道具名待 CJK 解码器（阶段3）。
+[config.quetzal_cn]
+base = 'quetzal'

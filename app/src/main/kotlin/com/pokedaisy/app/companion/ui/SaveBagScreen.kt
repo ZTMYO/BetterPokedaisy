@@ -42,11 +42,12 @@ internal fun pocketLabel(p: BagPocket): String = when (p) {
 
 /** An item's name in capitals; a TM / HM with the move it teaches ("TM06 TOXIC"). */
 internal fun bagItemLabel(id: Int): String {
-    val name = itemNames[id]?.let(::caps) ?: "#$id"
+    val rom = itemNames[id]?.let(::caps) ?: ""
+    val name = if (rom.isNotEmpty()) com.pokedaisy.app.companion.data.displayItemName(id, rom) else "#$id"
     return Gen3Legal.tmHmMove(id)?.let { "$name ${moveLabel(it)}" } ?: name
 }
 
-internal fun moveLabel(id: Int): String = moveData[id]?.name?.let(::caps) ?: "#$id"
+internal fun moveLabel(id: Int): String = com.pokedaisy.app.companion.data.displayMoveName(id, moveData[id]?.name?.let(::caps) ?: "#$id")
 
 /** A stack the player can't change: key items and HMs are handed out once and the game needs them. */
 private fun fixedStack(p: BagPocket, item: Int) = p == BagPocket.KEY || (p == BagPocket.TMHM && item >= Gen3SaveFormat.FIRST_HM)
@@ -93,7 +94,7 @@ private fun StackList(state: PcBoxesState, data: Gen3SaveData, m: GbaTextMetrics
     val stacks = data.pocket(p)
     OptionListWindow(m, modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            GbaText(pocketLabel(p), OptionColors.groupTitleText, OptionColors.groupTitleShadow, m, Modifier.padding(horizontal = m.u * 4))
+            GbaText(tr(pocketLabel(p)), OptionColors.groupTitleText, OptionColors.groupTitleShadow, m, Modifier.padding(horizontal = m.u * 4))
             stacks.forEachIndexed { i, st ->
                 OptionLine(
                     bagItemLabel(st.item), "×${st.quantity}", selected = false, m, labelWeight = 0.8f, divider = true,

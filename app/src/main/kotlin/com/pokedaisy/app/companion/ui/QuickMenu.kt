@@ -610,7 +610,7 @@ private fun FlyDestinations(state: QuickMenuState, targets: FlyTargets, m: GbaTe
 /** REPEL's kinds in the bag: each one's name, how many and how many steps it lasts. */
 @Composable
 private fun RepelKinds(state: QuickMenuState, ids: List<Int>, s: SnapshotView, m: GbaTextMetrics) {
-    val rows = ids.map { id -> "${itemName(id)} x${s.items.filter { it.itemId == id }.sumOf { it.quantity }}" }
+    val rows = ids.map { id -> "${com.pokedaisy.app.companion.data.displayItemName(id)} x${s.items.filter { it.itemId == id }.sumOf { it.quantity }}" }
     val steps = ids.map { id -> tr("{0} steps", REPEL_KINDS.first { it.first == id }.second) }
     PickList(tr("REPEL"), rows, state, m, icons = ids, notes = steps)
 }

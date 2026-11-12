@@ -124,7 +124,7 @@ fun rememberMonIconSheet(asset: String?): Bitmap? {
 private fun rememberIconGeneration(): Int = DecompIconSource.generation.collectAsState().value
 
 @Composable
-fun SpeciesIcon(asset: String?, size: Dp, modifier: Modifier = Modifier) {
+fun SpeciesIcon(asset: String?, size: Dp, modifier: Modifier = Modifier, silhouette: Boolean = false) {
     val context = LocalContext.current
     // Starts from an already-decoded icon, so a list scrolling back doesn't flash blank.
     var bitmap by remember(asset) { mutableStateOf(peekMonIcon(asset)?.let { cropToFirstFrame(it) }) }
@@ -137,7 +137,11 @@ fun SpeciesIcon(asset: String?, size: Dp, modifier: Modifier = Modifier) {
     Box(modifier = modifier.size(size)) {
         bitmap?.let {
             // Nearest-neighbour: a pixel-art sprite, often scaled up.
-            Image(bitmap = it.asImageBitmap(), contentDescription = null, modifier = Modifier.size(size), filterQuality = FilterQuality.None)
+            Image(
+                bitmap = it.asImageBitmap(), contentDescription = null, modifier = Modifier.size(size),
+                colorFilter = if (silhouette) androidx.compose.ui.graphics.ColorFilter.tint(androidx.compose.ui.graphics.Color.Black) else null,
+                filterQuality = FilterQuality.None,
+            )
         }
     }
 }

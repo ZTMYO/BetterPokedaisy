@@ -15,10 +15,24 @@ import com.pokedaisy.app.companion.i18n.guide.guideTextUnbound
  * Anything not here (an English-only hack's guide, names already from the ROM) shows as it is.
  * `GuideTranslationsTest` fails while a line of those guides has no translation.
  */
-val guideTranslations: Map<String, Tr> by lazy {
-    guideTextFireRed + guideTextEmerald + guideTextRubySapphire + guideTextUnbound + guideTextQuetzal
+internal val guideTranslationTables: List<Map<String, Tr>> by lazy {
+    listOf(guideTextFireRed, guideTextEmerald, guideTextRubySapphire, guideTextUnbound, guideTextQuetzal)
 }
 
-/** [english] in the language on screen when a guide table has it, else as it is. */
-fun trGuide(english: String): String =
-    if (L10n.language == AppLanguage.EN) english else guideTranslations[english]?.of(L10n.language) ?: english
+val guideTranslations: Map<String, Tr> by lazy {
+    guideTranslationTables.fold(emptyMap()) { all, table -> all + table }
+}
+
+/** [english] in the language on screen. Chinese work in progress is marked when missing. */
+fun trGuide(english: String): String {
+    val lang = L10n.language
+    if (lang == AppLanguage.EN || english.isBlank()) return english
+    if (lang == AppLanguage.ZH_CN) {
+        return guideTranslationTables.firstNotNullOfOrNull { it[english]?.zh }
+            ?: guideZhExtra[english]
+            ?: translations[english]?.zh
+            ?: english.takeIf { text -> text.any { it in '\u3400'..'\u9fff' } }
+            ?: "未译：$english"
+    }
+    return guideTranslations[english]?.of(lang) ?: english
+}

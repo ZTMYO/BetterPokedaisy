@@ -2,7 +2,7 @@ package com.pokedaisy.app.companion.data
 
 import com.pokedaisy.app.companion.i18n.tr
 
-data class MoveVsFoe(val vsName: String, val label: String, val pct: Int)
+data class MoveVsFoe(val vsName: String, val label: String, val pct: Int, val lethal: Boolean = false)
 data class MoveView(val name: String, val type: String, val pp: Int, val power: Int, val vs: List<MoveVsFoe> = emptyList(), val id: Int = 0)
 
 /**
@@ -278,22 +278,54 @@ val SnapshotView.hasData: Boolean
 fun MonView.withMovesVs(foe: MonView): MonView = withMovesVs(listOf(foe))
 
 /** [withMovesVs] against every one of [targets] (a double battle's two). */
-fun MonView.withMovesVs(targets: List<MonView>): MonView = copy(moves = moves.map { mv ->
-    val atk = typeIdOf(mv.type)
-    // A status move's verdict says nothing: the chart only rates damage (GitHub #90).
-    if (mv.power == 0) return@map mv.copy(vs = emptyList())
-    mv.copy(vs = targets.map { foe ->
-        val t = foe.types.map(::typeIdOf)
-        val t1 = t.getOrElse(0) { TYPE_NONE }
-        val t2 = t.getOrElse(1) { TYPE_NONE }
-        val pct = if (atk != TYPE_NONE && t1 != TYPE_NONE) moveMultiplierPct(mv.name, atk, t1, t2) else 100
-        MoveVsFoe(foe.name, formatMultiplier(pct), pct)
+fun MonView.withMovesVs(targets: List<MonView>): MonView {
+    val attacker = this
+    return copy(moves = moves.map { mv ->
+        val atk = typeIdOf(mv.type)
+        // A status move's verdict says nothing: the chart only rates damage (GitHub #90).
+        if (mv.power == 0) return@map mv.copy(vs = emptyList())
+        mv.copy(vs = targets.map { foe ->
+            val t = foe.types.map(::typeIdOf)
+            val t1 = t.getOrElse(0) { TYPE_NONE }
+            val t2 = t.getOrElse(1) { TYPE_NONE }
+            val pct = if (atk != TYPE_NONE && t1 != TYPE_NONE) moveMultiplierPct(mv.name, atk, t1, t2) else 100
+            MoveVsFoe(foe.name, formatMultiplier(pct), pct, canFaint(attacker, foe, mv, pct))
+        })
     })
-})
+}
+
+/**
+ * Whether [attacker]'s move is likely to faint [defender] this turn: the Gen 3
+ * damage formula at its lowest roll (0.85), so "致命" only shows when the foe
+ * should go down even on a bad roll. Abilities, items, screens, weather and
+ * stat stages outside [MonView.battleStats] aren't part of it.
+ */
+private fun canFaint(attacker: MonView, defender: MonView, mv: MoveView, pct: Int): Boolean {
+    if (pct <= 0 || defender.hp <= 0 || mv.power <= 1) return false
+    if (typeIdOf(mv.type) == TYPE_NONE) return false
+    val kind = moveKind(mv) ?: return false
+    if (kind == MoveKind.STATUS) return false
+    val a = attacker.stats?.stats ?: return false
+    val d = defender.stats?.stats ?: return false
+    val physical = kind == MoveKind.PHYSICAL
+    var atk = a.getOrNull(if (physical) STAT_ATK else STAT_SPATK) ?: return false
+    val def = defender.battleStats?.let { if (physical) it.getOrNull(1) else it.getOrNull(4) }
+        ?: d.getOrNull(if (physical) STAT_DEF else STAT_SPDEF) ?: return false
+    if (physical && attacker.status == "BRN") atk /= 2
+    if (atk <= 0 || def <= 0) return false
+    val level = attacker.level.coerceIn(1, 100)
+    val base = ((2 * level / 5 + 2) * mv.power * atk / def) / 50 + 2
+    val stab = if (mv.type in attacker.types) 1.5 else 1.0
+    val damage = (base * stab * (pct / 100.0) * 0.85).toInt()
+    return damage >= defender.hp
+}
+
+private fun battleSpeciesName(id: Int): String = UnboundChineseBattleNames.species(id) ?: displaySpeciesName(id)
+private fun battleMoveName(id: Int, fallback: String): String = UnboundChineseBattleNames.move(id) ?: displayMoveName(id, fallback)
 
 /** A moveset's views: [ids] with their [pp], empty slots (0) dropped. */
 private fun moveViews(ids: IntArray, pp: IntArray): List<MoveView> = ids.toList().mapIndexedNotNull { idx, moveId ->
-    if (moveId == 0) null else lookupMove(moveId).let { MoveView(it.name, typeName(it.type), pp.getOrElse(idx) { 0 }, it.power, id = moveId) }
+    if (moveId == 0) null else lookupMove(moveId).let { MoveView(battleMoveName(moveId, it.name), typeName(it.type), pp.getOrElse(idx) { 0 }, it.power, id = moveId) }
 }
 
 private const val REGION_MAP_TILE_SIZE = 8
@@ -348,13 +380,13 @@ fun partyMonView(m: Mon): MonView {
         if (moveId == 0) null
         else {
             val info = lookupMove(moveId)
-            MoveView(info.name, typeName(info.type), m.pp[idx], info.power, id = moveId)
+            MoveView(battleMoveName(moveId, info.name), typeName(info.type), m.pp[idx], info.power, id = moveId)
         }
     }
     val isEgg = m.isEgg || isVanillaEgg(m.species)
     return MonView(
         species = m.species,
-        name = if (isEgg) gameCase("Egg") else speciesName(m.species),
+        name = if (isEgg) gameCase("Egg") else displaySpeciesName(m.species),
         isEgg = isEgg,
         level = m.level,
         hp = m.hp,
@@ -409,6 +441,8 @@ private fun boxesView(b: PcBoxes): BoxesView = synchronized(PcBoxes::class) {
 }
 
 fun buildSnapshotView(t: Telemetry): SnapshotView {
+    // National-dex mapping for the name tables (Hoenn species ids aren't national numbers).
+    PokedexSource.useTables(t.pokedex?.tables)
     // v2 ROMs export the icon-graphics table addresses; hand them to the live
     // sprite reader so nothing has to be bundled.
     DecompIconSource.tables = t.icons
@@ -455,13 +489,13 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
                     val info = lookupMove(moveId)
                     val vs = if (info.power == 0) emptyList() else opponents.map { foe ->
                         val pct = if (info.type != TYPE_NONE) moveMultiplierPct(info.name, info.type, foe.type1, foe.type2) else 100
-                        MoveVsFoe(speciesName(foe.species), formatMultiplier(pct), pct)
+                        MoveVsFoe(battleSpeciesName(foe.species), formatMultiplier(pct), pct)
                     }
-                    MoveView(info.name, typeName(info.type), b.pp[idx], info.power, vs, id = moveId)
+                    MoveView(battleMoveName(moveId, info.name), typeName(info.type), b.pp[idx], info.power, vs, id = moveId)
                 }
             }
             return MonView(
-                species = b.species, name = speciesName(b.species), level = b.level,
+                species = b.species, name = battleNickname(b, t.party) ?: battleSpeciesName(b.species), level = b.level,
                 hp = b.hp, maxHp = b.maxHp, status = statusLabel(b.status1),
                 types = monTypes(b.type1, b.type2),
                 iconAsset = if (b.shiny) shinyIconAsset(b.species) else spriteAsset("pokemon", b.species),
@@ -475,7 +509,7 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
             val matchups = typeMatchups(b.type1, b.type2)
             return mon.copy(
                 abilityId = b.ability,
-                heldItem = if (b.stats == null) null else if (b.item == 0) "" else itemName(b.item),
+                heldItem = if (b.stats == null) null else if (b.item == 0) "" else displayItemName(b.item, itemName(b.item)),
                 battleStats = b.stats?.toList(),
                 statStages = b.statStages?.map { it - 6 },
                 weaknesses = matchups.weaknesses,
@@ -488,7 +522,7 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
             if (b.species == 0) return null
             val matchups = typeMatchups(b.type1, b.type2)
             return MonView(
-                species = b.species, name = speciesName(b.species), level = b.level,
+                species = b.species, name = battleSpeciesName(b.species), level = b.level,
                 hp = b.hp, maxHp = b.maxHp, status = statusLabel(b.status1),
                 types = monTypes(b.type1, b.type2),
                 iconAsset = if (b.shiny) shinyIconAsset(b.species) else spriteAsset("pokemon", b.species),
@@ -496,7 +530,7 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
                 // the player's battlers are worked out where they're shown.
                 moves = moveViews(b.moves, b.pp),
                 abilityId = b.ability,
-                heldItem = if (b.stats == null) null else if (b.item == 0) "" else itemName(b.item),
+                heldItem = if (b.stats == null) null else if (b.item == 0) "" else displayItemName(b.item, itemName(b.item)),
                 battleStats = b.stats?.toList(),
                 statStages = b.statStages?.map { it - 6 },
                 weaknesses = matchups.weaknesses,
@@ -518,6 +552,9 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
             buildOpponentMon(t.battleMons[BATTLE_POS_OPPONENT_LEFT], prefer = t.enemyActive),
             buildOpponentMon(t.battleMons[BATTLE_POS_OPPONENT_RIGHT]),
         )
+        // The player moves' "致命" verdict needs the foe stats, which are known only after
+        // the opponent side is built.
+        if (battleOpponent.isNotEmpty()) battlePlayer = battlePlayer.map { it.withMovesVs(battleOpponent) }
         // Party slots in the same order as battlePlayer / battleOpponent.
         fun slots(vararg pos: Int, size: Int) = pos.filter { t.battleMons[it].species != 0 }
             .map { p -> t.battlerPartySlots.getOrNull(p)?.takeIf { it in 0 until size } ?: -1 }
@@ -530,7 +567,7 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
         val it = t.items[i]
         ItemView(
             it.itemId,
-            itemName(it.itemId),
+            RomItemText.name(it.itemId) ?: displayItemName(it.itemId, itemName(it.itemId)),
             it.quantity,
             spriteAsset("items", it.itemId),
             it.pocket,
@@ -569,7 +606,7 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
             val type2 = st?.type2 ?: TYPE_NONE
             val matchups = typeMatchups(type1, type2)
             MonView(
-                species = m.species, name = speciesName(m.species), level = m.level,
+                species = m.species, name = displaySpeciesName(m.species), level = m.level,
                 hp = m.hp, maxHp = m.maxHp, status = statusLabel(m.status),
                 types = monTypes(type1, type2),
                 iconAsset = spriteAsset("pokemon", m.species),

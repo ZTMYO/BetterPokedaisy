@@ -1,0 +1,70 @@
+# Gen 3 configs (hacks). The format and the commands: gamedata/README.md.
+
+# 宝可梦 火箭队（西火 / Team Rocket Edition Dragonsden）汉化 v3.04 —— pokeCIA 对西语/英文
+# 1.5 版的中文本地化（32 MB, BPEE, sha1 4ea5b01e…）。与英文版同一引擎但整份重编译，
+# RAM 与 ROM 表地址全部漂移。_MAPPED HEADLESS（mgba 注入/读回验证）：
+# - gPlayerParty 0x020395cc / count 0x0203936d（个性/昵称/OT 读回一致）；gMain 0x03005ccc；
+#   gSaveBlock1Ptr/2Ptr 0x030040f0 / 0x030040ec（→ 0x02017c8c / 0x0201b6b0）；gObjectEvents
+#   0x02000c90（facing @条目+0x18）；gMapHeader 0x020011a0（+0x10 music u16）。
+# - 存档：金钱 u16 @sb1+0x494（异或 key 低 16 位，key @sb2+0x44 = 0xff104697，注入 5000
+#   读回验证）；背包 ItemSlot 数组 @sb1+0x4c0，数量同样异或 key。
+# - gBagPockets 0x02006254（EWRAM，8 口袋 {ptr,capacity}）：翻页注入已知 id 道具读名，
+#   语义顺序 道具/药品/招式机/重要物品/精灵球/战斗道具/树果/珍宝
+#   （[TEAM_ROCKET_CN_BAG_POCKET_ORDER]，与英文版不同）。
+# - 战斗：gBattleStruct 指针变量 0x02000124（二级解引用访问模式）；gBattlerPositions
+#   0x0200013c、gBattleTypeFlags 0x02000140 由字面量交叉引用圈定（该簇 0x02000120-0x148
+#   为战斗变量区）。gBattleMons/gBattlersCount 无字面量锚点（该引擎经 gBattleStruct/
+#   指针表间接访问），走出设施迷宫前未能进战斗实测 → 置 0（战斗中显示为空场次）。
+#   0x02039824 是另一张指针表的计数器（CJK 字模缓存，[ptr+4]/[ptr+0xc] 访问），
+#   并非 gEnemyParty——英文版 playerParty+0x258 的推导在本构建不成立 → enemyParty 亦置 0。
+# - ROM 表：gItems 0x088CC594（44 字节/条，名字指针 +0、描述指针 +0x24，CJK 双字节码，
+#   解码出「精灵球/超级球/重复球」及可读描述；id13=重复球读回验证；1049 条连续有效）。
+#   图鉴/向导/图标三表相对英文版均已移动且未定位 → 'none'/0（fallback 兜底）。
+#   中文名经 CjkTables.TEAM_ROCKET_CN 按 ROM sha1 自动启用（Gen3Text 解码）。
+[config.team_rocket_cn]
+base = 'team_rocket'
+
+# --- RAM: all shifted vs the English build (headless-verified, see above) ---
+playerParty = 0x020395cc
+playerPartyCount = 0x0203936d
+gMain = 0x03005ccc
+saveBlock1Ptr = 0x030040f0
+saveBlock2Ptr = 0x030040ec
+objectEvents = 0x02000c90
+mapHeader = 0x020011a0
+bagPockets = 0x02006254
+bagPocketOrder = 'TEAM_ROCKET_CN_BAG_POCKET_ORDER'
+encryptionKeyOff = 0x44
+moneyOff = 0x494
+maxMoney = 9_999
+
+# --- Battle: statically cross-referenced only; no live battle capture (the
+# starting facility never yielded a wild encounter / trainer), so the mons
+# themselves stay unlocated - 0 shows the battle as on with no mons rather
+# than decoding another build's addresses. ---
+battleMons = 0
+battlersCount = 0
+enemyParty = 0
+battlerPartyIndexes = 0
+battlerPositions = 0x0200013c
+battleTypeFlags = 0x02000140
+battleStructPtr = 0x02000124
+actionCursor = 0
+moveCursor = 0
+battlerControllerFuncs = 0
+handleInputChooseAction = 0
+handleInputChooseMove = 0
+completeWhenChoseItem = 0
+waitForMonSelection = 0
+handleInputChooseTarget = 0
+partyMenu = 0
+
+# --- ROM tables: moved vs the English build; the EN addresses would read garbage ---
+itemDescs = { base = 0x088CC594, stride = 44, descOff = 0x24, count = 1049 }
+monIconTable = 0
+monIconPaletteIndices = 0
+monIconPaletteTable = 0
+itemIconTable = 0
+eggSpecies = 0
+pokedex = 'none'
+guideTables = 'none'

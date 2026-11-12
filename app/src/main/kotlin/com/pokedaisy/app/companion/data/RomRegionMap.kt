@@ -81,7 +81,10 @@ object RomRegionMap {
 
     /** [read] [rom], writing its screens (once per [romKey]) where [RomArt]'s art goes. */
     fun loadNow(filesDir: File, romKey: String, rom: File): Data? {
-        val parsed = RandomAccessFile(rom, "r").use { read(FileRom(it)) } ?: return null
+        // Map loading runs independently of the Poller; choose this ROM's
+        // charmap by file identity instead of whichever game initialized first.
+        val charmap = CjkTables.forSha(com.pokedaisy.app.RomIdentity.sha1(rom))
+        val parsed = RandomAccessFile(rom, "r").use { read(FileRom(it), charmap) } ?: return null
         val dir = File(RomArt.dir(filesDir), "regionmap").apply { mkdirs() }
         val names = parsed.images.mapIndexed { i, img ->
             val name = "rom-$romKey-v$VERSION-$i"
@@ -108,7 +111,7 @@ object RomRegionMap {
     }
 
     /** The region map [rom] carries, or null if it isn't a FireRed 1.0 ROM whose map code is where this expects. */
-    fun read(rom: Rom): Parsed? {
+    fun read(rom: Rom, charmap: IntArray? = Gen3Text.cjk): Parsed? {
         val header = rom.read(0xAC, 0x11)
         // Rev 1 has its code elsewhere. Anything else is taken as rev 0's code - Unbound's French
         // translation left its revision byte at 0x9E - and the literal pools below must still
@@ -176,7 +179,7 @@ object RomRegionMap {
 
         val sections = HashMap<Int, MapSecInfo>()
         for (i in 0 until SECTIONS) {
-            val name = titleCase(Gen3Text.decode(rom.read(ptr(names + i * 4) ?: break, 32)))
+            val name = titleCase(Gen3Text.decode(rom.read(ptr(names + i * 4) ?: break, 32), charmap = charmap))
             if (name.isEmpty()) continue
             val mapsec = FIRST_MAPSEC + i
             val x = u16(corners, i * 4)

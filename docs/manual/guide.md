@@ -87,7 +87,7 @@ The pages a game gets depend on how much of it has been mapped. The [supported g
 | Wishes of Tomorrow | The wild Pokémon in HERE, swapped the way your save swaps them when you play with its randomizer on. Its story takes you around its own region in its own order, so there's no NEXT BOSS yet |
 | Emerald Rogue, R.O.W.E., PureRed, PureBlue, Gold, Silver, Crystal Clear, Prism | No guide yet |
 
-The original games' hand-written pages follow the app's language when you play a French, German, Italian, Spanish or Japanese copy. Most hacks' pages are in English.
+The original games' hand-written pages follow the app's language when you play a French, German, Italian, Spanish or Japanese copy. Most hacks' pages are in English in those languages. In Simplified Chinese, translated guide text is shown in Chinese; unknown text keeps the original and is marked `未译`.
 
 ## Randomized games
 

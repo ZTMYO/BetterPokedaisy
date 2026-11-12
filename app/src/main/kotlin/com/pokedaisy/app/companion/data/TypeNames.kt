@@ -1,5 +1,8 @@
 package com.pokedaisy.app.companion.data
 
+import com.pokedaisy.app.companion.i18n.AppLanguage
+import com.pokedaisy.app.companion.i18n.L10n
+
 /**
  * A type's name as the running game shows it (GitHub #40: a French game's companion said FIRE). The
  * English name stays the key everywhere else - the type chart, the badge colours ([activeTypeNames]) -
@@ -8,11 +11,22 @@ package com.pokedaisy.app.companion.data
  */
 fun typeLabel(type: String): String {
     val en = type.uppercase()
-    return LOCAL_TYPE_NAMES[romLanguage]?.get(en) ?: en
+    return if (L10n.language == AppLanguage.ZH_CN) CHINESE_TYPE_NAMES[en] ?: en
+        else LOCAL_TYPE_NAMES[romLanguage]?.get(en) ?: en
 }
 
 /** [type] inside a sentence ("knows a Fire move"): the game's word, or English's own casing. */
-fun typeInText(type: String): String = LOCAL_TYPE_NAMES[romLanguage]?.get(type.uppercase()) ?: type
+fun typeInText(type: String): String =
+    if (L10n.language == AppLanguage.ZH_CN) CHINESE_TYPE_NAMES[type.uppercase()] ?: type
+    else LOCAL_TYPE_NAMES[romLanguage]?.get(type.uppercase()) ?: type
+
+/** Standard type names; custom type names stay in the ROM's words. */
+private val CHINESE_TYPE_NAMES = mapOf(
+    "NORMAL" to "一般", "FIRE" to "火", "WATER" to "水", "GRASS" to "草", "ELECTRIC" to "电",
+    "ICE" to "冰", "FIGHTING" to "格斗", "POISON" to "毒", "GROUND" to "地面", "FLYING" to "飞行",
+    "PSYCHIC" to "超能", "BUG" to "虫", "ROCK" to "岩石", "GHOST" to "幽灵", "DRAGON" to "龙",
+    "DARK" to "恶", "STEEL" to "钢", "FAIRY" to "妖精",
+)
 
 private val LOCAL_TYPE_NAMES: Map<Char, Map<String, String>> = mapOf(
     'F' to mapOf(

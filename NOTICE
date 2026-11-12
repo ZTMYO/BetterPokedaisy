@@ -78,8 +78,18 @@ The app shows every license below in full under Settings > LICENSES.
   Korean), Copyright (c) 2019-2025 Lee Minseo (https://github.com/quiple/galmuri), SIL Open Font License 1.1
   (app/src/main/assets/fonts/LICENSE-Galmuri.txt); cut to Hangul and rescaled by scripts/gen_ko_font.py, cut
   again to the site's characters by website/scripts/gen_site_ko_font.py.
-- PokeAPI (https://pokeapi.co), BSD 3-Clause: the National Dex species list
+- PokeAPI (https://pokeapi.co), BSD 3-Clause: the National Dex species list,
+  Simplified Chinese species names and verification aliases, and Pokédex
+  categories, from pokemon_species_names.csv at commit
+  6b8db7f3cb31cfaa37cb74e5c3edff124bcba5ce
   (third_party/licenses/PokeAPI-BSD-3-Clause.txt).
+- PKHeX (https://github.com/kwsch/PKHeX), GNU GPL 3.0: the Simplified Chinese
+  move, item, ability, nature and Gen 3 location names, and their English
+  verification names, from PKHeX.Core/Resources/text
+  (third_party/licenses/PKHeX-GPL-3.0.txt).
+- PokeIdle (https://github.com/ZTMYO/PokeIdle), by ZTMYO: the type icons
+  (icon-type-* SVG symbols), converted to Android VectorDrawables in
+  app/src/main/res/drawable/type_*.xml.
 - AndroidX, Jetpack Compose, Kotlin, kotlinx.coroutines and Apache Commons
   Compress (with Commons IO, Codec and Lang), Apache License 2.0
   (third_party/licenses/Apache-2.0.txt; their NOTICE files in

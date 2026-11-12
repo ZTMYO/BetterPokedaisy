@@ -225,7 +225,7 @@ fun GuideScreen(source: GuideSource, ui: GuideUiState, snapshot: SnapshotView, m
         addAll(source.text?.pages.orEmpty())
         // No hand-written WHERE IS (the ROM hacks): one built from the area data.
         if (source.text?.pages.orEmpty().none { it.title == WHERE_IS }) source.id?.let { id ->
-            generatedWhereIs(id, { activeMapSecData[it]?.name?.uppercase() ?: tr("AREA {0}", it) }) { areaDone(it, snapshot, ctx, dex) }?.let(::add)
+            generatedWhereIs(id, { activeMapSecData[it]?.name?.let { name -> com.pokedaisy.app.companion.data.displayLocationName(name).uppercase() } ?: tr("AREA {0}", it) }) { areaDone(it, snapshot, ctx, dex) }?.let(::add)
         }
         table?.let { add(evolutionsPage(it, snapshot.party)) }
     }
@@ -376,8 +376,7 @@ private fun EntryRow(e: GuideEntry, level: Int, owned: Boolean, m: GbaTextMetric
  * city with its houses, a route with its gates):
  *  - TO DO: the game's own guide entries about this area (areas = …);
  *  - the wild Pokémon of the map they're standing on, by method, straight
- *    from the ROM's encounter tables ([hasWild], native path only). Species
- *    the player has seen are named; unseen ones stay "???" until tapped;
+ *    from the ROM's encounter tables ([hasWild], native path only), all named;
  *  - PEOPLE: gifts and trades its maps' scripts hand out;
  *  - ITEMS: item balls and hidden items (the latter unnamed until tapped).
  * PEOPLE and ITEMS come from GuideAreas (generated from the decomp); what
@@ -397,15 +396,14 @@ private fun herePage(
     otherTime: MapEncounters? = null,
     otherIsNight: Boolean = false,
 ): GuidePage {
-    val place = snapshot.location.mapSecName.ifEmpty { tk("THIS MAP") }.uppercase()
+    val place = com.pokedaisy.app.companion.data.displayLocationName(snapshot.location.mapSecName).ifEmpty { tk("THIS MAP") }.uppercase()
     fun national(species: Int) = dex?.let { PokedexSource.nationalOf(it.tables, guideDexSpecies(species)) } ?: 0
     fun rows(slots: List<EncounterSlot>) = slots.map { s ->
         val n = national(s.species)
-        val seen = dex == null || n in dex.seen
         val lv = tr("LV {0}", if (s.minLevel == s.maxLevel) "${s.minLevel}" else "${s.minLevel}-${s.maxLevel}")
         GuideEntry(
-            title = if (seen) speciesName(s.species) else "???",
-            answer = if (seen) "" else speciesName(s.species),
+            title = com.pokedaisy.app.companion.data.displaySpeciesName(s.species),
+            answer = "",
             detail = "$lv  ${s.percent}%",
             icon = s.species,
             owned = dex != null && n in dex.caught,
@@ -441,21 +439,21 @@ private fun herePage(
     fun at(t: AreaThing) = if (t.where.isEmpty()) tr("around {0}", placeShown) else tr("in the {0}", trGuide(t.where))
     val people = things.filter { it.kind in PEOPLE_KINDS }.map { t ->
         when (t.kind) {
-            AreaKind.MON -> GuideEntry(speciesName(t.id), tr("Someone {0} gives you this POKéMON.", at(t)), icon = t.id, owned = done(t))
-            AreaKind.EGG -> GuideEntry(tr("AN EGG"), tr("Someone {0} gives you an EGG. It hatches into {1}.", at(t), speciesName(t.id)), owned = done(t))
+            AreaKind.MON -> GuideEntry(com.pokedaisy.app.companion.data.displaySpeciesName(t.id), tr("Someone {0} gives you this POKéMON.", at(t)), icon = t.id, owned = done(t))
+            AreaKind.EGG -> GuideEntry(tr("AN EGG"), tr("Someone {0} gives you an EGG. It hatches into {1}.", at(t), com.pokedaisy.app.companion.data.displaySpeciesName(t.id)), owned = done(t))
             AreaKind.TRADE -> GuideEntry(
-                tr("TRADE FOR {0}", speciesName(t.id)), tr("Someone {0} trades it for your {1}.", at(t), speciesName(t.wants)),
+                tr("TRADE FOR {0}", com.pokedaisy.app.companion.data.displaySpeciesName(t.id)), tr("Someone {0} trades it for your {1}.", at(t), com.pokedaisy.app.companion.data.displaySpeciesName(t.wants)),
                 icon = t.id, owned = done(t),
             )
-            else -> GuideEntry(itemName(t.id) + qty(t), tr("Someone {0} gives it to you.", at(t)), owned = done(t))
+            else -> GuideEntry(com.pokedaisy.app.companion.data.displayItemName(t.id) + qty(t), tr("Someone {0} gives it to you.", at(t)), owned = done(t))
         }
     }.sortedBy { it.owned }
     val items = things.filter { it.kind == AreaKind.ITEM || it.kind == AreaKind.HIDDEN }.map { t ->
         val got = done(t)
         if (t.kind == AreaKind.HIDDEN && !got) {
-            GuideEntry(tr("HIDDEN ITEM"), itemName(t.id) + qty(t), hint = tr("Buried {0}.", at(t)))
+            GuideEntry(tr("HIDDEN ITEM"), com.pokedaisy.app.companion.data.displayItemName(t.id) + qty(t), hint = tr("Buried {0}.", at(t)))
         } else {
-            GuideEntry(itemName(t.id) + qty(t), if (t.kind == AreaKind.HIDDEN) tr("Hidden {0}.", at(t)) else tr("Lying {0}.", at(t)), owned = got)
+            GuideEntry(com.pokedaisy.app.companion.data.displayItemName(t.id) + qty(t), if (t.kind == AreaKind.HIDDEN) tr("Hidden {0}.", at(t)) else tr("Lying {0}.", at(t)), owned = got)
         }
     }.sortedBy { it.owned }
 
@@ -539,15 +537,15 @@ private fun bossPage(
             if (i == 0) tr("NEXT: {0}", title) else title,
             team.mapIndexed { n, mon ->
                 val st = activeSpeciesTypeData[mon.species]
-                val types = monTypes(st?.type1 ?: TYPE_NONE, st?.type2 ?: TYPE_NONE).joinToString(" / ") { it.uppercase() }
+                val types = monTypes(st?.type1 ?: TYPE_NONE, st?.type2 ?: TYPE_NONE).joinToString(" / ") { com.pokedaisy.app.companion.data.typeLabel(it) }
                 GuideEntry(
                     title = tr("POKéMON {0}", n + 1),
                     detail = tr("LV {0}", mon.level),
                     hint = tr("{0} TYPE", types),
                     answer = buildString {
-                        append(speciesName(mon.species))
-                        if (mon.moves.isNotEmpty()) append("\n" + mon.moves.joinToString(" · ") { lookupMove(it).name })
-                        if (mon.heldItem != 0) append("\n" + tr("HOLDS {0}", itemName(mon.heldItem)))
+                        append(com.pokedaisy.app.companion.data.displaySpeciesName(mon.species))
+                        if (mon.moves.isNotEmpty()) append("\n" + mon.moves.joinToString(" · ") { com.pokedaisy.app.companion.data.displayMoveName(it) })
+                        if (mon.heldItem != 0) append("\n" + tr("HOLDS {0}", com.pokedaisy.app.companion.data.displayItemName(mon.heldItem)))
                     },
                     icon = mon.species,
                 )
@@ -566,7 +564,7 @@ private fun bossPage(
  */
 private fun evolutionsPage(table: List<List<Evolution>>, party: List<MonView>): GuidePage {
     fun entryFor(species: Int, evos: List<Evolution>) = GuideEntry(
-        title = speciesName(species),
+        title = com.pokedaisy.app.companion.data.displaySpeciesName(species),
         answer = if (evos.isEmpty()) tr("Doesn't evolve.") else evos.joinToString("\n") { evolutionText(it) },
         hint = evos.takeIf { it.isNotEmpty() }?.map { evolutionKind(it) }?.distinct()?.joinToString(" / "),
     )

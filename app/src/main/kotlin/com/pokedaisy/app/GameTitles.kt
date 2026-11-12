@@ -184,6 +184,12 @@ object GameTitles {
         "831fe0f97301f17b24a9cd4a64ef0520835c4dde" to "Super Mariomon",
         "06e79d12afa578db97c23c1f7ba771fe2f8fe905" to "Super Mariomon",
         "25f8840ecb58e584edf18ffde35f845e94f3f17c" to "Pokémon GS Chronicles",
+        // 中文汉化版（config.*_cn；Poller.kt 的 *_CN_SHA1 常量）：纯翻译构建，共用原版的表与 RAM。
+        "40104331f1899b23cd5b6cee9612b775e6bb4234" to "Pokémon Unbound v2.1.1.1 汉化版",
+        "f1772137ce263cf4357eecfc431b888b37e34369" to "Pokémon Radical Red v4.1 汉化版",
+        "2d0d2b269199b90564e141518ad0e44cb2ada04f" to "宝可梦水银 v1.33",
+        "a905bb8712f5d934b40aca14e29939f578402bda" to "Pokémon Quetzal Alpha 9 v0 汉化版",
+        "4ea5b01ee2feda127c230a0d2f80e1aa2b3b81b0" to "宝可梦 火箭队（西火）汉化 v3.04",
         // Crystal Clear: v2.5.11 and v2.6.0, each in Standard Colors and Color Filter.
         "a1c4da6b0057c98fe4ebea45d6812a484fc69abd" to "Pokémon Crystal Clear",
         "6fc677bf7a9db103cb9ee11ac08d26782e69ae41" to "Pokémon Crystal Clear",

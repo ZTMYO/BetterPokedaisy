@@ -16,8 +16,7 @@ export function words(text) {
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean);
+    .match(/[a-z0-9]+|[\u3400-\u9fff\uf900-\ufaff]+/g) ?? [];
 }
 
 /** A light English stemmer: plurals, -ing, -ed. The same word in the query and the text stems the same. */
@@ -101,6 +100,7 @@ function sectionsOf(page) {
 /** How well [q] matches [t]: 1 the same, 0.75 the start of it, 0.5 a typo away, else 0. */
 function matchScore(q, t) {
   if (q === t) return 1;
+  if (/[\u3400-\u9fff\uf900-\ufaff]/.test(q)) return t.includes(q) ? 0.75 : 0;
   if (q.length >= 2 && t.startsWith(q)) return 0.75;
   const max = q.length >= 8 ? 2 : q.length >= 4 ? 1 : 0;
   if (max && distance(q, t, max) <= max) return 0.5;
@@ -123,6 +123,7 @@ function expand(index, query) {
 export function search(index, query, limit = 8) {
   const groups = expand(index, query);
   if (!groups.length) return [];
+  const queryTerms = terms(query);
   const N = index.records.length;
   const idf = (t) => Math.log(1 + N / (index.df.get(t) ?? 1));
   const scored = [];
@@ -155,6 +156,8 @@ export function search(index, query, limit = 8) {
     const title = [...new Set(r.fields.title)];
     const covered = title.filter((t) => groups.some((alts) => alts.some((a) => matchScore(a.t, t) > 0))).length;
     if (title.length) total *= 1 + 0.6 * (covered / title.length);
+    // An exact title is the clearest answer, even when a longer heading contains a rarer Chinese phrase.
+    if (queryTerms.length === r.fields.title.length && queryTerms.every((t, i) => t === r.fields.title[i])) total *= 2;
     // A page's own record a little ahead of its sections on a tie, so "fast forward" opens the page.
     if (!r.anchor) total *= 1.05;
     scored.push({ r, total, matched });
@@ -177,15 +180,27 @@ export function search(index, query, limit = 8) {
 /** ~160 characters of [body] around the first word that matched, with [start, end) ranges to highlight. */
 export function snippet(body, groups, size = 160) {
   const qs = groups.flat().map((a) => a.t);
-  const re = /[A-Za-z0-9À-ɏ]+/g;
+  const re = /[A-Za-z0-9À-ɏ]+|[\u3400-\u9fff\uf900-\ufaff]+/g;
   const hits = [];
   let m;
   while ((m = re.exec(body))) {
     const t = stem(words(m[0])[0] ?? '');
-    if (t && qs.some((q) => matchScore(q, t) > 0)) hits.push([m.index, m.index + m[0].length]);
+    if (/[\u3400-\u9fff\uf900-\ufaff]/.test(t)) {
+      for (const q of qs) {
+        const at = t.indexOf(q);
+        if (at >= 0) hits.push([m.index + at, m.index + at + q.length]);
+      }
+    } else if (t && qs.some((q) => matchScore(q, t) > 0)) hits.push([m.index, m.index + m[0].length]);
+  }
+  hits.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const merged = [];
+  for (const hit of hits) {
+    const last = merged[merged.length - 1];
+    if (last && hit[0] < last[1]) last[1] = Math.max(last[1], hit[1]);
+    else merged.push([...hit]);
   }
   if (!body) return { text: '', marks: [] };
-  const first = hits[0]?.[0] ?? 0;
+  const first = merged[0]?.[0] ?? 0;
   let start = Math.max(0, first - Math.floor(size / 3));
   if (start > 0) {
     const space = body.indexOf(' ', start);
@@ -198,7 +213,7 @@ export function snippet(body, groups, size = 160) {
   }
   const pre = start > 0 ? '…' : '';
   const text = pre + body.slice(start, end) + (end < body.length ? '…' : '');
-  const marks = hits
+  const marks = merged
     .filter(([a, b]) => a >= start && b <= end)
     .map(([a, b]) => [a - start + pre.length, b - start + pre.length]);
   return { text, marks };

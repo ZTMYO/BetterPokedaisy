@@ -306,13 +306,14 @@ object AppColors {
     val statusTox = Color(0xFF7A3EA1)
 
     private val typeColorsTitled = mapOf(
-        "Normal" to Color(0xFFA8A878), "Fighting" to Color(0xFFC03028), "Flying" to Color(0xFFA890F0),
-        "Poison" to Color(0xFFA040A0), "Ground" to Color(0xFFE0C068), "Rock" to Color(0xFFB8A038),
-        "Bug" to Color(0xFFA8B820), "Ghost" to Color(0xFF705898), "Steel" to Color(0xFFB8B8D0),
-        "???" to Color(0xFF68A090), "Fire" to Color(0xFFF08030), "Water" to Color(0xFF6890F0),
-        "Grass" to Color(0xFF78C850), "Electric" to Color(0xFFF8D030), "Psychic" to Color(0xFFF85888),
-        "Ice" to Color(0xFF98D8D8), "Dragon" to Color(0xFF7038F8), "Dark" to Color(0xFF705848),
-        "Fairy" to Color(0xFFEE99AC),
+        // Saturated pill colours (PokeIdle's): white labels read on every one.
+        "Normal" to Color(0xFF9F9E9A), "Fighting" to Color(0xFFA7443E), "Flying" to Color(0xFF72A3D2),
+        "Poison" to Color(0xFF793B9B), "Ground" to Color(0xFF894F4E), "Rock" to Color(0xFFBA9459),
+        "Bug" to Color(0xFF89991A), "Ghost" to Color(0xFF633963), "Steel" to Color(0xFF548EA2),
+        "???" to Color(0xFF68A090), "Fire" to Color(0xFFCB494D), "Water" to Color(0xFF3786CE),
+        "Grass" to Color(0xFF378E24), "Electric" to Color(0xFFDBB538), "Psychic" to Color(0xFFDA5A89),
+        "Ice" to Color(0xFF37BEE0), "Dragon" to Color(0xFF4654C6), "Dark" to Color(0xFF553F42),
+        "Fairy" to Color(0xFFC74ECB),
         // Pokémon Prism's own types (none of the official games has them): colours of ours.
         "Gas" to Color(0xFF9C8CB4), "Sound" to Color(0xFF58A8C0), "Tri" to Color(0xFFC89878),
         "Prism" to Color(0xFFE070D8),
@@ -365,7 +366,8 @@ fun pixelFontFamily(): FontFamily {
     LocalGameFont.current?.let { return it }
     val context = LocalContext.current
     // Pixel Operator + its Japanese fallback (PixelTypeface.kt), one per process.
-    return com.pokedaisy.app.pixelFontFamily(context)
+    val preferChinese = com.pokedaisy.app.companion.i18n.L10n.language == com.pokedaisy.app.companion.i18n.AppLanguage.ZH_CN
+    return com.pokedaisy.app.pixelFontFamily(context, preferChinese)
 }
 
 /**
@@ -401,7 +403,8 @@ fun rememberGameFont(game: GameKind?): FontFamily? {
     val context = LocalContext.current
     val gen = com.pokedaisy.app.companion.ui.rememberArtGeneration()
     val language = com.pokedaisy.app.companion.data.romLanguage
-    return remember(game, gen, language) {
+    val preferChinese = com.pokedaisy.app.companion.i18n.L10n.language == com.pokedaisy.app.companion.i18n.AppLanguage.ZH_CN
+    return remember(game, gen, language, preferChinese) {
         val path = when (game) {
             GameKind.YELLOW -> com.pokedaisy.app.companion.data.Gen1Art.yellowFont(com.pokedaisy.app.companion.data.romLanguage)
             GameKind.RED, GameKind.BLUE -> com.pokedaisy.app.companion.data.Gen1Art.RED_BLUE_FONT
@@ -415,7 +418,7 @@ fun rememberGameFont(game: GameKind?): FontFamily? {
             GameKind.GOLD, GameKind.SILVER -> com.pokedaisy.app.companion.data.Gen2Art.GOLD_SILVER_FONT
             else -> null
         } ?: return@remember null
-        com.pokedaisy.app.companion.data.RomArt.file(context.filesDir, path)?.let { com.pokedaisy.app.gameFontFamily(context, it) }
+        com.pokedaisy.app.companion.data.RomArt.file(context.filesDir, path)?.let { com.pokedaisy.app.gameFontFamily(context, it, preferChinese) }
     }
 }
 

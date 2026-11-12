@@ -128,10 +128,10 @@ private fun LearnRow(o: LearnOption, open: Boolean, onSelect: (Int) -> Unit, sho
         Row(verticalAlignment = Alignment.CenterVertically) {
             GbaText(if (o.tm.isEmpty()) "${tr("Lv")} ${o.level}" else o.tm, optionLook.muted, optionLook.mutedShadow, small)
             Spacer(Modifier.width(u * 4))
-            GbaText(info.name, optionLook.label, optionLook.labelShadow, m, Modifier.weight(1f))
+            GbaText(com.pokedaisy.app.companion.data.displayMoveName(o.move, info.name), optionLook.label, optionLook.labelShadow, m, Modifier.weight(1f))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TypeBadge(type)
+            MoveTypeBadge(type)
             Spacer(Modifier.weight(1f))
             Stat(tr("PWR"), powerLabel(info.power), small)
             if (stats != null) {
@@ -154,7 +154,7 @@ private fun LearnRow(o: LearnOption, open: Boolean, onSelect: (Int) -> Unit, sho
 private fun VerdictBadge(a: MoveAdvice) {
     when (a.verdict) {
         Verdict.LEARN -> VerdictPill(tr("LEARN"), LearnGreen)
-        Verdict.REPLACE -> VerdictPill(tr("FORGET {0}", lookupMove(a.forget).name), LearnGreen)
+        Verdict.REPLACE -> VerdictPill(tr("FORGET {0}", com.pokedaisy.app.companion.data.displayMoveName(a.forget)), LearnGreen)
         Verdict.SKIP -> VerdictPill(tr("SKIP"), VerdictGrey)
         Verdict.KNOWN -> VerdictPill(tr("LEARNED"), LearnedBlue)
     }
@@ -203,7 +203,7 @@ internal fun TmLearnersRow(ctx: LearnContext, party: List<MonView>, item: ItemVi
             val a = learners.first { it.index == best }.advice!!
             val name = party[best].name
             GbaText(
-                if (a.verdict == Verdict.REPLACE) tr("BEST FOR {0}: FORGET {1}", name, lookupMove(a.forget).name) else tr("BEST FOR {0}", name),
+                if (a.verdict == Verdict.REPLACE) tr("BEST FOR {0}: FORGET {1}", name, com.pokedaisy.app.companion.data.displayMoveName(a.forget)) else tr("BEST FOR {0}", name),
                 text, shadow, small, maxLines = 2,
             )
         }

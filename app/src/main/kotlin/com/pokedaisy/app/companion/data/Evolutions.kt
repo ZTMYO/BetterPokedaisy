@@ -53,12 +53,12 @@ fun evolutionText(e: Evolution): String {
         EVO_FRIENDSHIP_DAY -> tr("Level up with high friendship, by day")
         EVO_FRIENDSHIP_NIGHT -> tr("Level up with high friendship, at night")
         EVO_TRADE -> tr("Trade")
-        EVO_TRADE_ITEM -> tr("Trade holding {0}", itemName(e.param))
-        EVO_ITEM -> itemName(e.param)
+        EVO_TRADE_ITEM -> tr("Trade holding {0}", displayItemName(e.param))
+        EVO_ITEM -> displayItemName(e.param)
         EVO_BEAUTY -> tr("Level up with BEAUTY {0}+", e.param)
         else -> "?"
     }
-    return "$how → ${speciesName(e.target)}"
+    return "$how → ${displaySpeciesName(e.target)}"
 }
 
 /** A plain level-up - the evolutions that need no explaining. */

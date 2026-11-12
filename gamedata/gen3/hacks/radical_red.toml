@@ -41,3 +41,12 @@ guideTables = 'GUIDE_TABLES_RADICAL_RED'
 # FireRed's battle menu cursors (CFRU's EWRAM), checked headless like Unbound's (radical_red_battle's README).
 actionCursor = 0x02023FF8
 moveCursor = 0x02023FFC
+
+# 激进红 v4.1 汉化版 (32 MB, 遮蔽 sha1 f1772137…) — 汉化组对英文 v4.1 的纯翻译。
+# 静态校验（analysis/static_check.py）：gItems @0x093C0000 前 120 项 ID 全部连续、
+# 描述指针 120/120 落在 ROM 内且互不相同；图标三表全部有效。动态校验：向
+# 0x02024284 注入合成宝可梦后按本配置解码，校验和/物种/等级/HP 全部正确、
+# count=1、saveBlock1Ptr 指向 EWRAM（fixtures/radical_red_cn）。
+# 中文图鉴名/道具名待 CJK 解码器（阶段3）；此前名称显示可能为乱码。
+[config.radical_red_v4_1_cn]
+base = 'radical_red_v4_1'

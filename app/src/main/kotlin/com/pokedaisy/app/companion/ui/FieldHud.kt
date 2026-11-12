@@ -131,11 +131,10 @@ data class HudWild(
     val minLevel: Int,
     val maxLevel: Int,
     val percent: Int,
-    val seen: Boolean,
     val caught: Boolean,
 )
 
-/** [enc]'s slots merged per species and method, most common first; seen / caught from [dex] (null = all seen). */
+/** [enc]'s slots merged per species and method, most common first; caught from [dex]. */
 fun hudWild(enc: MapEncounters?, dex: PokedexState?): List<HudWild> {
     if (enc == null) return emptyList()
     fun national(species: Int) = dex?.let { PokedexSource.nationalOf(it.tables, species) } ?: 0
@@ -147,7 +146,7 @@ fun hudWild(enc: MapEncounters?, dex: PokedexState?): List<HudWild> {
             val n = national(species)
             HudWild(
                 method, species, s.minOf { it.minLevel }, s.maxOf { it.maxLevel }, s.sumOf { it.percent },
-                seen = dex == null || n in dex.seen, caught = dex != null && n in dex.caught,
+                caught = dex != null && n in dex.caught,
             )
         }.sortedByDescending { it.percent }
     }
@@ -1033,7 +1032,7 @@ private fun HudStatusChip(status: String, u: Dp, m: GbaTextMetrics) {
             .background(color, PixelRoundedShape(u))
             .padding(horizontal = u * 3),
         contentAlignment = Alignment.Center,
-    ) { GbaText(status, Color.White, androidx.compose.ui.graphics.lerp(color, Color.Black, 0.5f), m) }
+    ) { GbaText(com.pokedaisy.app.companion.data.statusText(status), Color.White, androidx.compose.ui.graphics.lerp(color, Color.Black, 0.5f), m) }
 }
 
 /** The party menu's HP bar in the running game's colours, without the "HP" label. */
@@ -1227,7 +1226,7 @@ private fun HudMiniMap(
     val head = regionMapBitmap(if (black) com.pokedaisy.app.companion.data.NdsArt.gen5Player(snapshot.game) else labelStyle.headAsset(snapshot.playerGender, snapshot.game))
     val cursor = labelStyle.cursorColor
     val small = rememberGbaTextMetrics(0.75f)
-    val name = snapshot.location.mapSecName
+    val name = com.pokedaisy.app.companion.data.displayLocationName(snapshot.location.mapSecName)
     if ((model == null || bitmap == null) && name.isEmpty()) return
     Column(
         modifier.hudPanel(u).soundClickable(onClick = onClick).padding(u * 4 + hudEdge(u)).padding(bottom = u),
@@ -1361,8 +1360,8 @@ private fun HudMapPanel(snapshot: SnapshotView, m: GbaTextMetrics, fly: FlyActio
             // The map at its own shape, never stretched: as tall as there's room for, or as wide.
             val mapW = minOf(maxWidth, mapH * aspect)
             Column(Modifier.width(mapW).then(window), verticalArrangement = Arrangement.spacedBy(gap)) {
-                if (glass) GlassTitle(tk("MAP"), gameCase(snapshot.location.mapSecName), titleM, onClose)
-                else OptionTitleWindow(tk("MAP"), titleM, trailing = gameCase(snapshot.location.mapSecName), onBack = onClose)
+                if (glass) GlassTitle(tk("MAP"), gameCase(com.pokedaisy.app.companion.data.displayLocationName(snapshot.location.mapSecName)), titleM, onClose)
+                else OptionTitleWindow(tk("MAP"), titleM, trailing = gameCase(com.pokedaisy.app.companion.data.displayLocationName(snapshot.location.mapSecName)), onBack = onClose)
                 // MapScreen draws its own frame: no window around it.
                 Box(Modifier.width(mapW).height(mapW / aspect)) { MapScreen(snapshot, fly = fly, keepShape = true) }
             }
@@ -1609,7 +1608,7 @@ private fun HudBagPanel(
     }
 }
 
-/** WILD: this map's wild Pokémon by method - icon, name (??? until seen), levels, how often, a ball once caught. */
+/** WILD: this map's wild Pokémon by method - icon, name, levels, how often, a ball once caught. */
 @Composable
 private fun HudWildPanel(snapshot: SnapshotView, wild: List<HudWild>, m: GbaTextMetrics, dock: Boolean, top: Boolean, inset: PaddingValues, kept: Boolean, onKeep: () -> Unit, onClose: () -> Unit) {
     val u = m.u
@@ -1623,19 +1622,18 @@ private fun HudWildPanel(snapshot: SnapshotView, wild: List<HudWild>, m: GbaText
                 // On: the party screen's orange, like a picked pocket.
                 HudPanelButton(tr("KEEP OPEN"), m, selected = kept, onClick = onKeep)
             }
-            GbaText(gameCase(snapshot.location.mapSecName).uppercase().replace('É', 'é'), c.muted, c.shadow, small)
+            GbaText(gameCase(com.pokedaisy.app.companion.data.displayLocationName(snapshot.location.mapSecName)).uppercase().replace('É', 'é'), c.muted, c.shadow, small)
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(u)) {
                 if (wild.isEmpty()) GbaText(tr("No wild POKéMON on this map."), c.text, c.shadow, small)
                 wild.groupBy { it.method }.forEach { (method, list) ->
                     GbaText(tr(method), c.accent, c.accentShadow, small, Modifier.padding(top = u * 2))
                     list.forEach { w ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            // An unseen Pokémon stays hidden, like GUIDE > HERE's.
                             Box(Modifier.size(icon), contentAlignment = Alignment.Center) {
-                                if (w.seen) HudSpecies(spriteAsset("pokemon", w.species), icon) else GbaText("?", c.muted, c.shadow, m)
+                                HudSpecies(spriteAsset("pokemon", w.species), icon)
                             }
                             Spacer(Modifier.width(u * 2))
-                            GbaText(if (w.seen) speciesName(w.species) else "???", c.text, c.shadow, m, Modifier.weight(1f))
+                            GbaText(com.pokedaisy.app.companion.data.displaySpeciesName(w.species), c.text, c.shadow, m, Modifier.weight(1f))
                             if (w.caught) {
                                 PixelArt(PixelIcons.pokeBall, CAUGHT_BALL, Modifier.size(u * 9))
                                 Spacer(Modifier.width(u * 4))

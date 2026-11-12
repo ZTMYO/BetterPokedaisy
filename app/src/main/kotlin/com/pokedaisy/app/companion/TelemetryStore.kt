@@ -25,6 +25,9 @@ class TelemetryStore {
     private val _snapshot = MutableStateFlow(SnapshotView(connected = false, error = tk("starting…")))
     val snapshot: StateFlow<SnapshotView> = _snapshot
 
+    /** The ROM's SHA-1 once detection has hashed it (null before); read-only, for achievements and co-op. */
+    val romSha1: String? get() = sampler.romSha1Hex
+
     /** WHICH GAME IS THIS? ([com.pokedaisy.app.companion.data.BestEffort]): the player's answers, taken on the next sample. */
     val gamePick = GamePickActions(
         pick = { sampler.pickGame(it) },

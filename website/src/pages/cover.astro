@@ -31,13 +31,13 @@ const games = new Set(data.matrix.rows.map((r) => r.game)).size;
           <h1><span class="red">POKE</span>DAISY</h1>
         </div>
         <div class="dialog f-dialog">
-          <p>Play your Pokémon games. See everything about them on your second screen, or over the game.</p>
+          <p>畅玩宝可梦，第二屏尽览一切，或浮窗叠加在游戏上。</p>
           <span class="more"><Pixel name="more" scale={1} /></span>
         </div>
         <div class="chips">
-          <span class="chip f-pillGreen">FREE &amp; OPEN SOURCE</span>
-          <span class="chip f-pillRed">{games} GAMES &amp; ROM HACKS</span>
-          <span class="chip f-pillBlue">ONE OR TWO SCREENS</span>
+          <span class="chip f-pillGreen">免费开源</span>
+          <span class="chip f-pillRed">{games} 款游戏与改版</span>
+          <span class="chip f-pillBlue">单屏双屏皆可</span>
           <span class="chip f-pillYellow">GB · GBC · GBA · DS</span>
         </div>
       </div>
@@ -50,10 +50,11 @@ const games = new Set(data.matrix.rows.map((r) => r.game)).size;
 
 <style is:global>
   @font-face { font-family: 'Pixel Operator'; src: url('/fonts/PixelOperator.ttf') format('truetype'); }
+  @font-face { font-family: 'Fusion Pixel ZH'; src: url('/fonts/FusionPixelZH.ttf') format('truetype'); }
   :root { --px: 4px; --ink: #1d1b26; }
   * { box-sizing: border-box; animation: none !important; }
   html, body { margin: 0; width: 1280px; height: 640px; overflow: hidden; }
-  body { font-family: 'Pixel Operator', monospace; color: var(--ink); -webkit-font-smoothing: none; }
+  body { font-family: 'Pixel Operator', 'Fusion Pixel ZH', monospace; color: var(--ink); -webkit-font-smoothing: none; }
   .cover { position: relative; width: 1280px; height: 640px; overflow: hidden; background: #f7f6fb; }
   .blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.7; }
   .b1 { width: 620px; height: 620px; left: -200px; top: -260px; background: #ffd2cc; }

@@ -200,8 +200,8 @@ object NewFeatures {
         return now - at < DAYS * DAY_MS
     }
 
-    /** The row's label badge: NEW while [isNew], else none. */
-    fun badge(id: String): String? = if (isNew(id)) NEW_TAG else null
+    /** The row's label badge. This fork's first modified release has no "new" rows: nothing is badged. */
+    fun badge(id: String): String? = null
 
     /** The tag's text, which OptionLine draws green (OptionColors.newBadge). */
     val NEW_TAG = tk("NEW")

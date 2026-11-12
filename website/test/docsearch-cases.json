@@ -24,7 +24,7 @@
         "summary": "Where your progress lives and how to get it back.",
         "keywords": [],
         "blocks": [
-          { "t": "p", "c": [{ "text": "Your save file is never overwritten without a backup." }] },
+          { "t": "p", "c": [{ "text": "Your save file is never overwritten without a backup. 自动备份存档文件，可随时恢复进度。" }] },
           { "t": "h2", "id": "save-states", "text": "Save states" },
           { "t": "p", "c": [{ "text": "Ten slots, each with a screenshot of the moment you saved." }] },
           { "t": "h2", "id": "backups", "text": "Backups" },
@@ -68,7 +68,10 @@
     { "q": "gameshark", "top": "cheats" },
     { "q": "achievements pause", "top": "cheats" },
     { "q": "how do i", "top": null },
-    { "q": "zzzz", "top": null }
+    { "q": "zzzz", "top": null },
+    { "q": "备份存档", "top": "saves" },
+    { "q": "恢复进度", "top": "saves" },
+    { "q": "不存在中文词", "top": null }
   ],
   "manual": [
     ["fast forward", "fast-forward"],

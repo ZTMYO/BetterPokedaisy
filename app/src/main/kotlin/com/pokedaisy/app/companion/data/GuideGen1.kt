@@ -156,7 +156,7 @@ class Gen1World(wildRaw: List<String>, bossRaw: List<String>) : GuideWorld {
             variantsFor = if (teams.isEmpty()) null else { p ->
                 val v = p.variable(G1_VAR_TEAM)
                 if (teams.any { it.value.team == v }) emptyList()
-                else teams.map { t -> tr("WITH {0}", speciesName(t.value.mons.maxBy { it.level }.species)) to t.index }
+                else teams.map { t -> tr("WITH {0}", displaySpeciesName(t.value.mons.maxBy { it.level }.species)) to t.index }
             },
             doneIf = { p -> first.done.any { p.flag(it) } },
         ) { p -> (teams.firstOrNull { it.value.team == p.variable(G1_VAR_TEAM) } ?: group.first()).index }

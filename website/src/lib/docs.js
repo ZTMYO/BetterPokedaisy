@@ -160,7 +160,7 @@ function image(n, ctx) {
 }
 
 function frontMatter(src, file) {
-  const m = /^---\n([\s\S]*?)\n---\n/.exec(src);
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(src);
   if (!m) throw new Error(`${file}: starts without front matter (--- title: ... ---)`);
   const meta = YAML.parse(m[1]);
   for (const k of ['title', 'summary', 'section']) if (!meta[k]) throw new Error(`${file}: front matter needs "${k}"`);
@@ -227,4 +227,41 @@ export function docsApi(docs, site) {
   const body = { sections: docs.sections, pages: docs.pages, synonyms: docs.synonyms };
   const rev = createHash('sha1').update(JSON.stringify(body)).digest('hex').slice(0, 12);
   return { version: docs.version, rev, site: String(site).replace(/\/$/, ''), ...body };
+}
+
+/** Chinese pages keep the English heading IDs and are used only while their source hash matches. */
+export function loadChineseDocs(dir = docsDir()) {
+  const docs = loadDocs(dir);
+  const translatedSections = { start: '开始使用', companion: '助手', player: '游玩', help: '帮助与参考' };
+  docs.sections = docs.sections.map((s) => ({ ...s, title: translatedSections[s.id] ?? s.title }));
+  const links = [];
+  docs.pages = docs.pages.map((original) => {
+    const source = join(dir, `${original.slug}.md`);
+    const translated = join(dir, 'zh-hans', `${original.slug}.md`);
+    const fallback = () => ({ ...original, title: `未译：${original.title}`, summary: `未译：${original.summary}`,
+      blocks: [{ t: 'p', c: [{ text: '此页尚未翻译，以下保留英文原文。' }] }, ...original.blocks] });
+    if (!existsSync(translated)) return fallback();
+    const { meta, body } = frontMatter(readFileSync(translated, 'utf8'), translated);
+    const hash = createHash('sha256').update(readFileSync(source, 'utf8').replace(/\r\n/g, '\n')).digest('hex');
+    if (meta.source_sha256 !== hash) return fallback();
+    if (meta.section !== original.section) throw new Error(`${translated}: section differs from source`);
+    const ctx = { file: translated, dir, slug: original.slug, slugger: new GithubSlugger(), links: [], images: new Set() };
+    const tree = fromMarkdown(body, { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] });
+    const localized = blocks(tree.children, ctx);
+    const oldHeadings = original.blocks.filter((b) => b.t === 'h2' || b.t === 'h3');
+    const newHeadings = localized.filter((b) => b.t === 'h2' || b.t === 'h3');
+    if (oldHeadings.length !== newHeadings.length || oldHeadings.some((h, i) => h.t !== newHeadings[i].t))
+      throw new Error(`${translated}: headings differ from source`);
+    newHeadings.forEach((h, i) => { h.id = oldHeadings[i].id; });
+    links.push(...ctx.links);
+    return { ...original, title: String(meta.title), summary: String(meta.summary),
+      keywords: (meta.keywords ?? []).map(String), blocks: localized };
+  });
+  const bySlug = new Map(docs.pages.map((p) => [p.slug, p]));
+  for (const link of links) {
+    const target = bySlug.get(link.page);
+    if (!target || (link.anchor && !target.blocks.some((b) => (b.t === 'h2' || b.t === 'h3') && b.id === link.anchor)))
+      throw new Error(`Chinese manual: broken link ${link.page}#${link.anchor ?? ''}`);
+  }
+  return docs;
 }

@@ -52,6 +52,14 @@ jobs:
       - name: Translations
         run: python3 scripts/check_translations.py
 
+      # Chinese coverage is a work in progress: report it without failing CI until the
+      # strings added upstream after the localization fork are translated too.
+      - name: Chinese coverage (report only)
+        continue-on-error: true
+        run: |
+          python3 scripts/check_translations.py --require-zh
+          python3 scripts/check_zh_guides.py
+
       # The per-game code generated from gamedata/ must match it (gamedata/README.md).
       - name: Game data
         run: python3 scripts/gen_gamedata.py --check && python3 scripts/gen_nds_ports.py --check

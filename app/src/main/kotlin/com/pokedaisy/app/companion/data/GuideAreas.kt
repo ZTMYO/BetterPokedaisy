@@ -192,10 +192,10 @@ fun generatedWhereIs(guide: GuideId, areaName: (Int) -> String, done: (AreaThing
     // Headings and the page title stay English (GuideUiState keys on them); GuideScreen translates them where drawn.
     val sections = listOf(
         // An HM may be handed out or lie in an item ball (Heart and Soul's HM07).
-        GuideSection(tk("HMs"), entries({ (it.kind in gifts || it.kind == AreaKind.ITEM) && isHm(itemName(it.id)) }) { itemName(it.id) }),
-        GuideSection(tk("KEY ITEMS"), entries({ it.kind == AreaKind.KEY && !isHm(itemName(it.id)) }) { itemName(it.id) }),
+        GuideSection(tk("HMs"), entries({ (it.kind in gifts || it.kind == AreaKind.ITEM) && isHm(itemName(it.id)) }) { displayItemName(it.id) }),
+        GuideSection(tk("KEY ITEMS"), entries({ it.kind == AreaKind.KEY && !isHm(itemName(it.id)) }) { displayItemName(it.id) }),
         GuideSection(tk("GIFT POKéMON"), entries({ it.kind == AreaKind.MON || it.kind == AreaKind.EGG }) { t ->
-            speciesName(t.id) + if (t.kind == AreaKind.EGG) " " + tr("(egg)") else ""
+            displaySpeciesName(t.id) + if (t.kind == AreaKind.EGG) " " + tr("(egg)") else ""
         }),
     ).filter { it.entries.isNotEmpty() }
     return if (sections.isEmpty()) null else GuidePage(tk("WHERE IS"), sections)
