@@ -93,7 +93,7 @@ fun themeById(id: Int): ThemeSpec = (APP_THEMES + SEASONAL_THEMES).firstOrNull {
 /** The default and the themes that are always there. Ids 0-7 were the old game-named themes (FireRed, LeafGreen,
  * Emerald, Ruby, Sapphire, Platinum, HeartGold, SoulSilver): Prefs reads them as the default now, so never reuse them. */
 val APP_THEMES = listOf(
-    ThemeSpec(DAISY_THEME_ID, "POKéDAISY"),
+    ThemeSpec(DAISY_THEME_ID, "BETTERPOKEDAISY"),
     ThemeSpec(
         20, tk("CHERRY"), hue = 345f, wash = 0.5f,
         value = Color(0xFFC8143C), valueNight = Color(0xFFFF6A88),

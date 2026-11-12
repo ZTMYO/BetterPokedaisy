@@ -1,11 +1,11 @@
-# PokeDaisy ZTMYO 修改版
+# BetterPokedaisy
 
-> 基于 [lidor30/PokeDaisy](https://github.com/lidor30/pokedaisy) 的修改分支，由
+> 基于 [lidor30/PokeDaisy](https://github.com/lidor30/pokedaisy) 的个人修改分支，由
 > [ZTMYO](https://github.com/ZTMYO) 维护。简体中文半成品来自
 > [PKM-Bai/pokedaisy](https://github.com/PKM-Bai/pokedaisy)。
 > 这是个人修改版本，不是 PokeDaisy 官方发布。
 
-PokeDaisy 是一款面向双屏 / 单屏安卓掌机的 Game Boy、Game Boy Color、GBA 和
+BetterPokedaisy 基于 PokeDaisy：一款面向双屏 / 单屏安卓掌机的 Game Boy、Game Boy Color、GBA 和
 Nintendo DS 播放器，游戏旁边带实时伴侣：队伍、背包、地图、对战克制、图鉴和攻略。
 本仓库保留原项目的核心功能，并在此基础上完成了简体中文本地化和一批界面调整。
 

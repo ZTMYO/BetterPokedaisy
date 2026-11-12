@@ -69,7 +69,7 @@ const ticker = ['GB · GBC · GBA · DS', msg('TWO SCREENS OR ONE'), msg('PARTY'
 const title = 'POKEDAISY'.split('');
 ---
 <Base
-  title={tr('PokeDaisy: Game Boy Pokémon with a live companion')}
+  title={tr('BetterPokedaisy: Game Boy Pokémon with a live companion')}
   description={tr('A free player for Game Boy, Game Boy Color, Game Boy Advance and Nintendo DS Pokémon games on Android handhelds with two screens or one: the game, and a live companion with your party, battles, map, dex and guide on the second screen or right beside it, plus a HUD and a quick menu on the game screen.')}
 >
   <!-- Hero -->
@@ -77,10 +77,10 @@ const title = 'POKEDAISY'.split('');
     <div class="hero-copy" data-track-where="hero">
       <div class="hero-head">
         <div class="hero-mark">
-          <span class="mark-ball"><Pixel name="logo" scale={1} label="PokeDaisy" /></span>
+          <span class="mark-ball"><Pixel name="logo" scale={1} label="BetterPokedaisy" /></span>
           {[0, 1, 2].map((i) => <span class={`twinkle t${i}`}><Pixel name="spark" scale={1} /></span>)}
         </div>
-        <h1 class="hero-title" aria-label="PokeDaisy">
+        <h1 class="hero-title" aria-label="BetterPokedaisy">
           {title.map((ch, i) => <span class:list={['drop-letter', i < 4 && 'red']} style={`--d:${i}`} aria-hidden="true">{ch}</span>)}
         </h1>
       </div>
@@ -268,7 +268,7 @@ const title = 'POKEDAISY'.split('');
     <section class="block container">
       <div class="section-head">
         <span class="eyebrow">{tr('WHAT\'S NEW')}</span>
-        <h2 class="heading">PokeDaisy {latest.version}</h2>
+        <h2 class="heading">BetterPokedaisy {latest.version}</h2>
         <p class="lead small">{formatDate(latest.date, tr.locale)} · {tr('updates install from inside the app')}</p>
       </div>
       <article class="release f-card" data-reveal>

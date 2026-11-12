@@ -44,7 +44,7 @@ fun SupportWindow(
     val u = m.u
     OptionOverlay(onLater, Modifier.widthIn(max = 760.dp)) {
         Column {
-            OptionTitleWindow("ENJOYING POKéDAISY?", m, leading = { PixelArt(LOGO_ROWS, LOGO_PALETTE, Modifier.size(m.lineHeight)) })
+            OptionTitleWindow("ENJOYING BETTERPOKEDAISY?", m, leading = { PixelArt(LOGO_ROWS, LOGO_PALETTE, Modifier.size(m.lineHeight)) })
             Spacer(Modifier.height(u * 4))
             OptionListWindow(m, Modifier.fillMaxWidth().goldFrame(u)) {
                 BoxWithConstraints(Modifier.padding(u * 4)) {

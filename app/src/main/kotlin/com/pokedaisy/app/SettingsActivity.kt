@@ -325,7 +325,7 @@ class SettingsActivity : ComponentActivity() {
                     // The library's header in place of HOME's SETTINGS title, as on GAMES and TOOLS.
                     OptionTitleWindow(
                         // One button beside it: the name always fits (the games' header drops it on a phone held upright).
-                        "POKéDAISY",
+                        "BETTERPOKEDAISY",
                         nm,
                         leading = { com.pokedaisy.app.companion.ui.PixelArt(com.pokedaisy.app.companion.ui.LOGO_ROWS, com.pokedaisy.app.companion.ui.LOGO_PALETTE, Modifier.size(nm.lineHeight)) },
                     ) {
@@ -1337,7 +1337,7 @@ class SettingsActivity : ComponentActivity() {
             ) {
                 GbaText(
                     tr(
-                        "POKéDAISY {0}  ·  by {1}",
+                        "BETTERPOKEDAISY {0}  ·  by {1}",
                         BuildConfig.VERSION_NAME,
                         "Lidor Itzhari (@lidor30)  ·  ZTMYO",
                     ),

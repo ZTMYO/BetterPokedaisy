@@ -555,7 +555,7 @@ class LibraryActivity : ComponentActivity() {
             // The lists scroll to the screen's edges (their margin is padding inside them), so a card
             // slides off the screen rather than being cut at an inner box's edge.
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                OptionTitleWindow(if (narrowHeader && !toolsOpen) "" else "POKéDAISY", m, Modifier.padding(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = SCREEN_MARGIN), leading = {
+                OptionTitleWindow(if (narrowHeader && !toolsOpen) "" else "BETTERPOKEDAISY", m, Modifier.padding(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = SCREEN_MARGIN), leading = {
                     PixelArt(LOGO_ROWS, LOGO_PALETTE, Modifier.size(m.lineHeight))
                 }) {
                     // TOOLS has no games to sort, show, add or refresh: HELP alone.
@@ -2248,7 +2248,7 @@ class LibraryActivity : ComponentActivity() {
                 onPick = ::launcherPick,
             )
             Column(Modifier.weight(1f).fillMaxHeight()) {
-                OptionTitleWindow("POKéDAISY", m, Modifier.padding(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = SCREEN_MARGIN), leading = {
+                OptionTitleWindow("BETTERPOKEDAISY", m, Modifier.padding(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = SCREEN_MARGIN), leading = {
                     PixelArt(LOGO_ROWS, LOGO_PALETTE, Modifier.size(m.lineHeight))
                 }) {
                     val buttons = launcherHeader()
