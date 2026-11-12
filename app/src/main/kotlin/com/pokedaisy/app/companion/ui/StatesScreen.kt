@@ -84,12 +84,24 @@ fun StatesScreen(slots: StateSlots?, tick: Long) {
             list = withContext(Dispatchers.IO) { slots.list() }
         }
     }
+    // One slot's delete confirmation at a time. The root tap handler below cancels it
+    // from anywhere except the DELETE / CONFIRM DELETE? button itself.
+    var deleting by remember(slots) { mutableStateOf<Int?>(null) }
+    var confirming by remember(slots) { mutableStateOf(false) }
+    Box(
+        Modifier.fillMaxSize().pointerInput(deleting) {
+            if (deleting != null) detectTapGestures {
+                deleting = null
+                confirming = false
+            }
+        },
+    ) {
     Column(modifier = Modifier.fillMaxSize()) {
         OptionTitleWindow(tr("SAVE STATES"), m, trailing = tr("SLOT {0}", slots.currentIndex))
         Spacer(Modifier.height(m.u * 4))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.u * 4)) {
-            OptionButton(tr("UNDO SAVE"), m, onClick = { slots.requestUndoSave(); requests++ }, rainbow = false, modifier = Modifier.weight(1f))
-            OptionButton(tr("UNDO LOAD"), m, onClick = { slots.requestUndoLoad() }, rainbow = false, modifier = Modifier.weight(1f))
+            OptionButton(tr("UNDO SAVE"), m, onClick = { slots.requestUndoSave(); requests++ }, enabled = deleting == null, rainbow = false, modifier = Modifier.weight(1f))
+            OptionButton(tr("UNDO LOAD"), m, onClick = { slots.requestUndoLoad() }, enabled = deleting == null, rainbow = false, modifier = Modifier.weight(1f))
         }
         Spacer(Modifier.height(m.u * 4))
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -118,13 +130,25 @@ fun StatesScreen(slots: StateSlots?, tick: Long) {
                         slot = slot,
                         isCurrent = slot.index == slots.currentIndex,
                         m = m, small = small, buttons = buttons, thumbHeight = thumb,
+                        deleting = deleting == slot.index,
+                        anyDeleting = deleting != null,
+                        confirming = confirming,
+                        onLongPress = { deleting = slot.index; confirming = false },
+                        onDeleteTap = {
+                            if (confirming) {
+                                slots.requestDelete(slot.index)
+                                requests++
+                                deleting = null
+                                confirming = false
+                            } else confirming = true
+                        },
                         onLoad = { slots.requestLoad(slot.index); requests++ },
                         onSave = { slots.requestSave(slot.index); requests++ },
-                        onDelete = { slots.requestDelete(slot.index); requests++ },
                     )
                 }
             }
         }
+    }
     }
 }
 
@@ -142,14 +166,15 @@ private fun SlotCard(
     /** SAVE / LOAD's text: [m], or [small] on a narrow card. */
     buttons: GbaTextMetrics,
     thumbHeight: Dp,
+    deleting: Boolean,
+    anyDeleting: Boolean,
+    confirming: Boolean,
+    onLongPress: () -> Unit,
+    onDeleteTap: () -> Unit,
     onLoad: () -> Unit,
     onSave: () -> Unit,
-    onDelete: () -> Unit,
 ) {
     val u = m.u
-    // Long-pressing a saved slot hides its picture and offers DELETE; the second tap confirms.
-    var deleteMode by remember(slot.index, slot.present) { mutableStateOf(false) }
-    var confirmDelete by remember(slot.index, slot.present) { mutableStateOf(false) }
     // The slot the hotkeys target gets the OPTION list's white "cursor" fill.
     OptionListWindow(m, Modifier.fillMaxWidth(), fill = if (isCurrent) OptionColors.rowSelected else OptionColors.listFill) {
         Column {
@@ -178,39 +203,25 @@ private fun SlotCard(
                         )
                     },
             ) {
-                if (deleteMode) {
-                    // A tap outside DELETE (or CONFIRM DELETE?) brings the picture back.
-                    Box(
-                        Modifier.matchParentSize().soundClickable {
-                            deleteMode = false
-                            confirmDelete = false
-                        },
-                    )
+                if (deleting) {
                     OptionButton(
-                        tr(if (confirmDelete) "CONFIRM DELETE?" else "DELETE"),
+                        tr(if (confirming) "CONFIRM DELETE?" else "DELETE"),
                         buttons,
-                        onClick = {
-                            if (confirmDelete) {
-                                onDelete()
-                                deleteMode = false
-                                confirmDelete = false
-                            } else confirmDelete = true
-                        },
+                        onClick = onDeleteTap,
                         emphasis = true,
                         rainbow = false,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = u * 2),
                     )
-                } else Box(
-                    Modifier.matchParentSize().pointerInput(slot.index, slot.present) {
+                } else {
+                    val tap = if (anyDeleting) Modifier else Modifier.pointerInput(slot.index, slot.present) {
                         detectTapGestures(onLongPress = {
-                            if (slot.present) {
-                                deleteMode = true
-                                confirmDelete = false
-                            }
+                            if (slot.present) onLongPress()
                         })
-                    },
-                    contentAlignment = Alignment.Center,
-                ) {
+                    }
+                    Box(
+                        Modifier.matchParentSize().then(tap),
+                        contentAlignment = Alignment.Center,
+                    ) {
                     if (slot.present) {
                         val thumbPath = slot.thumbPath
                         // Keyed by the thumbnail's own write time, not the state's: a save writes
@@ -238,6 +249,7 @@ private fun SlotCard(
                         GbaText(tr("EMPTY"), OptionColors.muted, Color(0xFF101418), small)
                     }
                 }
+                }
             }
             Spacer(Modifier.height(u * 2))
             GbaText(
@@ -250,8 +262,8 @@ private fun SlotCard(
             Spacer(Modifier.height(u * 3))
             Row(horizontalArrangement = Arrangement.spacedBy(u * 3)) {
                 // The D-pad starts on the slot the hotkeys target (the companion's window).
-                OptionButton(tr("SAVE"), buttons, onClick = { deleteMode = false; confirmDelete = false; onSave() }, emphasis = true, rainbow = false, modifier = Modifier.weight(1f).focusStart(isCurrent))
-                OptionButton(tr("LOAD"), buttons, onClick = { deleteMode = false; confirmDelete = false; onLoad() }, enabled = slot.present, rainbow = false, modifier = Modifier.weight(1f))
+                OptionButton(tr("SAVE"), buttons, onClick = onSave, enabled = !anyDeleting, emphasis = true, rainbow = false, modifier = Modifier.weight(1f).focusStart(isCurrent))
+                OptionButton(tr("LOAD"), buttons, onClick = onLoad, enabled = slot.present && !anyDeleting, rainbow = false, modifier = Modifier.weight(1f))
             }
         }
     }
