@@ -102,6 +102,7 @@ internal val trCompanion: Map<String, Tr> = mapOf(
     "NEXT LEVELS" to Tr(ja = "つぎの レベル", fr = "PROCHAINS NIVEAUX", de = "NÄCHSTE LEVEL", it = "PROSSIMI LIVELLI", es = "PRÓXIMOS NIVELES", br = "PRÓXIMOS NÍVEIS", pt = "PRÓXIMOS NÍVEIS", ko = "다음 레벨", zh = "后续等级"),
     // The BAG's PC anywhere button (GitHub #85): the games' own word for the PC.
     "PC" to Tr(ja = "パソコン", fr = "PC", de = "PC", it = "PC", es = "PC", br = "PC", pt = "PC", ko = "PC", zh = "电脑"),
+    "OBTAINED" to Tr(ja = "てにいれた", fr = "OBTENU", de = "ERHALTEN", it = "OTTENUTO", es = "OBTENIDO", br = "OBTIDO", pt = "OBTIDO", ko = "획득", zh = "获得"),
     "TMs IN THE BAG" to Tr(ja = "バッグの わざマシン", fr = "CT DANS LE SAC", de = "TMs IM BEUTEL", it = "MT NELLA BORSA", es = "MT EN LA MOCHILA", br = "MTs NA MOCHILA", pt = "MTs NA MOCHILA", ko = "가방 속 기술머신", zh = "背包中的招式学习器"),
     "ACC" to Tr(ja = "めいちゅう", fr = "PRÉC.", de = "GENAU.", it = "PREC.", es = "PREC.", br = "PREC.", pt = "PREC.", ko = "명중", zh = "命中"),
     "FORGET {0}" to Tr(ja = "{0}を わすれる", fr = "OUBLIER {0}", de = "{0} VERGESSEN", it = "DIMENTICA {0}", es = "OLVIDAR {0}", br = "ESQUECER {0}", pt = "ESQUECER {0}", ko = "{0} 잊기", zh = "忘记{0}"),

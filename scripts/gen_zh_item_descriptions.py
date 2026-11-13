@@ -49,8 +49,7 @@ TM_MOVES = [
 HM_MOVES = ["Cut", "Fly", "Surf", "Strength", "Flash", "Rock Smash", "Waterfall", "Dive"]
 
 # PokeAPI has no zh-Hans flavor text for these Gen 3 key items / mail.
-MANUAL = {
-    "Orange Mail": "可以夹在信件中，让宝可梦携带。",
+MANUAL = {    "Orange Mail": "可以夹在信件中，让宝可梦携带。",
     "Harbor Mail": "可以夹在信件中，让宝可梦携带。",
     "Glitter Mail": "可以夹在信件中，让宝可梦携带。",
     "Mech Mail": "可以夹在信件中，让宝可梦携带。",
@@ -86,6 +85,12 @@ MANUAL = {
     "Stick": "大葱。携带后容易击中要害。",
     "X Defend": "战斗中使用，提高宝可梦的防御。",
     "X Special": "战斗中使用，提高宝可梦的特攻。",
+}
+
+# Items whose earliest PokeAPI text is from a later generation, where the item itself changed.
+GEN3_OVERRIDES = {
+    # Gen 6 turned the held Exp. Share into a key item that shares EXP with the whole party.
+    "Exp. Share": "携带后，能从战斗中获得经验值的装置。",
 }
 
 
@@ -148,6 +153,8 @@ def main():
             flavor[item] = (version, clean(r["flavor_text"]))
 
     def description(item_id, english):
+        if english in GEN3_OVERRIDES:
+            return GEN3_OVERRIDES[english]
         m = re.fullmatch(r"TM(\d\d)", english)
         if m:
             n = int(m.group(1))

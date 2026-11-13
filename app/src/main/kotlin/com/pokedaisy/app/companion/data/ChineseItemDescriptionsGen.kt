@@ -187,7 +187,7 @@ internal val chineseItemDescriptions: Array<String> = arrayOf(
     "闪闪发光的粉末。 携带后，光芒会迷惑对手， 从而使其招式变得不容易命中。\u0001BrightPowder", // 179: BrightPowder
     "当携带它的宝可梦能力降低时， 仅能回到之前的状态１次。\u0001White Herb", // 180: White Herb
     "又硬又重的锻炼器。 虽然携带后速度会降低， 但会比平时更容易茁壮成长。\u0001Macho Brace", // 181: Macho Brace
-    "打开开关后， 能让同行的所有宝可梦 获得经验值的装置。\u0001Exp. Share", // 182: Exp. Share
+    "携带后，能从战斗中获得经验值的装置。\u0001Exp. Share", // 182: Exp. Share
     "又轻又尖锐的爪子。 携带后，有时能比对手 先一步行动。\u0001Quick Claw", // 183: Quick Claw
     "音色悦耳的铃铛。 携带它的宝可梦会受到安抚， 变得容易和训练家亲密。\u0001Soothe Bell", // 184: Soothe Bell
     "当携带它的宝可梦 无法自由使出招式时， 仅会回复１次。\u0001Mental Herb", // 185: Mental Herb

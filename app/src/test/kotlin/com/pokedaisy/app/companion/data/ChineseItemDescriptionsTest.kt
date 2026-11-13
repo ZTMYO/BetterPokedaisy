@@ -2,6 +2,7 @@ package com.pokedaisy.app.companion.data
 
 import com.pokedaisy.app.companion.i18n.L10n
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.text.Normalizer
@@ -30,5 +31,13 @@ class ChineseItemDescriptionsTest {
         L10n.apply("ZH_CN", null)
         assertTrue(chineseItemDescription(18).orEmpty().contains("麻痹"))
         for (id in 281..284) assertTrue("item $id", chineseItemDescription(id) != null)
+    }
+
+    @Test
+    fun `Exp Share keeps the Gen 3 held-item description`() {
+        L10n.apply("ZH_CN", null)
+        val d = chineseItemDescription(182).orEmpty()
+        assertTrue(d.contains("携带"))
+        assertFalse(d.contains("打开开关"))
     }
 }
