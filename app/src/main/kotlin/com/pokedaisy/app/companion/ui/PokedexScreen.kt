@@ -395,10 +395,18 @@ fun PokedexEntryScreen(dex: PokedexState, ui: DexUiState, current: Int, modifier
     val order = rememberDexOrder(dex, ui.showsNational(dex))
     val entries = ui.entries(dex, order, rememberSpeciesMap(dex.tables))
     val index = entries.indexOf(current)
-    val step = { d: Int ->
-        if (entries.isNotEmpty()) {
-            val i = if (index < 0) 0 else (index + d + entries.size) % entries.size
-            if (entries[i] in dex.seen) ui.open = entries[i]
+    // Unseen entries can't be opened, so a step goes on to the next seen one instead of stopping on them.
+    val seenCount = entries.count { it in dex.seen }
+    val canStep = seenCount > 1
+    val step = step@{ d: Int ->
+        if (!canStep) return@step
+        var i = if (index >= 0) index else 0
+        repeat(entries.size) {
+            i = (i + d + entries.size) % entries.size
+            if (entries[i] in dex.seen) {
+                ui.open = entries[i]
+                return@step
+            }
         }
     }
     // Keep the list's scroll position on the entry being looked at.
@@ -407,8 +415,8 @@ fun PokedexEntryScreen(dex: PokedexState, ui: DexUiState, current: Int, modifier
     SummaryFrame(
         m, onBack = { ui.open = null }, modifier = modifier,
         buttons = {
-            NavButton(PixelIcons.arrowUp, tr("Previous entry"), MonGreen, MonGreenDark, entries.size > 1) { step(-1) }
-            NavButton(PixelIcons.arrowDown, tr("Next entry"), MonGreen, MonGreenDark, entries.size > 1) { step(1) }
+            NavButton(PixelIcons.arrowUp, tr("Previous entry"), MonGreen, MonGreenDark, canStep) { step(-1) }
+            NavButton(PixelIcons.arrowDown, tr("Next entry"), MonGreen, MonGreenDark, canStep) { step(1) }
             if (index >= 0) {
                 Spacer(Modifier.width(8.dp))
                 BackdropText("${index + 1} / ${entries.size}", small)
@@ -512,7 +520,11 @@ internal fun DexInfoSection(e: DexEntry?, small: GbaTextMetrics, m: GbaTextMetri
     // Nothing to tap: one D-pad stop that scrolls (the companion's window).
     val scroll = rememberScrollState()
     Column(modifier.dpadScroll(scroll, RectangleShape, m.lineHeight * 3).verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(u * 2)) {
-        GbaText(UnboundChineseBattleNames.dexOriginal(e?.description.orEmpty()), OptionColors.label, OptionColors.labelShadow, small,
+        // The bundled Chinese dex text first (checked against the ROM's English); a hack or another language keeps its own.
+        val english = e?.description.orEmpty()
+        val shown = e?.let { com.pokedaisy.app.companion.data.chineseDexDescription(it.national, it.description) }
+            ?: UnboundChineseBattleNames.dexOriginal(english)
+        GbaText(shown, OptionColors.label, OptionColors.labelShadow, small,
             maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 6)
         Separator(m, Modifier.fillMaxWidth())
         if (e != null) {

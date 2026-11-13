@@ -31,12 +31,13 @@ Nintendo DS 播放器，游戏旁边带实时伴侣：队伍、背包、地图�
   `Rm. 1 Key` / `Room 1 Key`、`Faint Attack` / `Feint Attack`、
   `Hi Jump Kick` / `High Jump Kick`，不会因为世代改名而退回英文。
 - 三代丰缘地区使用“内部物种 ID → 全国图鉴编号”映射，刺尾虫、莲帽小童等名字正确显示。
+- 三代图鉴说明也显示中文：386 只内置中文描述，按 ROM 的英文原文校验；改版或其他语言保持原文。
 - 背包、队伍、对战、PC 盒子、图鉴、攻略、地图、状态栏都已接入。
 
 ### 3. 属性与对战界面
 
-- 属性徽章使用 PokeIdle 的 18 个属性图标 + 中文属性名，玩家侧和对手侧一致，字号加大。
-- 招式分类（物理 / 特殊 / 变化）使用 PokeIdle 的分类图标。
+- 属性徽章使用内置的 18 个属性图标 + 中文属性名，玩家侧和对手侧一致，字号加大。
+- 招式分类（物理 / 特殊 / 变化）使用内置的分类图标。
 - 效果提示统一为官方风格：`◎ 效果绝佳`、`○ 有效`、`△ 效果不好`、`× 没有效果`；
   玩家侧和对手侧使用同一套图标 + 文字，不再出现单独一个 `1x` 徽章。
 - 弱点和抵抗改为圆角胶囊卡片，并使用更鲜明的属性配色。
@@ -150,8 +151,11 @@ python scripts/gen_nds_ports.py --check
 - `scripts/gen_zh_item_descriptions.py` + `ChineseItemDescriptionsGen.kt`：
   三代道具描述（PokeAPI 简中道具说明；TM/HM 由所教招式生成；
   `GEN3_OVERRIDES` 覆盖后世机制已改变的道具，如 EXP. SHARE）。
+- `scripts/gen_zh_dex_descriptions.py` + `ChineseDexDescriptionsGen.kt`：
+  三代图鉴说明（386 只中文描述；英文取自 pokeemerald-zh-main，
+  用来校验 ROM 原文后再显示）。
 - `scripts/gen_type_icons.py` + `app/src/main/res/drawable/type_*.xml`：
-  PokeIdle 类型图标转换成的 Android VectorDrawable。
+  内置属性 / 分类图标转换成的 Android VectorDrawable。
 
 ## 分支
 
@@ -165,7 +169,6 @@ python scripts/gen_nds_ports.py --check
   本项目保留原项目 NOTICE 要求的
   **"Based on PokeDaisy by Lidor Itzhari - https://github.com/lidor30/pokedaisy"** 署名。
 - **简体中文半成品**：[PKM-Bai/pokedaisy](https://github.com/PKM-Bai/pokedaisy)。
-- **类型图标**：[PokeIdle](https://github.com/ZTMYO/PokeIdle)，作者 ZTMYO。
 - **数据**：PokeAPI（物种名、图鉴分类、道具说明，BSD 3-Clause）；
   PKHeX（招式、道具、特性、性格、三代地名，GPL 3.0）。
 - **运行核心**：mGBA、armGBA（libretro GBA 核心）、melonDS、rcheevos、pret 反编译工程及各自贡献者。
