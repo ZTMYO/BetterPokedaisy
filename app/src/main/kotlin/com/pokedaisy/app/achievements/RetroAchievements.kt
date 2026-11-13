@@ -144,6 +144,16 @@ object RetroAchievements : CompanionAchievements {
     /** Plays the game's fanfare (set by the game's activity); from the emu thread, on an unlock. */
     @Volatile var onUnlockSound: (() -> Unit)? = null
 
+    /** Popups are on unless the player turned them off in Settings > RetroAchievements. */
+    private fun notificationsOn() = prefs?.raPopups ?: true
+
+    /** [popup] to the hosts, unless the player turned that kind off (progress has its own switch). */
+    private fun emitPopup(popup: AchievementPopup) {
+        val on = notificationsOn()
+        if (!popupAllowed(popup.kind, on, on && (prefs?.raProgressPopups ?: true))) return
+        _popups.tryEmit(popup)
+    }
+
     private var loginCallback: ((ok: Boolean, error: String?) -> Unit)? = null
     private var retry: ScheduledFuture<*>? = null
     private var retryDelaySec = 15L
@@ -433,7 +443,7 @@ object RetroAchievements : CompanionAchievements {
         cheatsActive = active
         _state.update { it.copy(cheatsPaused = active) }
         if (!ready || !coreAttached) return
-        if ((_state.value.game?.total ?: 0) > 0) _popups.tryEmit(cheatsPopup(active))
+        if ((_state.value.game?.total ?: 0) > 0) emitPopup(cheatsPopup(active))
     }
 
     fun setShinyOddsActive(active: Boolean) {
@@ -441,7 +451,7 @@ object RetroAchievements : CompanionAchievements {
         shinyOddsActive = active
         _state.update { it.copy(shinyOddsPaused = active) }
         if (!ready || !coreAttached) return
-        if ((_state.value.game?.total ?: 0) > 0) _popups.tryEmit(shinyOddsPopup(active))
+        if ((_state.value.game?.total ?: 0) > 0) emitPopup(shinyOddsPopup(active))
     }
 
     private fun shinyOddsPopup(active: Boolean) =
@@ -565,7 +575,7 @@ object RetroAchievements : CompanionAchievements {
                 rejected -> {
                     prefs?.raToken = null
                     _state.value = AchievementsState()
-                    _popups.tryEmit(AchievementPopup(AchievementPopup.Kind.NOTICE, tr("SIGNED OUT"), tr("Sign in to RetroAchievements again in Settings.")))
+                    emitPopup(AchievementPopup(AchievementPopup.Kind.NOTICE, tr("SIGNED OUT"), tr("Sign in to RetroAchievements again in Settings.")))
                 }
                 // Couldn't reach the server: keep the account, try again later.
                 else -> {
@@ -591,15 +601,15 @@ object RetroAchievements : CompanionAchievements {
                 framesSinceList = 30
                 Log.i(TAG, "game $gameId \"$title\": $unlocked/$achievements unlocked")
                 if (achievements > 0) {
-                    _popups.tryEmit(
+                    emitPopup(
                         AchievementPopup(
                             AchievementPopup.Kind.GAME_LOADED, title ?: "RetroAchievements",
                             tr("{0} OF {1} UNLOCKED · SOFTCORE", unlocked, achievements), badgeUrl,
                         ),
                     )
                     // The game started with cheats on: say why nothing will unlock.
-                    if (cheatsActive) _popups.tryEmit(cheatsPopup(true))
-                    if (shinyOddsActive) _popups.tryEmit(shinyOddsPopup(true))
+                    if (cheatsActive) emitPopup(cheatsPopup(true))
+                    if (shinyOddsActive) emitPopup(shinyOddsPopup(true))
                 }
             }
             // An unknown hash: rc_client still keeps a placeholder game (id 0).
@@ -630,7 +640,7 @@ object RetroAchievements : CompanionAchievements {
             RaEvent.ACHIEVEMENT_TRIGGERED -> {
                 Log.i(TAG, "unlocked ${e.id} \"${e.title}\" (${e.points} pts)")
                 // Mastery comes with the last unlock, so this one fanfare covers it too.
-                onUnlockSound?.invoke()
+                if (notificationsOn()) onUnlockSound?.invoke()
                 listDirty = true
                 framesSinceList = 30
                 AchievementPopup(AchievementPopup.Kind.UNLOCKED, e.title.orEmpty(), e.description.orEmpty(), e.badgeUrl, e.points, achievementId = e.id)
@@ -652,13 +662,17 @@ object RetroAchievements : CompanionAchievements {
             RaEvent.SERVER_ERROR -> AchievementPopup(AchievementPopup.Kind.NOTICE, tr("SERVER ERROR"), e.description.orEmpty())
             else -> null
         }
-        popup?.let { _popups.tryEmit(it) }
+        popup?.let(::emitPopup)
     }
 
     internal fun onLog(message: String?) {
         if (message != null) Log.i(TAG, message)
     }
 }
+
+/** Whether a [kind] popup shows, given Settings > RetroAchievements' two notification switches. */
+internal fun popupAllowed(kind: AchievementPopup.Kind, notifications: Boolean, progressNotifications: Boolean): Boolean =
+    notifications && (progressNotifications || kind != AchievementPopup.Kind.PROGRESS)
 
 /** [RaNative.raAchievementList]'s records (0x1E) of fields (0x1F) -> [Achievement]s. */
 internal fun parseAchievementList(bytes: ByteArray): List<Achievement> =

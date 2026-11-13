@@ -621,16 +621,21 @@ internal fun MoveCard(
             val short = LocalShortCompanion.current
             val k = if (short) SHORT_MOVE_TEXT else 1f
             if (compact || short) Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
-                // Name and PP, then type, power and the multipliers.
-                Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.fillMaxWidth()) {
-                    // A long name (METAL CLAW) steps its size down to fit beside PP rather than being cut.
+                // The game's own move panel order: name and the multipliers on top, then type, power and PP.
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    // A long name (METAL CLAW) steps its size down to fit beside the multipliers rather than being cut.
                     FittedText(mv.name, AppColors.text, tight, maxSize = (32 * k).toInt(), minSize = (20 * k).toInt(), modifier = Modifier.weight(1f).padding(end = 10.dp * k))
-                    Text(tr("PP {0}", mv.pp), color = AppColors.text, fontSize = 20.sp * k, style = tight, maxLines = 1)
+                    if (showHints) Row(horizontalArrangement = Arrangement.spacedBy(4.dp * k)) {
+                        mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, fontSize = 16.sp * k) }
+                    }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp * k)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     MoveTypeBadge(mv.type, fontSize = 16.sp * k, iconSize = 18.dp)
-                    Text(tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 22.sp * k, style = tight, maxLines = 1)
-                    if (showHints) mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, fontSize = 16.sp * k) }
+                    Text(
+                        tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 22.sp * k, style = tight, maxLines = 1,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f),
+                    )
+                    Text(tr("PP {0}", mv.pp), color = AppColors.text, fontSize = 20.sp * k, style = tight, maxLines = 1)
                 }
             } else Column(modifier = Modifier.fillMaxSize()) {
                 // HeartGold's halves: the name on the white, then type, power and PP on the beige; the verdict by the name.

@@ -598,6 +598,8 @@ class PokeDaisyActivity : Activity() {
                 out.copy(result = com.pokedaisy.app.companion.data.ItemUseResult.IN_BATTLE) as T
             out is com.pokedaisy.app.companion.data.PartyTargets && out.result == com.pokedaisy.app.companion.data.ItemUseResult.NOT_NOW ->
                 out.copy(result = com.pokedaisy.app.companion.data.ItemUseResult.IN_BATTLE) as T
+            out is com.pokedaisy.app.companion.data.MoveOrderResult && out == com.pokedaisy.app.companion.data.MoveOrderResult.NOT_NOW ->
+                com.pokedaisy.app.companion.data.MoveOrderResult.IN_BATTLE as T
             else -> out
         }
 
@@ -714,6 +716,15 @@ class PokeDaisyActivity : Activity() {
                 else com.pokedaisy.app.companion.data.swapPartySlots(calls, cfg.playerParty, cfg.monStride, snap.party.size, a, b)
                 runOnUiThread { done(r) }
             }
+        }
+        // The summary's moves: SetMonData on the party record, so the game re-encrypts it and its checksum follows.
+        override fun canReorderMoves() = !romIsNds && !romIsGameBoy && ::engine.isInitialized && engine.running &&
+            !telemetry.snapshot.value.inBattle && fieldItemSupport()?.fns?.party != null
+        override fun reorderMoves(
+            slot: Int, personality: Long, from: Int, to: Int,
+            done: (com.pokedaisy.app.companion.data.MoveOrderResult) -> Unit,
+        ) = onGame(com.pokedaisy.app.companion.data.MoveOrderResult.FAILED, done) { s, calls, busy ->
+            com.pokedaisy.app.companion.data.reorderMoves(s.fns, slot, personality, from, to, busy, calls)
         }
         override fun canSwapBox() = com.pokedaisy.app.companion.data.boxSwapFor(fieldItemSupport()?.fns, com.pokedaisy.app.companion.data.activeNativeConfig) != null
 
@@ -1655,6 +1666,11 @@ class PokeDaisyActivity : Activity() {
             Prefs(this@PokeDaisyActivity).showPerformance = on
             runOnUiThread { syncGameScreen() }
         }
+        // RetroAchievements reads Prefs at each event, so these apply to the running game at once.
+        override val raPopups get() = Prefs(this@PokeDaisyActivity).raPopups
+        override fun setRaPopups(on: Boolean) { Prefs(this@PokeDaisyActivity).raPopups = on }
+        override val raProgressPopups get() = Prefs(this@PokeDaisyActivity).raProgressPopups
+        override fun setRaProgressPopups(on: Boolean) { Prefs(this@PokeDaisyActivity).raProgressPopups = on }
         override val statusBarOnCompanion get() = Prefs(this@PokeDaisyActivity).statusBarOnCompanion
         override fun setStatusBarOnCompanion(on: Boolean) {
             Prefs(this@PokeDaisyActivity).statusBarOnCompanion = on
