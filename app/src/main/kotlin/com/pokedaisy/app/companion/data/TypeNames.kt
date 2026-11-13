@@ -12,13 +12,24 @@ import com.pokedaisy.app.companion.i18n.L10n
 fun typeLabel(type: String): String {
     val en = type.uppercase()
     return if (L10n.language == AppLanguage.ZH_CN) CHINESE_TYPE_NAMES[en] ?: en
-        else LOCAL_TYPE_NAMES[romLanguage]?.get(en) ?: en
+        else localTypeNames()?.get(en) ?: en
 }
 
 /** [type] inside a sentence ("knows a Fire move"): the game's word, or English's own casing. */
 fun typeInText(type: String): String =
     if (L10n.language == AppLanguage.ZH_CN) CHINESE_TYPE_NAMES[type.uppercase()] ?: type
-    else LOCAL_TYPE_NAMES[romLanguage]?.get(type.uppercase()) ?: type
+    else localTypeNames()?.get(type.uppercase()) ?: type
+
+/** A cart's own type words where they differ from its language's Gen 3 ones (Kristall's DRACHEN), else the language's. */
+private fun localTypeNames(): Map<String, String>? = GAME_TYPE_NAMES[romGameCode] ?: LOCAL_TYPE_NAMES[romLanguage]
+
+private val GAME_TYPE_NAMES: Map<String, Map<String, String>> by lazy {
+    val goldSilverDe = typeNamesCrystal.mapNotNull { (id, en) -> typeNamesGoldSilverDe[id]?.let { en.uppercase() to it } }.toMap()
+    mapOf(
+        "BYTD" to typeNamesCrystal.mapNotNull { (id, en) -> typeNamesCrystalDe[id]?.let { en.uppercase() to it } }.toMap(),
+        "AAUD" to goldSilverDe, "AAXD" to goldSilverDe,
+    )
+}
 
 /** Standard type names; custom type names stay in the ROM's words. */
 private val CHINESE_TYPE_NAMES = mapOf(

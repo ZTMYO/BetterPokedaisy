@@ -28,8 +28,8 @@ class GameDataMigrationTest {
 
     /** Games added since the move, written in gamedata/ from the start: they have no hand-written config. */
     private val bornInGamedata = setOf(
-        "WISHES", "DREAMSTONE", "SOULGOLD_V1_2_1", "MONOMYTH", "MONOMYTH_V1_1", "TEAM_ROCKET_V3", "LETS_GO_PIKACHU",
-        "LETS_GO_EEVEE", "MODERN_EMERALD",
+        "WISHES", "DREAMSTONE", "SOULGOLD_V1_2_1", "MONOMYTH", "MONOMYTH_V1_1", "TEAM_ROCKET_V3", "TEAM_ROCKET_V3_1",
+        "LETS_GO_PIKACHU", "LETS_GO_EEVEE", "MODERN_EMERALD",
         // The Chinese fan translations (PKM-Bai): written in gamedata/ only.
         "UNBOUND_CN", "RADICAL_RED_V4_1_CN", "MERCURY_CN", "QUETZAL_CN", "TEAM_ROCKET_CN",
     )

@@ -17,7 +17,7 @@ Nintendo DS 播放器，游戏旁边带实时伴侣：队伍、背包、地图�
 
 - 补齐设置、TOOLS、联机、图鉴、攻略、手册和网站文档的简体中文。
 - `GAMES / TOOLS / SETTINGS` 侧栏、设置项、联机页面、攻略文本都已中文化。
-- 保留上游 1.5.0.1 的韩语支持：`KO` 和 `ZH_CN` 两套语言并存，互不覆盖。
+- 保留上游 1.5.1 的韩语支持：`KO` 和 `ZH_CN` 两套语言并存，互不覆盖。
 - 设置页底栏只保留原作者与 ZTMYO 署名，去掉赞助、Discord、GitHub 链接和绿色 `NEW` 徽章。
 
 ### 2. 游戏数据中文名
@@ -154,10 +154,11 @@ python scripts/gen_nds_ports.py --check
 
 ## 分支
 
-- `main`：上游 1.5.0.1 的镜像，不直接开发。
+- `main`：上游 1.5.1 的镜像，不直接开发。
 - `dev`：BetterPokedaisy 的完整开发分支，包含简体中文界面、游戏数据中文名和全部魔改。
 - `pr/upstream`：从上游 `main` 拉出的干净分支，只包含通用、适合向原作者提交 PR 的改动；
-  目前有「即时存档防误触/删除」和「设置开启时在对战信息面板内联显示对手个体值」。
+  已与上游 1.5.1 同步（「即时存档防误触/删除」已并入上游 1.5.1）。
+- `pr/ra-popup-settings`：成就弹窗开关的 PR 分支，已更新到上游 1.5.1。
 
 ## 来源与许可
 
@@ -168,7 +169,7 @@ python scripts/gen_nds_ports.py --check
 - **类型图标**：[PokeIdle](https://github.com/ZTMYO/PokeIdle)，作者 ZTMYO。
 - **数据**：PokeAPI（物种名、图鉴分类、道具说明，BSD 3-Clause）；
   PKHeX（招式、道具、特性、性格、三代地名，GPL 3.0）。
-- **运行核心**：mGBA、melonDS、rcheevos、pret 反编译工程及各自贡献者。
+- **运行核心**：mGBA、armGBA（libretro GBA 核心）、melonDS、rcheevos、pret 反编译工程及各自贡献者。
   完整第三方许可证见 [NOTICE](NOTICE)，应用内位于 设置 > LICENSES。
 
 本项目是同人项目，与任天堂、Game Freak、Creatures 或宝可梦公司无关；

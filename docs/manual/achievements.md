@@ -83,7 +83,7 @@ The top screen's Settings page has a `NOTIFICATIONS` section (and so does the co
 
 Some sets have leaderboards (fastest time, highest score). When the game has any, a `LEADERBOARDS` button appears on the ACHIEVEMENTS tab. Tap a board to see the top 10 and the players around your own entry, with your row highlighted.
 
-While a leaderboard attempt is running, its current value (a timer, a count) shows in the bottom-right corner of the companion. Some achievements are challenges you have to finish without breaking a rule; while one is active, its badge sits in that corner too, so you know it's still on. With the companion off screen, they sit in the game's bottom right corner.
+While a leaderboard attempt is running, its current value (a timer, a count) shows in the bottom-right corner of the companion. Some achievements are challenges you have to finish without breaking a rule; while one is active, its badge sits in that corner too, so you know it's still on. With the companion off screen, they sit in the game's bottom right corner. Rather not see them? Turn off `CHALLENGE ICONS` in SETTINGS (COMPANION group).
 
 ## Save states and achievement progress
 

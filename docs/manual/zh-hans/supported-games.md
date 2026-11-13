@@ -52,7 +52,6 @@ PokeDaisy 可以运行任何 GBA、Game Boy 或 DS 游戏。“支持”指下�
 | Pokémon Ultra Violet | 1.22 |
 | Pokémon FireRed Rocket Edition | 唯一发布版 |
 | Pokémon Ash Gray | 4.5.3，及其 Fork Bug Fix 1.0 构建版 |
-| Pokémon Ghost Grey | 1.0.1、1.0.2 和 1.0.4 |
 | Sword and Shield Ultimate Plus | 1.2.1.2，及其三个补丁 |
 | Pokémon GS Chronicles | 2.7.6 |
 | Pokémon Recharged Yellow | 1.8.0、1.9.0、1.9.4 和 1.9.7 |

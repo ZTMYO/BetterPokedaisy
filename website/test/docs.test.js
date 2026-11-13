@@ -2,14 +2,22 @@
 // every setting the app has is named somewhere in it. See docs/manual/README.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, mkdtempSync, cpSync, rmSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, cpSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { docsApi, docsDir, loadDocs, loadChineseDocs } from '../src/lib/docs.js';
+import { docsApi, docsDir, loadDocs, loadChineseDocs, loadTranslations } from '../src/lib/docs.js';
+import { PREFIXED } from '../src/i18n/index.js';
+import { staleInstallGuides } from '../scripts/install-guides.mjs';
 
 const dir = docsDir();
-const files = readdirSync(dir).filter((f) => f.endsWith('.md'));
+const english = readdirSync(dir).filter((f) => f.endsWith('.md'));
+// The translated pages (docs/manual/translations/<lang>/<slug>.md) follow the same writing rules.
+const tdir = join(dir, 'translations');
+const translated = existsSync(tdir)
+  ? readdirSync(tdir).flatMap((l) => readdirSync(join(tdir, l)).filter((f) => f.endsWith('.md')).map((f) => `translations/${l}/${f}`))
+  : [];
+const files = [...english, ...translated];
 const text = (f) => readFileSync(join(dir, f), 'utf8');
 
 test('every page parses, links resolve and screenshots exist', () => {
@@ -41,7 +49,7 @@ test('every setting the app has is mentioned in the manual', () => {
   const map = kt.slice(kt.indexOf('val SETTING_KEYWORDS'));
   const labels = [...map.slice(0, map.indexOf('\n)')).matchAll(/^\s*"([^"]+)" to "/gm)].map((m) => m[1]);
   assert.ok(labels.length > 20, 'found the settings');
-  const manual = files.filter((f) => f !== 'README.md').map(text).join('\n');
+  const manual = english.filter((f) => f !== 'README.md').map(text).join('\n');
   const missing = labels.filter((l) => !manual.includes(`\`${l}\``));
   assert.deepEqual(missing, [], 'document these settings (write each label in backticks, as the app shows it)');
 });
@@ -54,36 +62,11 @@ test('the docs never name a real Pokémon, move or item', () => {
   assert.deepEqual(bad, []);
 });
 
-
 test('Chinese manual keeps stable links, marks untranslated pages and matches the offline copy', () => {
   const english = loadDocs();
   const chinese = loadChineseDocs();
   assert.equal(chinese.pages.length, english.pages.length);
-  assert.equal(chinese.pages.find((p) => p.slug === 'welcome').title, '欢迎使用 PokeDaisy');
-  assert.equal(chinese.pages.find((p) => p.slug === 'install').title, '安装与初次设置');
-  assert.equal(chinese.pages.find((p) => p.slug === 'guide').title, '攻略');
-  assert.equal(chinese.pages.find((p) => p.slug === 'dex').title, '图鉴');
-  assert.equal(chinese.pages.find((p) => p.slug === 'party').title, '队伍与详细信息');
-  assert.equal(chinese.pages.find((p) => p.slug === 'map').title, '地图');
-  assert.equal(chinese.pages.find((p) => p.slug === 'trainer-card').title, '训练家卡');
-  assert.equal(chinese.pages.find((p) => p.slug === 'bag').title, '背包');
-  assert.equal(chinese.pages.find((p) => p.slug === 'battle').title, '对战');
-  assert.equal(chinese.pages.find((p) => p.slug === 'cheats').title, '金手指');
-  assert.equal(chinese.pages.find((p) => p.slug === 'nuzlocke').title, 'NUZLOCKE 挑战');
-  assert.equal(chinese.pages.find((p) => p.slug === 'achievements').title, 'RetroAchievements 成就');
-  assert.equal(chinese.pages.find((p) => p.slug === 'fast-forward').title, '快进与游戏速度');
-  assert.equal(chinese.pages.find((p) => p.slug === 'saves').title, '存档、备份和即时存档');
-  assert.equal(chinese.pages.find((p) => p.slug === 'hud').title, 'HUD');
-  assert.equal(chinese.pages.find((p) => p.slug === 'devices').title, '屏幕与设备');
-  assert.equal(chinese.pages.find((p) => p.slug === 'linux').title, 'Linux 掌机基础版本');
-  assert.equal(chinese.pages.find((p) => p.slug === 'troubleshooting').title, '故障排查与常见问题');
-  assert.equal(chinese.pages.find((p) => p.slug === 'supported-games').title, '支持的游戏');
-  assert.equal(chinese.pages.find((p) => p.slug === 'library').title, '游戏库');
-  assert.equal(chinese.pages.find((p) => p.slug === 'screen').title, '屏幕、比例与着色器');
-  assert.equal(chinese.pages.find((p) => p.slug === 'companion').title, '伴侣面板概览');
-  assert.equal(chinese.pages.find((p) => p.slug === 'controls').title, '控制、快捷键和触屏');
-  assert.equal(chinese.pages.find((p) => p.slug === 'settings-reference').title, '设置参考');
-  assert.ok(chinese.pages.every((p) => !p.title.startsWith('未译：')));
+  // A page 1.5.1 added or changed shows its English text, marked 未译, until its zh-hans copy is updated.
   for (const page of chinese.pages) {
     assert.doesNotMatch(JSON.stringify(page.blocks), /\*\*/, `${page.slug}: unparsed bold markup`);
     const source = english.pages.find((p) => p.slug === page.slug);
@@ -96,9 +79,6 @@ test('Chinese manual keeps stable links, marks untranslated pages and matches th
     const bytes = readFileSync(join(dir, '../../app/src/main/assets/docs-zh-hans', image.src.replace(/^\/docs\//, '')));
     assert.equal(createHash('sha1').update(bytes).digest('hex').slice(0, 10), image.v);
   }
-  for (const file of readdirSync(join(dir, 'zh-hans')).filter((f) => f.endsWith('.md'))) {
-    assert.ok(!chinese.pages.find((p) => p.slug === file.slice(0, -3)).title.startsWith('未译：'), `${file}: source changed`);
-  }
 });
 
 
@@ -107,10 +87,12 @@ test('Chinese supported games table preserves hack names and version numbers', (
     const [, name, versions] = line.split('|');
     return [name.trim(), [...versions.matchAll(/\d+(?:\.\d+)*(?:[a-z])?/gi)].map((match) => match[0])];
   });
-  const english = rows(text('supported-games.md'));
+  const english = new Map(rows(text('supported-games.md')));
   const chinese = rows(text('zh-hans/supported-games.md'));
-  assert.ok(english.length > 20);
-  assert.deepEqual(chinese, english);
+  assert.ok(english.size > 20);
+  // New rows arrive in English first; every row the Chinese table carries must use a real name and its versions.
+  const bad = chinese.filter(([name, versions]) => !english.has(name) || !versions.every((v) => english.get(name).includes(v)));
+  assert.deepEqual(bad, []);
 });
 
 
@@ -138,13 +120,32 @@ test('Chinese settings reference mentions every documented setting label', () =>
   const translated = new Map();
   for (const file of readdirSync(ktDir).filter((f) => /^Tr.*\.kt$/.test(f))) {
     for (const line of readFileSync(join(ktDir, file), 'utf8').split('\n')) {
-      const match = line.match(/^\s*"([^"]+)" to Tr\(.*\bzh = "([^"]+)"/);
+      const match = line.match(/^\s*"([^"]+)" to Tr\(.*zh = "([^"]+)"/);
       if (match) translated.set(match[1], match[2]);
     }
   }
   const keys = [...text('settings-reference.md').matchAll(/^\| `([^`]+)` \|/gm)].map((m) => m[1]);
   const chinese = text('zh-hans/settings-reference.md');
-  const missing = [...new Set(keys)].filter((key) => !chinese.includes(translated.get(key) ?? key));
+  // A setting 1.5.1 added has no Chinese name yet; every one that does is in the table.
+  const missing = [...new Set(keys)].filter((key) => translated.has(key) && !chinese.includes(translated.get(key)));
   assert.ok(keys.length > 50);
   assert.deepEqual(missing, []);
+});
+
+
+test('translated pages parse, match an English page and keep its screenshots', () => {
+  const docs = loadDocs();
+  const { pages, bySlug } = loadTranslations(docs, undefined, PREFIXED);
+  for (const p of pages) {
+    const en = docs.pages.find((e) => e.slug === p.slug);
+    const shots = (b) => b.flatMap((x) => (x.t === 'img' ? [x.src] : x.items ? x.items.flatMap(shots) : x.c && x.t === 'note' ? shots(x.c) : []));
+    assert.deepEqual(shots(p.blocks), shots(en.blocks), `${p.lang}/${p.slug}.md: the same screenshots, in the same order, as ${p.slug}.md`);
+    assert.equal(p.blocks.filter((b) => b.t === 'h2').length, en.blocks.filter((b) => b.t === 'h2').length, `${p.lang}/${p.slug}.md: the same sections as ${p.slug}.md`);
+  }
+  // A page translated at all comes in every language the site has.
+  for (const [slug, langs] of bySlug) assert.deepEqual([...langs].sort(), [...PREFIXED].sort(), `${slug}.md's translations`);
+});
+
+test('the install guides on GitHub (3ds/INSTALL*.md, linux/INSTALL*.md) match the manual', () => {
+  assert.deepEqual(staleInstallGuides(), [], 'run node website/scripts/install-guides.mjs');
 });

@@ -175,6 +175,7 @@ private fun SlotCard(
     onSave: () -> Unit,
 ) {
     val u = m.u
+    val clickSound = LocalClickSound.current
     // The slot the hotkeys target gets the OPTION list's white "cursor" fill.
     OptionListWindow(m, Modifier.fillMaxWidth(), fill = if (isCurrent) OptionColors.rowSelected else OptionColors.listFill) {
         Column {
