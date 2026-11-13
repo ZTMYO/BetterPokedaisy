@@ -156,8 +156,6 @@ python scripts/gen_nds_ports.py --check
 
 - `main`：上游 1.5.1 的镜像，不直接开发。
 - `dev`：BetterPokedaisy 的完整开发分支，包含简体中文界面、游戏数据中文名和全部魔改。
-- `pr/upstream`：从上游 `main` 拉出的干净分支，只包含通用、适合向原作者提交 PR 的改动；
-  已与上游 1.5.1 同步（「即时存档防误触/删除」已并入上游 1.5.1）。
 - `pr/ra-popup-settings`：成就弹窗开关的 PR 分支，已更新到上游 1.5.1。
 
 ## 来源与许可
