@@ -25,6 +25,16 @@ private fun translated(entry: String?, romName: String): String? {
     return if (nameKey(en) == nameKey(romName)) entryZh(entry) else null
 }
 
+/** A move name's key, with the words Gen 6 renamed (the Chinese table uses the modern spellings). */
+private fun moveKey(s: String): String = nameKey(s)
+    .replace("FAINTATTACK", "FEINTATTACK")
+    .replace("HIJUMPKICK", "HIGHJUMPKICK")
+
+private fun translatedMove(entry: String?, romName: String): String? {
+    val en = entryEn(entry) ?: return null
+    return if (moveKey(en) == moveKey(romName)) entryZh(entry) else null
+}
+
 private fun hasHan(s: String): Boolean = s.any { it in '\u3400'..'\u9fff' }
 
 /** [romanized] game text that has no Chinese translation, marked for the Pokédex only. */
@@ -113,7 +123,7 @@ fun displaySpeciesName(id: Int): String {
 /** A move's name in Chinese, verified against the ROM's own name; the ROM's name otherwise. */
 fun displayMoveName(id: Int, romName: String): String {
     if (L10n.language != AppLanguage.ZH_CN || id <= 0) return romName
-    return translated(chineseMoveNames.getOrNull(id), romName) ?: romName
+    return translatedMove(chineseMoveNames.getOrNull(id), romName) ?: romName
 }
 
 fun displayMoveName(id: Int): String = displayMoveName(id, lookupMove(id).name)
