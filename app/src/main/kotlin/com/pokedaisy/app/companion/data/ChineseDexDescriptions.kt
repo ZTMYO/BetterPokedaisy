@@ -12,12 +12,14 @@ private fun dexKey(s: String): String =
  * the same check the Chinese names use, so a hack or another language keeps its own text.
  */
 fun chineseDexDescription(national: Int, english: String): String? {
-    if (L10n.language != AppLanguage.ZH_CN || national <= 0 || english.isBlank()) return null
+    if (L10n.language != AppLanguage.ZH_CN || national <= 0) return null
     val entry = chineseDexDescriptions.getOrNull(national)?.takeIf { it.isNotBlank() } ?: return null
     val sep = entry.indexOf('\u0001')
     if (sep < 0) return null
-    val zh = entry.substring(0, sep).trim()
+    val zh = halfWidthAscii(entry.substring(0, sep).trim())
     val en = entry.substring(sep + 1).trim()
-    if (zh.isEmpty() || en.isEmpty()) return null
+    if (zh.isEmpty()) return null
+    if (!english.readsAsText()) return zh
+    if (en.isEmpty()) return null
     return zh.takeIf { dexKey(en) == dexKey(english) }
 }

@@ -350,6 +350,7 @@ class TelemetrySampler {
                 itemTextChosen = true
                 onGameIdentified?.invoke(kind!!.name, beMatch?.candidate?.title)
                 PokedexSource.romChanged()
+                MoveLearningWatch.reset()
                 // A DS cart: its text's language once NdsArt has read it (it applies it itself when it lands later), else the header's.
                 (nativeCfg?.language ?: gen1Cfg?.language ?: NdsArt.names?.takeIf { kind?.isDsGame == true }?.language
                     ?: dsLanguage)?.let { com.pokedaisy.app.companion.i18n.L10n.applyGameLanguage(it) }
@@ -701,13 +702,6 @@ class TelemetrySampler {
         // nothing here maps - NOT SUPPORTED, or BEST EFFORT's pick.
         val emerald = code == "BPEE"
         kind = if (emerald) GameKind.EMERALD else GameKind.FIRERED
-        if (!retailHash) {
-            unsupportedRom(reader, code, size, smallHash, "unrecognized ${if (emerald) "Emerald" else "FireRed"}-based ROM hack " +
-                "($code, ${size / (1024 * 1024)} MB, sha1 ${smallHash?.take(12) ?: "unknown"}…) - no known RAM addresses for this build")
-            android.util.Log.i("pokedaisy", "unrecognized $code ROM: full sha1=$smallHash size=$size")
-            proveRetailEngine(reader, code)
-            return
-        }
         val rev = runCatching { reader.readCoreMemory(0x080000BCL, 1)[0].toInt() and 0xFF }.getOrDefault(1)
         val cfg = when {
             emerald -> NATIVE_EMERALD_RETAIL
@@ -715,10 +709,25 @@ class TelemetrySampler {
             // NATIVE_FIRERED_REV0 is the hacks' base too: only retail gets the card.
             else -> NATIVE_FIRERED_REV0.copy(trainerCard = TRAINER_CARD_FIRERED)
         }
+        // A fan translation changes the ROM's text, hash and name probes, but not the engine or its
+        // numbers. Only once the hash matched nothing is asking the tables worth it.
+        val translated = !retailHash && structuralRetail(reader, cfg)
+        if (!retailHash && !translated) {
+            unsupportedRom(reader, code, size, smallHash, "unrecognized ${if (emerald) "Emerald" else "FireRed"}-based ROM hack " +
+                "($code, ${size / (1024 * 1024)} MB, sha1 ${smallHash?.take(12) ?: "unknown"}…) - no known RAM addresses for this build")
+            android.util.Log.i("pokedaisy", "unrecognized $code ROM: full sha1=$smallHash size=$size")
+            proveRetailEngine(reader, code)
+            return
+        }
+        if (translated) android.util.Log.i("pokedaisy", "$code: a translated retail ROM")
         // The SHINY marks: retail's shiny check (8 of 65536), on this copy only - a randomizer leaves it be. BOXES:
         // gPokemonStoragePtr, right after gSaveBlock2Ptr (FireRed 0x03005010 in both revisions, Emerald 0x03005D94; read
         // off captures: every box record's checksum held). LeafGreen's is set where the other retail games are detected.
-        nativeCfg = withCheckedTables(reader, cfg).copy(shinyBelow = 8, pokemonStoragePtr = cfg.saveBlock2Ptr + 4)
+        val checked = withCheckedTables(reader, cfg)
+        // A translation's dex category is in its own glyph encoding, so the English text probe
+        // cannot pass: structuralRetail checked the same tables instead.
+        nativeCfg = (if (translated) checked.copy(pokedex = cfg.pokedex) else checked)
+            .copy(shinyBelow = 8, pokemonStoragePtr = cfg.saveBlock2Ptr + 4)
         ramVerified = true
         randomizedText = randomizedRom?.let { runCatching { RandomizedRetail.read(reader, it) }.getOrNull() }
         if (randomizedRom != null && randomizedText == null) {
@@ -727,6 +736,30 @@ class TelemetrySampler {
             unsupportedHackLabel = "a randomized ${if (emerald) "Emerald" else "FireRed"} whose tables didn't read"
         }
     }
+
+    /**
+     * Is this ROM retail's engine under a translation's text? Checks the same numbers as
+     * [pokedexMatchesRom] - the probe entry's height and weight, the National Dex mapping and the
+     * front-pic table - but not its category text, which a translation rewrites in its own glyph
+     * encoding. Species 1's six base stats say the same thing for gBaseStats, which no translation
+     * touches.
+     */
+    private fun structuralRetail(reader: MemoryReader, cfg: NativeConfig): Boolean = runCatching {
+        val t = cfg.pokedex ?: return@runCatching false
+        if (t.entries == 0L || t.speciesInfo == 0L || t.speciesToNational == 0L) return@runCatching false
+        val e = reader.readCoreMemory(t.entries + t.entryStride, maxOf(0x10, t.entryHeightOff + 4))
+        if (!(u16le(e, t.entryHeightOff) == t.probeHeight &&
+                u16le(e, t.entryHeightOff + 2) == t.probeWeight &&
+                u16le(reader.readCoreMemory(t.speciesToNational + 2L * (t.probeSpecies - 1), 2), 0) == 1 &&
+                u16le(reader.readCoreMemory(t.frontPics + 8L * t.probeSpecies + 6, 2), 0) == t.probeSpecies)
+        ) return@runCatching false
+        // Bulbasaur's six base stats, the same in every Gen 3 base game.
+        val bs = t.baseStats
+        val size = if (bs.statsU16) 12 else 6
+        val raw = reader.readCoreMemory(t.speciesInfo + bs.stride, size)
+        val want = intArrayOf(45, 49, 49, 45, 65, 65)
+        want.indices.all { i -> if (bs.statsU16) u16le(raw, i * 2) == want[i] else (raw[i].toInt() and 0xFF) == want[i] }
+    }.getOrDefault(false)
 
     /** An unrecognised hack of retail FireRed / Emerald: whether its code proves retail's engine ([RetailEngine]). Once per ROM. */
     private fun proveRetailEngine(reader: MemoryReader, code: String) {

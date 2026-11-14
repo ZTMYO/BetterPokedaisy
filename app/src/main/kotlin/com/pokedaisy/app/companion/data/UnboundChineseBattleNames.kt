@@ -34,8 +34,3 @@ object UnboundChineseBattleNames {
     fun species(id: Int): String? = read(id, 1..1293, 0x0966A98CL, 11, speciesCache)
     fun move(id: Int): String? = read(id, 1..922, 0x08A40A10L, 13, moveCache)
 }
-
-/** Only use a player's nickname when the battle record identifies a single party member. */
-internal fun battleNickname(b: BattleMon, party: List<Mon>): String? =
-    party.filter { it.species == b.species && it.level == b.level && it.hp == b.hp }
-        .singleOrNull()?.nickname

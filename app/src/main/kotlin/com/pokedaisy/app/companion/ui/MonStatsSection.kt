@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import com.pokedaisy.app.companion.data.MAX_IV
 import com.pokedaisy.app.companion.data.MonStats
 import com.pokedaisy.app.companion.data.MonView
+import com.pokedaisy.app.companion.data.PokedexTables
 import com.pokedaisy.app.companion.data.STAT_ATK
 import com.pokedaisy.app.companion.data.STAT_DEF
 import com.pokedaisy.app.companion.data.STAT_HP
@@ -62,7 +63,13 @@ private val IvPerfect = Color(0xFFE8B830)
  * struct's, which the game only recomputes on a level-up.
  */
 @Composable
-internal fun MonStatsSection(stats: MonStats, m: GbaTextMetrics, small: GbaTextMetrics, modifier: Modifier = Modifier) {
+internal fun MonStatsSection(
+    stats: MonStats,
+    ability: String? = null,
+    m: GbaTextMetrics,
+    small: GbaTextMetrics,
+    modifier: Modifier = Modifier,
+) {
     val u = m.u
     val up = natureRaises(stats.nature)
     val down = natureLowers(stats.nature)
@@ -99,6 +106,11 @@ internal fun MonStatsSection(stats: MonStats, m: GbaTextMetrics, small: GbaTextM
         Separator(m, Modifier.fillMaxWidth())
         InfoRow(tr("NATURE"), small) {
             GbaText(natureName(stats.nature), optionLook.value, optionLook.valueShadow, small)
+        }
+        ability?.let {
+            InfoRow(tr("ABILITY"), small) {
+                GbaText(it, optionLook.value, optionLook.valueShadow, small)
+            }
         }
         InfoRow(tr("HIDDEN POWER"), small) {
             TypeBadge(hiddenPowerType(stats.ivs))
@@ -169,21 +181,27 @@ private fun IvBar(iv: Int, max: Int, small: GbaTextMetrics, modifier: Modifier) 
  * found (no party struct matched it).
  */
 @Composable
-fun BattleStatsScreen(player: List<MonView>, opponent: List<MonView>, foeHeading: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun BattleStatsScreen(
+    player: List<MonView>, opponent: List<MonView>, foeHeading: String, onBack: () -> Unit,
+    modifier: Modifier = Modifier, dexTables: PokedexTables? = null,
+) {
     val m = rememberGbaTextMetrics()
     val small = rememberGbaTextMetrics(1f)
     val gap = m.u * 3
     SummaryFrame(m, onBack, modifier) {
         Row(Modifier.fillMaxSize()) {
-            StatsColumn(tk("YOU"), player, m, small, Modifier.weight(1f).fillMaxHeight().padding(end = gap))
+            StatsColumn(tk("YOU"), player, m, small, Modifier.weight(1f).fillMaxHeight().padding(end = gap), dexTables)
             Separator(m, Modifier.fillMaxHeight(), vertical = true)
-            StatsColumn(foeHeading.substringBefore(" · "), opponent, m, small, Modifier.weight(1f).fillMaxHeight().padding(start = gap))
+            StatsColumn(foeHeading.substringBefore(" · "), opponent, m, small, Modifier.weight(1f).fillMaxHeight().padding(start = gap), dexTables)
         }
     }
 }
 
 @Composable
-private fun StatsColumn(side: String, mons: List<MonView>, m: GbaTextMetrics, small: GbaTextMetrics, modifier: Modifier) {
+private fun StatsColumn(
+    side: String, mons: List<MonView>, m: GbaTextMetrics, small: GbaTextMetrics, modifier: Modifier,
+    dexTables: PokedexTables? = null,
+) {
     val u = m.u
     // One battler fills the column (its table scrolls if it must); a double's two scroll together.
     val single = mons.size <= 1
@@ -209,7 +227,10 @@ private fun StatsColumn(side: String, mons: List<MonView>, m: GbaTextMetrics, sm
             }
             val stats = mon.stats
             if (stats != null) {
-                MonStatsSection(stats, m, small, if (single) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(small.lineHeight * 15))
+                MonStatsSection(
+                    stats, rememberFoeAbility(mon, dexTables), m, small,
+                    if (single) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(small.lineHeight * 15),
+                )
             }
             else GbaText(tr("NO STATS FOR THIS ONE"), optionLook.muted, optionLook.mutedShadow, small)
         }

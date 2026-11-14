@@ -1,6 +1,8 @@
 package com.pokedaisy.app.companion.data
 
 import android.graphics.Bitmap
+import com.pokedaisy.app.companion.i18n.AppLanguage
+import com.pokedaisy.app.companion.i18n.L10n
 import java.util.concurrent.ConcurrentHashMap
 
 /** Which memory a game's seen / caught arrays are offsets into. */
@@ -1793,8 +1795,15 @@ object PokedexSource {
         if (cnRomText) chineseAbilityNameById(id)?.let { return it }
         val stride = if (t.abilityNameStride > 0) t.abilityNameStride else t.abilityNameLength
         val at = t.abilityNames + id.toLong() * stride
-        if (t.abilityNamePtr) return Gfx.u32(rd(at, 4), 0).takeIf(Gfx::inRom)?.let { Gen3Text.decode(rd(it, t.abilityNameLength)) }.orEmpty()
-        return Gen3Text.decode(rd(at, t.abilityNameLength))
+        val decoded = if (t.abilityNamePtr) {
+            Gfx.u32(rd(at, 4), 0).takeIf(Gfx::inRom)?.let { Gen3Text.decode(rd(it, t.abilityNameLength)) }.orEmpty()
+        } else Gen3Text.decode(rd(at, t.abilityNameLength))
+        val text = decoded.trim()
+        if (text.isNotEmpty() && text.readsAsText()) return text
+        // A translated ROM's own ability text is in its own glyph encoding: the official name by
+        // id stands in on a Chinese screen; other languages keep the ROM's text.
+        if (L10n.language == AppLanguage.ZH_CN) chineseAbilityNameById(id)?.let { return it }
+        return text
     }
 
     private fun readEntry(t: PokedexTables, national: Int): DexEntry? {

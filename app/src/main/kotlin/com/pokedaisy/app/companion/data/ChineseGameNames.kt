@@ -16,13 +16,30 @@ private fun nameKey(s: String): String =
         .uppercase()
         .filter { it in 'A'..'Z' || it in '0'..'9' }
 
-private fun entryZh(entry: String?): String? = entry?.substringBefore('|')?.takeIf { it.isNotBlank() }
+private fun entryZh(entry: String?): String? = entry?.substringBefore('|')?.let(::halfWidthAscii)?.takeIf { it.isNotBlank() }
 
 private fun entryEn(entry: String?): String? = entry?.substringAfter('|', "")?.takeIf { it.isNotBlank() }
 
+/** The official Chinese games write digits and Latin letters half-width ("PP单项小补剂", "10号道路"). */
+internal fun halfWidthAscii(s: String): String {
+    if (s.none { it.code in 0xFF10..0xFF19 || it.code in 0xFF21..0xFF3A || it.code in 0xFF41..0xFF5A }) return s
+    return buildString(s.length) {
+        for (c in s) append(
+            when (c.code) {
+                in 0xFF10..0xFF19 -> '0' + (c.code - 0xFF10)
+                in 0xFF21..0xFF3A -> 'A' + (c.code - 0xFF21)
+                in 0xFF41..0xFF5A -> 'a' + (c.code - 0xFF41)
+                else -> c
+            },
+        )
+    }
+}
+
 private fun translated(entry: String?, romName: String): String? {
+    val zh = entryZh(entry) ?: return null
+    if (!romName.readsAsText()) return zh
     val en = entryEn(entry) ?: return null
-    return if (nameKey(en) == nameKey(romName)) entryZh(entry) else null
+    return if (nameKey(en) == nameKey(romName)) zh else null
 }
 
 /** A move name's key, with the words Gen 6 renamed (the Chinese table uses the modern spellings). */
@@ -31,8 +48,10 @@ private fun moveKey(s: String): String = nameKey(s)
     .replace("HIJUMPKICK", "HIGHJUMPKICK")
 
 private fun translatedMove(entry: String?, romName: String): String? {
+    val zh = entryZh(entry) ?: return null
+    if (!romName.readsAsText()) return zh
     val en = entryEn(entry) ?: return null
-    return if (moveKey(en) == moveKey(romName)) entryZh(entry) else null
+    return if (moveKey(en) == moveKey(romName)) zh else null
 }
 
 private fun hasHan(s: String): Boolean = s.any { it in '\u3400'..'\u9fff' }
@@ -48,15 +67,22 @@ private val abilityByName: Map<String, String> by lazy {
 }
 
 private val locationByName: Map<String, String> by lazy {
-    chineseLocationNames.mapNotNull { entry ->
+    (chineseLocationNames.asList() + chineseLocationNamesExtra.asList()).mapNotNull { entry ->
         entryEn(entry)?.let { nameKey(it) to entryZh(entry)!! }
     }.toMap()
 }
 
+private val ROUTE_RE = Regex("^ROUTES? (\\d+)(?:-(\\d+))?$")
+
 /** A map section's name in Chinese, verified against the English name the game uses. */
 fun displayLocationName(romName: String): String {
     if (L10n.language != AppLanguage.ZH_CN || romName.isBlank()) return romName
-    return locationByName[nameKey(romName)] ?: romName
+    locationByName[nameKey(romName)]?.let { return it }
+    ROUTE_RE.find(romName.uppercase())?.let { m ->
+        val to = m.groupValues[2]
+        return if (to.isEmpty()) "${m.groupValues[1]}号道路" else "${m.groupValues[1]}-${to}号道路"
+    }
+    return romName
 }
 
 /** A region's standard name in Chinese; a hack's own region name stays as it is. */
@@ -88,11 +114,12 @@ private fun genusKey(s: String): String {
 
 /** A species' Pokédex category ("Mud Fish") in Chinese, verified against the ROM's own word. */
 fun displaySpeciesCategory(national: Int, romCategory: String): String {
-    if (L10n.language != AppLanguage.ZH_CN || romCategory.isBlank()) return romCategory
+    if (L10n.language != AppLanguage.ZH_CN || national <= 0) return romCategory
     val entry = chineseSpeciesCategories.getOrNull(national) ?: return romCategory
     val en = entry.substringAfter('|', "")
-    val zh = entry.substringBefore('|')
-    return if (zh.isNotBlank() && genusKey(en) == genusKey(romCategory)) zh else romCategory
+    val zh = halfWidthAscii(entry.substringBefore('|'))
+    if (zh.isBlank()) return romCategory
+    return if (!romCategory.readsAsText() || genusKey(en) == genusKey(romCategory)) zh else romCategory
 }
 
 /** The dex page's "MUD FISH POKéMON" line: "沼鱼宝可梦" in Chinese when the category is known. */
@@ -117,7 +144,10 @@ fun displaySpeciesName(id: Int): String {
     val entry = chineseSpeciesNames.getOrNull(national) ?: return original
     val names = entry.split('|')
     if (names.size < 2) return original
-    return if (names.drop(1).any { it.equals(original.trim(), ignoreCase = true) }) names[0] else original
+    val zh = halfWidthAscii(names[0])
+    // A translated ROM's own name is not text: the national number still identifies the species.
+    if (!original.readsAsText()) return zh
+    return if (names.drop(1).any { it.equals(original.trim(), ignoreCase = true) }) zh else original
 }
 
 /** A move's name in Chinese, verified against the ROM's own name; the ROM's name otherwise. */
@@ -137,12 +167,24 @@ fun displayMoveNameMarked(id: Int, romName: String): String {
 /** An item's Chinese description from the bundled table, when its English name still matches. */
 fun chineseItemDescription(id: Int): String? {
     if (L10n.language != AppLanguage.ZH_CN || id <= 0) return null
+    return chineseItemDescription(id, gameItemName(id))
+}
+
+/** [chineseItemDescription] against a name already read: a Chinese ROM names the item in Chinese, so the
+ * bundled Chinese name is what must match there, not the table's English one. */
+internal fun chineseItemDescription(id: Int, romName: String): String? {
+    if (L10n.language != AppLanguage.ZH_CN || id <= 0) return null
     val entry = chineseItemDescriptions.getOrNull(id)?.takeIf { it.isNotBlank() } ?: return null
     val sep = entry.indexOf('\u0001')
-    val zh = (if (sep >= 0) entry.substring(0, sep) else entry).trim()
+    val zh = halfWidthAscii((if (sep >= 0) entry.substring(0, sep) else entry).trim())
     val en = if (sep >= 0) entry.substring(sep + 1).trim() else ""
     if (zh.isEmpty()) return null
-    if (en.isNotEmpty() && nameKey(en) != nameKey(itemName(id))) return null
+    if (!romName.readsAsText()) return zh
+    if (romName.any { it in '\u3400'..'\u9fff' }) {
+        val zhName = chineseItemNames.getOrNull(id)?.substringBefore('|')?.let(::halfWidthAscii)?.trim().orEmpty()
+        return zh.takeIf { zhName.isNotEmpty() && romName.trim() == zhName }
+    }
+    if (en.isNotEmpty() && nameKey(en) != nameKey(romName)) return null
     return zh
 }
 
@@ -152,7 +194,7 @@ fun displayItemName(id: Int, romName: String): String {
     return translated(chineseItemNames.getOrNull(id), romName) ?: romName
 }
 
-fun displayItemName(id: Int): String = displayItemName(id, itemName(id))
+fun displayItemName(id: Int): String = displayItemName(id, gameItemName(id))
 
 /** An item's name in the Pokédex: Chinese, or the English name marked 未译. */
 fun displayItemNameMarked(id: Int, romName: String): String {

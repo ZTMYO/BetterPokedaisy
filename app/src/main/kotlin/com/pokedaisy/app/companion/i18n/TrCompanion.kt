@@ -107,6 +107,7 @@ internal val trCompanion: Map<String, Tr> = mapOf(
     "ACC" to Tr(ja = "めいちゅう", fr = "PRÉC.", de = "GENAU.", it = "PREC.", es = "PREC.", br = "PREC.", pt = "PREC.", ko = "명중", zh = "命中"),
     "FORGET {0}" to Tr(ja = "{0}を わすれる", fr = "OUBLIER {0}", de = "{0} VERGESSEN", it = "DIMENTICA {0}", es = "OLVIDAR {0}", br = "ESQUECER {0}", pt = "ESQUECER {0}", ko = "{0} 잊기", zh = "忘记{0}"),
     "FORGET" to Tr(ja = "わすれる", fr = "OUBLIER", de = "VERGESSEN", it = "DIMENTICA", es = "OLVIDAR", br = "ESQUECER", pt = "ESQUECER", ko = "잊기", zh = "忘记"),
+    "MOVE REPLACEMENT" to Tr(ja = "わざの いれかえ", fr = "REMPLACEMENT DE CAPACITÉ", de = "ATTACKEN-TAUSCH", it = "SOSTITUZIONE MOSSA", es = "CAMBIO DE MOVIMIENTO", br = "TROCA DE GOLPE", pt = "TROCA DE MOVIMENTO", ko = "기술 교체 추천", zh = "招式替换推荐"),
     "ABLE" to Tr(ja = "おぼえられる", fr = "APTE", de = "GEEIGNET", it = "IDONEO", es = "APTO", br = "APTO", pt = "APTO", ko = "배울 수 있음", zh = "可学习"),
     "NOT ABLE" to Tr(ja = "おぼえられない", fr = "PAS APTE", de = "UNGEEIGNET", it = "NON IDONEO", es = "NO APTO", br = "NÃO APTO", pt = "NÃO APTO", ko = "배울 수 없음", zh = "无法学习"),
     "LEARNED" to Tr(ja = "おぼえている", fr = "APPRIS", de = "ERLERNT", it = "IMPARATA", es = "APRENDIDO", br = "APRENDIDO", pt = "APRENDIDO", ko = "이미 배움", zh = "已学会"),

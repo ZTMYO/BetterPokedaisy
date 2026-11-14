@@ -118,6 +118,10 @@ fun MonDetailScreen(
     partyOrder: Boolean = true,
     /** Open on SWITCH's party (screenshot tests). */
     initialSwitching: Boolean = false,
+    /** The game's move-learning summary is up: LEARN is shown with this move picked, until it closes. */
+    learnFocus: Int? = null,
+    /** The running game's dex tables, for the STATS page's ABILITY row; null = no row. */
+    dexTables: com.pokedaisy.app.companion.data.PokedexTables? = null,
 ) {
     val m = rememberGbaTextMetrics()
     val small = rememberGbaTextMetrics(1f)
@@ -126,6 +130,8 @@ fun MonDetailScreen(
     var showLearn by remember { mutableStateOf(initialLearnPick != null) }
     // The picked CAN LEARN option, by move id (0 = none); kept while cycling through the party.
     var learnPick by remember { mutableStateOf(initialLearnPick ?: 0) }
+    // Whether LEARN was forced open by the game's move-learning summary (closes it when that screen does).
+    var autoLearn by remember { mutableStateOf(false) }
     val canLearn = learn != null && com.pokedaisy.app.companion.data.MoveLearning.available(learn.tables, learn.guide)
     // SWITCH: the party takes the summary's place and the Pokémon tapped there trades places with this one, as in the game's
     // party menu (the column beside the summary only steps through the Pokémon).
@@ -133,6 +139,18 @@ fun MonDetailScreen(
     // MOVES: dragging one onto another changes the order in the game too (its own summary does the same).
     val moveOrder = itemUse?.takeIf { partyOrder && it.canReorderMoves() }
     var switching by remember { mutableStateOf(initialSwitching) }
+    LaunchedEffect(learnFocus) {
+        if (learnFocus != null) {
+            autoLearn = true
+            showLearn = true
+            learnPick = learnFocus
+            // The game's own screen takes over whatever the summary was showing.
+            switching = false
+        } else if (autoLearn) {
+            autoLearn = false
+            showLearn = false
+        }
+    }
     // What each Pokémon holds, asked of the game whenever the party read changes (TAKE).
     val takes = itemUse?.takeIf { it.canTake() }
     var held by remember { mutableStateOf<List<com.pokedaisy.app.companion.data.PartyTarget>>(emptyList()) }
@@ -201,12 +219,26 @@ fun MonDetailScreen(
                 OptionListWindow(m, Modifier.fillMaxSize(), fill = optionLook.titleFill) {
                     Row(Modifier.fillMaxSize()) {
                         if (showLearn && canLearn) {
-                            val options = rememberLearnOptions(learn!!, mon)
+                            val ctx = learn!!
+                            val known = rememberLearnOptions(ctx, mon)
+                            // The game's own pending move may be a TM's or the move relearner's, not in the list: add it.
+                            val options = remember(known, learnFocus, mon) {
+                                if (known != null && learnFocus != null && learnFocus > 0 &&
+                                    known.none { it.move == learnFocus }
+                                ) {
+                                    listOf(
+                                        com.pokedaisy.app.companion.data.LearnOption(
+                                            learnFocus, mon.level, "",
+                                            com.pokedaisy.app.companion.data.MoveLearning.advise(ctx.tables, mon, learnFocus),
+                                        ),
+                                    ) + known
+                                } else known
+                            }
                             val pick = options?.firstOrNull { it.move == learnPick }
-                            val forget = pick?.advice?.forget?.takeIf { learn.showHints } ?: 0
+                            val forget = pick?.advice?.forget?.takeIf { ctx.showHints } ?: 0
                             MovesSection(mon, m, small, Modifier.weight(0.5f).fillMaxHeight().padding(end = gap), forget = forget)
                             Separator(m, Modifier.fillMaxHeight(), vertical = true)
-                            CanLearnSection(options, learnPick, { learnPick = it }, learn.showHints, m, small,
+                            CanLearnSection(options, learnPick, { learnPick = it }, ctx.showHints, m, small,
                                 Modifier.weight(0.5f).fillMaxHeight().padding(start = gap))
                         } else {
                             val heldItem = heldOf(i)
@@ -223,8 +255,9 @@ fun MonDetailScreen(
                             Separator(m, Modifier.fillMaxHeight(), vertical = true)
                             val right = Modifier.weight(0.5f).fillMaxHeight().padding(start = gap)
                             val stats = mon.stats
-                            if (showStats && stats != null) MonStatsSection(stats, m, small, right)
-                            else MovesSection(
+                            if (showStats && stats != null) {
+                                MonStatsSection(stats, individualAbility(mon, stats, dexTables), m, small, right)
+                            } else MovesSection(
                                 mon, m, small, right,
                                 reorderMoves = moveOrder?.let { use ->
                                     { from, to, done ->
@@ -425,6 +458,29 @@ private fun PartyColumn(
             } }
         }
     }
+}
+
+/** [mon]'s own ability: Gen 3's aptitude bit picks one of its species' two, read from the dex tables off the UI thread. */
+@Composable
+private fun individualAbility(
+    mon: MonView,
+    stats: com.pokedaisy.app.companion.data.MonStats,
+    tables: com.pokedaisy.app.companion.data.PokedexTables?,
+): String? {
+    if (tables == null) return null
+    return rememberLoaded(
+        tables, mon.species, stats.abilityNum,
+        cached = { null },
+        load = {
+            val national = com.pokedaisy.app.companion.data.PokedexSource.nationalOf(tables, mon.species)
+            val names = if (national > 0) {
+                com.pokedaisy.app.companion.data.PokedexSource.entry(tables, national)?.abilities.orEmpty()
+                    .filter { it.isNotBlank() }
+            } else emptyList()
+            (names.getOrNull(stats.abilityNum ?: 0) ?: names.firstOrNull())
+                ?.let { com.pokedaisy.app.companion.data.displayAbilityName(it) }
+        },
+    )
 }
 
 /** One of [PartyColumn]'s slots: [mon]'s icon in a white window, the one on show ([current]) framed in the values' red

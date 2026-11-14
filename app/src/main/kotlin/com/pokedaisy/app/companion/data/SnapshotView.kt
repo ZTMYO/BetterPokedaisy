@@ -52,11 +52,24 @@ data class MonView(
     /** Shiny (the battle screen's and INFO's SHINY marks). */
     val shiny: Boolean = false,
 ) {
-    /** What the game's party menu prints: the nickname where it was read, else the species ([name]). */
-    val shownName: String get() = nickname ?: name
+    /** What the game's party menu prints: the nickname where it was read and reads as text, else the species ([name]). */
+    val shownName: String get() = nickname?.takeIf { it.readsAsText() } ?: name
 
     /** The nickname is the player's own, not the species' name (the summary adds the species then). */
-    val renamed: Boolean get() = nickname != null && !nickname.equals(name, ignoreCase = true)
+    val renamed: Boolean get() = nickname?.takeIf { it.readsAsText() }?.let { !it.equals(name, ignoreCase = true) } == true
+}
+
+/**
+ * Does this string read as text, or is it a translated ROM's own character set decoded as ours?
+ * Those come out as rows of "?", of accented Latin letters, or of U+FFFD boxes - the decoder's
+ * unknown-byte glyph, which no real game text contains. A short name with more than a third such
+ * characters, or any U+FFFD at all, is unreadable and the caller falls back to a name it knows.
+ */
+fun String.readsAsText(): Boolean {
+    if (isBlank()) return false
+    if (contains('\uFFFD')) return false
+    val odd = count { it == '?' || it.code in 0xC0..0x24F || it.code in 0xE0..0xFF }
+    return odd * 3 < length
 }
 
 /** [total] EXP; this level starts at [levelStart], the next at [nextLevel] (== levelStart at Lv100). */
@@ -265,6 +278,9 @@ data class SnapshotView(
     val playerGender: Int = -1,
     /** The CARD tab's data; null = the game gets no card. */
     val trainerCard: TrainerCardInfo? = null,
+    /** The game's move-learning summary is up: that party member is choosing a move to forget (the companion shows
+     * its LEARN page meanwhile). */
+    val moveLearning: MoveLearningPrompt? = null,
     /** Non-null = the copy saved beside the savestate this launch resumed ([SnapshotCache]), shown
      * until the live game's data is in: the data tabs the game had then (DEX / GUIDE / CARD, whose
      * ROM tables aren't cached - they wait on LOADING). */
@@ -497,12 +513,13 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
                 }
             }
             return MonView(
-                species = b.species, name = battleNickname(b, t.party) ?: battleSpeciesName(b.species), level = b.level,
+                species = b.species, name = battleSpeciesName(b.species), level = b.level,
                 hp = b.hp, maxHp = b.maxHp, status = statusLabel(b.status1),
                 types = monTypes(b.type1, b.type2),
                 iconAsset = if (b.shiny) shinyIconAsset(b.species) else spriteAsset("pokemon", b.species),
                 moves = moves,
                 stats = statsFor(b, t.party, usedParty),
+                abilityId = b.ability,
             )
         }
 
@@ -567,9 +584,10 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
 
     val items = (0 until t.itemCount.coerceAtMost(t.items.size)).map { i ->
         val it = t.items[i]
+        val romName = RomItemText.name(it.itemId) ?: gameItemName(it.itemId)
         ItemView(
             it.itemId,
-            RomItemText.name(it.itemId) ?: displayItemName(it.itemId, itemName(it.itemId)),
+            displayItemName(it.itemId, romName),
             it.quantity,
             spriteAsset("items", it.itemId),
             it.pocket,
@@ -640,6 +658,7 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
         mapType = t.mapType,
         playerGender = t.playerGender,
         trainerCard = t.trainerCard,
+        moveLearning = t.moveLearning,
     )
 }
 

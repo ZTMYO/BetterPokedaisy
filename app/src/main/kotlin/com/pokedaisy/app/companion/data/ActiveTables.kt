@@ -435,6 +435,19 @@ val activeItemNames: Map<Int, String> get() = localText?.items ?: when {
     odyssey -> fireRedHackOdyssey.itemsMerged
     else -> frHack?.itemsMerged ?: itemNames
 }
+
+/** The bag's own item table for [game] (its casing and spelling); null = the app-wide table. */
+internal fun gameItemNames(game: GameKind): Map<Int, String>? = when (game) {
+    // A localized game's own (GameText), already in its casing.
+    GameKind.FIRERED -> localText?.items ?: runningFireRedHack?.itemsGame ?: itemNamesFireRedGame
+    // Recharged Emerald: its own whole table, in its mixed case.
+    GameKind.EMERALD -> localText?.items ?: runningEmeraldHack?.items ?: itemNamesEmeraldGame
+    else -> null
+}
+
+/** [id]'s name as the running game's bag writes it ("MAGMA EMBLEM"), else the app-wide name. */
+fun gameItemName(id: Int): String = gameItemNames(activeGame)?.get(id) ?: itemName(id)
+
 val activeSpeciesTypeData: Map<Int, SpeciesTypes> get() = when {
     redux -> Black2Redux.data?.speciesTypes ?: speciesTypesBlack
     black -> speciesTypesBlack

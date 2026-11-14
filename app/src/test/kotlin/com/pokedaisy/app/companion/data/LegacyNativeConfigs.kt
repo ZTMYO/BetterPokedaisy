@@ -328,6 +328,9 @@ val LEGACY_NATIVE_EMERALD_RETAIL = LEGACY_NATIVE_EMERALD.copy(
     battlerPartyIndexes = 0x0202406EL,
     battleStructPtr = 0x0202449CL,
     monToSwitchIntoOff = 0x5C,
+    partyMenu = 0x0203CEC8L,
+    summaryScreen = 0x0203CF1CL,
+    moveToLearn = 0x020244E2L,
 )
 
 // The European Emerald releases (BPES / BPED / BPEF / BPEI): every RAM address
@@ -388,6 +391,9 @@ val LEGACY_NATIVE_EMERALD_JA = LEGACY_NATIVE_EMERALD_RETAIL.copy(
     pokemonStoragePtr = 0x03005AF4L,
     itemDescs = japaneseItems(0x0855CEE8L),
     actionCursor = 0, moveCursor = 0, // its RAM moved; not located yet
+    // The generated base inherits retail's gPartyMenu (the move-learning fields are off here, so it stays unused);
+    // keep the snapshot in step with it.
+    partyMenu = 0x0203CEC8L, summaryScreen = 0, moveToLearn = 0,
 
     language = 'J', gameCode = "BPEJ", trainerCard = null,
     playerParty = 0x02024190L, playerPartyCount = 0x0202418DL,
@@ -1152,6 +1158,8 @@ val LEGACY_NATIVE_EMERALD_LEGACY = LEGACY_NATIVE_EMERALD_RETAIL.copy(
     waitForMonSelection = 0x0805A15CL,
     handleInputChooseTarget = 0x080580B8L,
     partyMenu = 0x0203D1F0L,
+    summaryScreen = 0,
+    moveToLearn = 0,
     eggSpecies = 415,
     trainerCard = TRAINER_CARD_EMERALD_LEGACY,
     pokedex = POKEDEX_EMERALD_LEGACY,

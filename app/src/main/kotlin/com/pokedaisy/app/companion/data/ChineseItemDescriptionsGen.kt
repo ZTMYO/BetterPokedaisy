@@ -380,6 +380,6 @@ internal val chineseItemDescriptions: Array<String> = arrayOf(
     "用来收集树果粉末的瓶子。\u0001Powder Jar", // 372: Powder Jar
     "得文公司制造的红色宝石。\u0001Ruby", // 373: Ruby
     "得文公司制造的蓝色宝石。\u0001Sapphire", // 374: Sapphire
-    "熔岩队的标志。\u0001Magma Emblem", // 375: Magma Emblem
+    "与火岩队的标志形状相同的徽章模样的东西。\u0001Magma Emblem", // 375: Magma Emblem
     "可以前往远洋小岛的古老海图。\u0001Old Sea Map", // 376: Old Sea Map
 )

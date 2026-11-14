@@ -122,28 +122,13 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
  */
 private enum class ItemSort(val label: String) { DEFAULT(tk("Default")), NAME(tk("Name")), TYPE(tk("Type")), COUNT(tk("Count")) }
 
-/**
- * FireRed and Emerald print item names and pocket titles in ALL CAPS
- * ("POKé BALL", "PARLYZ HEAL"), so the bag screen uses each game's own names
- * (ItemTextGame.kt) rather than the app-wide Title Case tables. Games whose item
- * table was extracted from their own ROM already carry the game's casing, and
- * descriptions always do: they're read from the ROM (RomItemText).
- */
-private fun gameItemNames(game: GameKind): Map<Int, String>? = when (game) {
-    // A localized game's own (GameText), already in its casing.
-    GameKind.FIRERED -> localText?.items ?: runningFireRedHack?.itemsGame ?: itemNamesFireRedGame
-    // Recharged Emerald: its own whole table, in its mixed case.
-    GameKind.EMERALD -> localText?.items ?: runningEmeraldHack?.items ?: itemNamesEmeraldGame
-    else -> null
-}
-
 /** Games whose bag prints pocket titles in caps; their item tables already are. */
 /** [id]'s name as this game's bag writes it (its own casing and spelling: "EXP. SHARE"). */
 internal fun bagItemName(id: Int): String =
-    com.pokedaisy.app.companion.data.displayItemName(id, gameItemNames(activeGame)?.get(id) ?: itemName(id))
+    com.pokedaisy.app.companion.data.displayItemName(id, com.pokedaisy.app.companion.data.gameItemName(id))
 
 private fun capsBagLabels(game: GameKind): Boolean =
-    gameItemNames(game) != null || game == GameKind.HEART_AND_SOUL || game == GameKind.ORANGE_ISLANDS ||
+    com.pokedaisy.app.companion.data.gameItemNames(game) != null || game == GameKind.HEART_AND_SOUL || game == GameKind.ORANGE_ISLANDS ||
         (game.isGen2 && game != GameKind.PRISM && game != GameKind.POLISHED_CRYSTAL)   // Prism's and Polished's bags are mixed case
 
 /** The FAVORITES tab's id among the pocket tabs (pocket ids are 0 and up): the starred items. */
@@ -791,7 +776,7 @@ fun ItemsScreen(
     val actionFocus = remember { FocusRequester() }
     val hgssState = LocalHgssBag.current ?: remember { HgssBagState() }
     val pal = bagPaletteFor(activeGame, hgssState.pocket)
-    val caps = gameItemNames(activeGame)
+    val caps = com.pokedaisy.app.companion.data.gameItemNames(activeGame)
     val shown = items.map { item ->
         val romName = caps?.get(item.itemId) ?: item.name
         val name = com.pokedaisy.app.companion.data.displayItemName(item.itemId, romName)
@@ -852,14 +837,18 @@ fun ItemsScreen(
         FAVORITES_TAB -> shown.filter { it.itemId in favorites }
         else -> shown.filter { it.pocket == category }
     }
+    // The names the bag shows (a Chinese game's are Chinese): NAME and the tie-breakers sort by those, in Chinese order.
+    val nameCollator = remember { java.text.Collator.getInstance(java.util.Locale.CHINA) }
     val sorted: List<ItemView> = when (sort) {
         // A stable sort: starred items keep the bag's order among themselves, as do the rest.
         ItemSort.DEFAULT -> filtered.sortedBy { it.itemId !in favorites }
-        ItemSort.NAME -> filtered.sortedBy { it.name }
-        ItemSort.COUNT -> filtered.sortedWith(compareByDescending<ItemView> { it.quantity }.thenBy { it.name })
+        ItemSort.NAME -> filtered.sortedWith(compareBy(nameCollator) { bagItemName(it.itemId) })
+        ItemSort.COUNT -> filtered.sortedWith(
+            compareByDescending<ItemView> { it.quantity }.thenBy(nameCollator) { bagItemName(it.itemId) },
+        )
         ItemSort.TYPE -> filtered.sortedWith(
             compareBy<ItemView> { pocketTabs.indexOf(it.pocket).let { i -> if (i < 0) Int.MAX_VALUE else i } }
-                .thenBy { it.name },
+                .thenBy(nameCollator) { bagItemName(it.itemId) },
         )
     }
 

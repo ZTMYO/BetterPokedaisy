@@ -106,7 +106,7 @@ class UnboundChineseDecodeTest {
                 battlers[BATTLE_POS_OPPONENT_LEFT] = opponent
                 val mon = Mon(398, 17, 33, 45, 0, intArrayOf(33, 148, 499, 0), intArrayOf(32, 20, 32, 0), nickname = "我的昵称")
                 val snapshot = buildSnapshotView(Telemetry(0, true, false, 0, 0, 0, 0, 0, 0, 1, listOf(mon), battlers, 0, emptyList()))
-                assertEquals("我的昵称", snapshot.battlePlayer.single().name)
+                assertEquals("铁哑铃", snapshot.battlePlayer.single().name)
                 assertEquals("冰宝", snapshot.battleOpponent.single().name)
                 assertEquals(listOf("撞击", "闪光", "金属撞击"), snapshot.battlePlayer.single().moves.map { it.name })
             } finally { activeGame = priorGame }
@@ -122,14 +122,6 @@ class UnboundChineseDecodeTest {
             RomItemText.use(null)
             PokedexSource.reader = previousReader
         }
-    }
-
-    @Test fun `battle nickname is retained only for an unambiguous party match`() {
-        val b = BattleMon(398, 17, 0, 0, 33, 45, 0, intArrayOf(), intArrayOf())
-        val mon = Mon(398, 17, 33, 45, 0, intArrayOf(), intArrayOf(), nickname = "我的昵称")
-        assertEquals("我的昵称", battleNickname(b, listOf(mon)))
-        assertEquals(null, battleNickname(b, listOf(mon, mon.copy(nickname = "另一只"))))
-        assertEquals(null, battleNickname(b, listOf(mon.copy(hp = 30))))
     }
 
     @Test fun `item name from the Chinese ROM decodes`() {
