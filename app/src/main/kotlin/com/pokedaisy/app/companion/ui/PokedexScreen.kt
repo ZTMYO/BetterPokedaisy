@@ -390,6 +390,9 @@ private fun DexMark(caught: Boolean, seen: Boolean, modifier: Modifier) {
 @Composable
 fun PokedexEntryScreen(
     dex: PokedexState, ui: DexUiState, current: Int, modifier: Modifier = Modifier, guide: GuideTables? = null,
+    /** SORT is offered here (the game's live boxes support it): the entry page's button opens its confirmation. */
+    onSort: (() -> Unit)? = null,
+    sorting: Boolean = false,
     /** Back's way out; null = back to the dex list. A party summary's jump comes back to that summary instead. */
     onBack: (() -> Unit)? = null,
 ) {
@@ -440,7 +443,7 @@ fun PokedexEntryScreen(
             val entry by produceKeyedState(PokedexSource.cachedEntry(dex.tables, n), dex.tables, n) {
                 if (value == null) value = withContext(Dispatchers.IO) { PokedexSource.entry(dex.tables, n) }
             }
-            EntryPage(n, order.number(n), entry, dex.tables, guide, n in dex.caught, n in dex.seen, m, small, ui)
+            EntryPage(n, order.number(n), entry, dex.tables, guide, n in dex.caught, n in dex.seen, m, small, ui, onSort, sorting)
         }
     }
 }
@@ -448,7 +451,7 @@ fun PokedexEntryScreen(
 @Composable
 private fun EntryPage(
     n: Int, shownNo: Int, e: DexEntry?, t: PokedexTables, guide: GuideTables?, caught: Boolean, seen: Boolean,
-    m: GbaTextMetrics, small: GbaTextMetrics, ui: DexUiState,
+    m: GbaTextMetrics, small: GbaTextMetrics, ui: DexUiState, onSort: (() -> Unit)? = null, sorting: Boolean = false,
 ) {
     val u = m.u
     val gap = u * 3
@@ -461,7 +464,7 @@ private fun EntryPage(
                 GbaText(if (species > 0 && seen) dexSpeciesLabel(n, speciesName(species)) else if (species > 0) "???" else "-----", OptionColors.label, OptionColors.labelShadow, m, Modifier.weight(1f))
                 DexMark(caught, seen, Modifier.size(u * 12))
             }
-            // The sprite gets whatever height the text below leaves it.
+            // The sprite gets whatever height the text below and the SORT button leave it.
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 val sprite = rememberRomBitmap(t, species, PokedexSource::cachedFrontSprite, PokedexSource::frontSprite)
                 val paper = OptionColors.spritePaper
@@ -494,6 +497,9 @@ private fun EntryPage(
                 height()
                 Spacer(Modifier.width(u * 10))
                 weight()
+            }
+            if (onSort != null) {
+                OptionButton(tk("SORT"), m, onClick = onSort, enabled = !sorting, emphasis = true, modifier = Modifier.fillMaxWidth())
             }
         }
         Separator(m, Modifier.fillMaxHeight(), vertical = true)
