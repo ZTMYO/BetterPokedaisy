@@ -68,6 +68,18 @@ class ChineseTextTest {
         }
     }
 
+    @Test fun `Itemfinder and Basement Key describe their Gen 3 selves`() {
+        val prior = activeGame
+        try {
+            activeGame = GameKind.EMERALD
+            L10n.apply("ZH_CN", null)
+            assertEquals("用声音提示看不见的道具的装置。", chineseItemDescription(261))
+            assertEquals("可以打开新紫堇入口的钥匙。", chineseItemDescription(271))
+        } finally {
+            activeGame = prior
+        }
+    }
+
     @Test fun `the Chinese tables answer on a Chinese screen only`() {
         val english = speciesName(1)
         L10n.apply("EN", null)

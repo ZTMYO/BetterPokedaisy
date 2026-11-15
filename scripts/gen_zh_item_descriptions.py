@@ -89,6 +89,10 @@ MANUAL = {    "Orange Mail": "可以夹在信件中，让宝可梦携带。",
 
 # Items whose earliest PokeAPI text is from a later generation, where the item itself changed.
 GEN3_OVERRIDES = {
+    # PokeAPI's Chinese flavor for these two is the Gen 2 items' (the Goldenrod tunnel key): Gen 3's Itemfinder
+    # signals invisible items by sound, and its Basement Key opens New Mauville.
+    "Itemfinder": "用声音提示看不见的道具的装置。",
+    "Basement Key": "可以打开新紫堇入口的钥匙。",
     # Gen 6 turned the held Exp. Share into a key item that shares EXP with the whole party.
     "Exp. Share": "携带后，能从战斗中获得经验值的装置。",
 }

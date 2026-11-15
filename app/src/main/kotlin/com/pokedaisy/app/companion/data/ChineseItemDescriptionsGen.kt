@@ -266,7 +266,7 @@ internal val chineseItemDescriptions: Array<String> = arrayOf(
     "携带它去参加华丽大赛的 宝可梦会比平时 看上去更加强壮。\u0001Yellow Scarf", // 258: Yellow Scarf
     "能以２倍以上的速度移动的 折叠式自行车。\u0001Mach Bike", // 259: Mach Bike
     "可以存放代币的盒子。 最多能放入５００００枚 在游戏城获得的代币。\u0001Coin Case", // 260: Coin Case
-    "用来打开满金地道 大门的钥匙。\u0001Itemfinder", // 261: Itemfinder
+    "用声音提示看不见的道具的装置。\u0001Itemfinder", // 261: Itemfinder
     "又破又旧的钓竿。 在有水的地方使用的话， 可以钓到宝可梦。\u0001Old Rod", // 262: Old Rod
     "不错的新钓竿。 在有水的地方使用的话， 可以钓到宝可梦。\u0001Good Rod", // 263: Good Rod
     "最新的厉害钓竿。 在有水的地方使用的话， 可以钓到宝可梦。\u0001Super Rod", // 264: Super Rod
@@ -276,7 +276,7 @@ internal val chineseItemDescriptions: Array<String> = arrayOf(
     "浇水的道具。 能让埋在土壤里的 树果快快长大。\u0001Wailmer Pail", // 268: Wailmer Pail
     "得文公司委托送交的重要物品。\u0001Devon Goods", // 269: Devon Goods
     "将堆积起来的火山灰 收集起来的袋子。\u0001Soot Sack", // 270: Soot Sack
-    "用来打开满金地道 大门的钥匙。\u0001Basement Key", // 271: Basement Key
+    "可以打开新紫堇入口的钥匙。\u0001Basement Key", // 271: Basement Key
     "能做出跳跃或抬前轮动作的 折叠式自行车。\u0001Acro Bike", // 272: Acro Bike
     "用来存放宝可方块。\u0001Pokéblock Case", // 273: Pokéblock Case
     "从得文社长 那里得到的信。\u0001Letter", // 274: Letter
