@@ -25,7 +25,7 @@ In Simplified Chinese, a species name is translated only when both its national 
 
 ## An entry
 
-Tap a row to open its entry. The left side has the number, name and caught mark, the Pokémon's picture, its footprint (in games that have them), its category, its types, and its height (`HT`) and weight (`WT`) in the game's own units.
+Tap a row to open its entry. The left side has the number, name and caught mark, the Pokémon's picture, its footprint (in games that have them), its category, its types, and its height (`HT`) and weight (`WT`) in the game's own units. In the games whose boxes the companion can edit (Emerald, FireRed and LeafGreen), the bottom of that column also has a `SORT` button: it puts every Pokémon in your PC boxes in Pokédex order, with Pokémon of the same species lowest level first. It asks first, then changes the game's boxes; save in the game to keep it.
 
 The right side has up to four sections, switched with the chips at the top:
 

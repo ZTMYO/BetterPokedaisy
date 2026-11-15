@@ -3,7 +3,7 @@ title: PC boxes
 summary: The BOXES tab shows the Pokémon in your PC, box by box, and opens any of them in a full summary.
 section: companion
 order: 3
-keywords: [pc, box, boxes, storage, stored, deposited, wallpaper, pkmn data, swap, withdraw, deposit]
+keywords: [pc, box, boxes, storage, stored, deposited, wallpaper, pkmn data, swap, withdraw, deposit, sort, order, pokedex]
 ---
 
 The `BOXES` tab shows what's in your PC without walking to a Pokémon Center. Every box is there, laid out like your game's own PC: the box's name between two arrows, your Pokémon in their slots over the box's wallpaper, and the `PKMN DATA` window beside them. The screen is drawn by the companion in the game's own colours: each wallpaper has its frame and header sky, so a FOREST box is green with a leafy strip and a SNOW box is white.
@@ -23,6 +23,10 @@ The tab remembers which box you were looking at while you switch to other tabs.
 
 The window beside the box shows one Pokémon's picture, its name, its kind, its gender and level, and the item it holds, like the game's own panel. It starts on the box's first Pokémon and then shows the last one you tapped, which the box marks with a white square. With a controller, it follows the cursor as you move it over the box.
 
+## SORT
+
+In the games whose boxes the companion can edit (Emerald, FireRed and LeafGreen), the bottom of that window has a `SORT` button. It rewrites every box: Pokémon go in Pokédex order, and Pokémon of the same species go lowest level first. It asks first. The change happens in your game right away, so **save in the game** to keep it.
+
 ## A Pokémon's summary
 
 Tap a Pokémon to open its summary, the same one the [PARTY tab](party.md#the-summary) shows: its level, types, moves, matchups, and `STATS` with its IVs, EVs and nature. The column down the right side holds the Pokémon in the same box, six at a time, so you can step through the whole box. BACK returns to the box.
@@ -41,7 +45,7 @@ Back on the box, you see the move: each Pokémon flashes white, shrinks to a spa
 
 A few things the game itself wouldn't allow are refused:
 
-- **Mail**: a Pokémon holding Mail can't go into a box. Take the Mail off first.
+- **Mail**: a Pokémon holding Mail can't go into a box. Take the Mail off first with the summary's `TAKE`, which sends the letter to your PC's mailbox.
 - **Your last fighter**: an Egg can't take the place of the last Pokémon in your party that can battle.
 - **Not now**: you have to be walking around, with no battle, menu or text box open. Close the game's own PC first too.
 
