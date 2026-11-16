@@ -59,6 +59,11 @@ data class MonView(
     val renamed: Boolean get() = nickname?.takeIf { it.readsAsText() }?.let { !it.equals(name, ignoreCase = true) } == true
 }
 
+/** An egg's hatch species' name for the summary's "EGG / name"; null when only the egg's placeholder id is known. */
+val MonView.eggHatchName: String? get() =
+    if (!isEgg || species <= 0 || species == SPECIES_EGG_VANILLA || species == activeNativeConfig?.eggSpecies) null
+    else displaySpeciesName(species)
+
 /**
  * Does this string read as text, or is it a translated ROM's own character set decoded as ours?
  * Those come out as rows of "?", of accented Latin letters, or of U+FFFD boxes - the decoder's
