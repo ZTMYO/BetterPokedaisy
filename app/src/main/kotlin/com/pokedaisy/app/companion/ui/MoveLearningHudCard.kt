@@ -64,7 +64,9 @@ internal fun MoveLearningHudCard(snapshot: SnapshotView, style: FieldHudStyle, m
                 Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 12.dp, end = 12.dp)
-                    .widthIn(max = minOf(260.dp, maxWidth - 24.dp))
+                    // As wide as its text needs, up to the room beside the picture: a five-character move name must not
+                    // be cut to an ellipsis.
+                    .widthIn(max = maxWidth - 24.dp)
                     .wrapContentWidth(Alignment.End)
                     .hudPanel(u, radius = 4)
                     .padding(horizontal = u * 6, vertical = u * 4),
