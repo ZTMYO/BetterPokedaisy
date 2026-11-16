@@ -179,19 +179,29 @@ private fun EffectIcon(kind: EffectKind, color: Color, modifier: Modifier) {
 }
 
 /** Official-style effectiveness: an icon (◎ ○ △ ×) and its Chinese words, no badge behind it.
- *  [lethal] replaces the words with 致命 and turns both icon and text red. */
+ *  [lethal] replaces the words with 致命 and turns both icon and text red; [maybeLethal] uses 可能致命 in amber. */
 @Composable
-fun EffectLabel(pct: Int, modifier: Modifier = Modifier, fontSize: TextUnit = 10.sp, lethal: Boolean = false) {
+fun EffectLabel(
+    pct: Int, modifier: Modifier = Modifier, fontSize: TextUnit = 10.sp,
+    lethal: Boolean = false, maybeLethal: Boolean = false,
+) {
     val kind = effectKind(pct)
-    val color = if (lethal) Color(0xFFE53935) else when (kind) {
-        EffectKind.SUPER -> Color(0xFF3F9B3A)
-        EffectKind.NORMAL -> OptionColors.label
-        EffectKind.WEAK -> Color(0xFFC05A2A)
-        EffectKind.NONE -> OptionColors.muted
+    val color = when {
+        lethal -> Color(0xFFE53935)
+        maybeLethal -> Color(0xFFE08A00)
+        else -> when (kind) {
+            EffectKind.SUPER -> Color(0xFF3F9B3A)
+            EffectKind.NORMAL -> OptionColors.label
+            EffectKind.WEAK -> Color(0xFFC05A2A)
+            EffectKind.NONE -> OptionColors.muted
+        }
     }
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         EffectIcon(kind, color, Modifier.size((fontSize.value * 0.95f).dp))
-        Text(tr(if (lethal) "LETHAL" else effectLabel(kind)), color = color, fontSize = fontSize, fontFamily = pixelFontFamily(), maxLines = 1)
+        Text(
+            tr(if (lethal) "LETHAL" else if (maybeLethal) "MAYBE LETHAL" else effectLabel(kind)),
+            color = color, fontSize = fontSize, fontFamily = pixelFontFamily(), maxLines = 1,
+        )
     }
 }
 

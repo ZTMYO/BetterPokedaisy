@@ -893,7 +893,7 @@ private fun MoveRow(
             // In battle: how the move fares against each foe.
             if (mv.vs.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    mv.vs.forEach { EffectLabel(it.pct, lethal = it.lethal) }
+                    mv.vs.forEach { EffectLabel(it.pct, lethal = it.lethal, maybeLethal = it.maybeLethal) }
                 }
             }
         }

@@ -167,6 +167,7 @@ internal val trCompanion: Map<String, Tr> = mapOf(
     "NOT VERY EFFECTIVE" to Tr(ja = "いまひとつ", fr = "PEU EFFICACE", de = "WENIG EFFEKTIV", it = "POCO EFFICACE", es = "POCO EFICAZ", br = "POUCO EFICAZ", pt = "POUCO EFICAZ", ko = "효과가 별로", zh = "效果不好"),
     "NO EFFECT" to Tr(ja = "こうかなし", fr = "AUCUN EFFET", de = "KEINE WIRKUNG", it = "NESSUN EFFETTO", es = "SIN EFECTO", br = "SEM EFEITO", pt = "SEM EFEITO", ko = "효과 없음", zh = "没有效果"),
     "LETHAL" to Tr(ja = "ひっさつ", fr = "K.O.", de = "K.O.", it = "K.O.", es = "K.O.", br = "K.O.", pt = "K.O.", ko = "치명", zh = "致命"),
+    "MAYBE LETHAL" to Tr(ja = "ひっさつかも", fr = "K.O. possible", de = "K.O. möglich", it = "K.O. possibile", es = "K.O. posible", br = "K.O. possível", pt = "K.O. possível", ko = "치명 가능", zh = "可能致命"),
 
     // Type matchups.
     "{0} IS" to Tr(ja = "{0}の あいしょう", fr = "{0} EST", de = "{0} IST", it = "{0} È", es = "{0} ES", br = "{0} É", pt = "{0} É", ko = "{0}의 상성", zh = "{0}的"),

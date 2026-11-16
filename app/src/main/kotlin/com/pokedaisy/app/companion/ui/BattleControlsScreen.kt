@@ -626,7 +626,7 @@ internal fun MoveCard(
                     // A long name (METAL CLAW) steps its size down to fit beside the multipliers rather than being cut.
                     FittedText(mv.name, AppColors.text, tight, maxSize = (32 * k).toInt(), minSize = (20 * k).toInt(), modifier = Modifier.weight(1f).padding(end = 10.dp * k))
                     if (showHints) Row(horizontalArrangement = Arrangement.spacedBy(4.dp * k)) {
-                        mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, fontSize = 16.sp * k) }
+                        mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal, fontSize = 16.sp * k) }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -642,7 +642,7 @@ internal fun MoveCard(
                 Row(Modifier.fillMaxWidth().weight(0.47f), verticalAlignment = Alignment.CenterVertically) {
                     FittedText(mv.name, AppColors.text, tight, maxSize = 32, minSize = 20, modifier = Modifier.weight(1f))
                     if (showHints) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, fontSize = 16.sp) }
+                        mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal, fontSize = 16.sp) }
                     }
                 }
                 Row(Modifier.fillMaxWidth().weight(0.53f), verticalAlignment = Alignment.CenterVertically) {
@@ -887,7 +887,7 @@ private fun Gen1MoveList(
                                     MoveTypeBadge(mv.type, fontSize = pill, iconSize = 15.dp)
                                     if (showHints && mv.power > 0) mv.vs.firstOrNull()?.let { v ->   // status moves ignore the chart
                                         Spacer(Modifier.width(m.u * 4))
-                                        EffectLabel(v.pct, lethal = v.lethal, fontSize = pill)
+                                        EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal, fontSize = pill)
                                     }
                                     Spacer(Modifier.width(m.u * 8))
                                     GbaText(tr("PP {0}", mv.pp), buttonContent, Color.Transparent, small)

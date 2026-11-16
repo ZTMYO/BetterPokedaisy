@@ -110,7 +110,7 @@ private fun MoveListRow(
                 GbaText(tr("PWR {0}", powerLabel(mv.power)), AppColors.muted, Color.Transparent, small, Modifier.weight(1f))
                 val v = mv.vs.firstOrNull()
                 if (showHints && v != null) {
-                    EffectLabel(v.pct, lethal = v.lethal)
+                    EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal)
                 }
             }
         }

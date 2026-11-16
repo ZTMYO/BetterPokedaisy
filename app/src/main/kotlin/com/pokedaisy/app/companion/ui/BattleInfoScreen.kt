@@ -506,9 +506,9 @@ private fun MoveVerdict(mv: MoveView, foeCount: Int, short: Boolean = false, thr
         mv.power == 0 -> if (!short) Text(tr("STATUS"), color = VerdictGrey, fontSize = 10.sp, fontFamily = pixelFontFamily(), maxLines = 1)
         mv.vs.isEmpty() -> {}
         foeCount > 1 || mv.vs.size > 1 -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal) }
+            mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal) }
         }
-        else -> EffectLabel(mv.vs[0].pct, fontSize = 11.sp, lethal = mv.vs[0].lethal)
+        else -> EffectLabel(mv.vs[0].pct, fontSize = 11.sp, lethal = mv.vs[0].lethal, maybeLethal = mv.vs[0].maybeLethal)
     }
 }
 
