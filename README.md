@@ -78,8 +78,11 @@ Nintendo DS 播放器，游戏旁边带实时伴侣：队伍、背包、地图�
 
 ```bash
 git submodule update --init --depth 1 \
-  third_party/mgba third_party/rcheevos third_party/melonds
+  third_party/mgba third_party/rcheevos third_party/melonds \
+  third_party/armgba third_party/zlib
 ```
+
+`third_party/azahar` 和 `third_party/gpsp` 只在构建 3DS 版（`n3ds` 模块）时需要，普通 APK 构建不需要它们。
 
 构建 Debug APK：
 

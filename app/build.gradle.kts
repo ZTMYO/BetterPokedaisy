@@ -16,11 +16,14 @@ plugins {
 // Crash reports (Firebase Crashlytics, opt-in - CrashReports.kt): only with the project's
 // app/google-services.json, which stays out of this public repo (gitignored; the release
 // workflow writes it from a secret). Without it the app builds the same, reports off.
-val crashlytics = file("google-services.json").isFile
+// It also has to name this fork's app id: the author's file only has com.pokedaisy.app,
+// and the Google plugin fails a build whose id it has no client for.
+val crashlytics = file("google-services.json").takeIf { it.isFile }
+    ?.readText()?.contains("\"com.ztmyo.betterpokedaisy\"") == true
 if (crashlytics) {
     apply(plugin = "com.google.gms.google-services")
     apply(plugin = "com.google.firebase.crashlytics")
-    // The dev build's package id (com.pokedaisy.app.dev) has no client in google-services.json, which fails its task.
+    // The dev build's package id (com.ztmyo.betterpokedaisy.dev) has no client in google-services.json, which fails its task.
     tasks.configureEach { if (name == "processDevGoogleServices") enabled = false }
 }
 
