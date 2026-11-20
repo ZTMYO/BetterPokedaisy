@@ -91,7 +91,7 @@ keywords: [游戏库, 快捷方式, 主屏幕, 启动器图标, 搜索, 查找�
 
 ### 将文件复制到应用文件夹
 
-直接复制到设备上的 `Android/data/com.pokedaisy.app/files/roms/` 中的游戏（使用文件管理器或从电脑复制）也会显示。复制后请在游戏库中点击刷新。
+直接复制到设备上的 `Android/data/com.ztmyo.betterpokedaisy/files/roms/` 中的游戏（使用文件管理器或从电脑复制）也会显示。复制后请在游戏库中点击刷新。
 
 ### 为 ROM 改版打补丁
 
@@ -253,7 +253,7 @@ Cocoon 已经知道如何用 PokeDaisy 运行 GBA、Game Boy、Game Boy Color �
 | 字段 | 值 |
 | --- | --- |
 | Package | `com.pokedaisy.app` |
-| Activity | `com.pokedaisy.app.LaunchActivity` |
+| Activity | `com.ztmyo.betterpokedaisy/com.pokedaisy.app.LaunchActivity` |
 | Action | `android.intent.action.VIEW` |
 | Data | ROM（前端的 ROM 占位符） |
 

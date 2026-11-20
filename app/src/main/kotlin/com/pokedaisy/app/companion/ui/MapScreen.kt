@@ -111,7 +111,11 @@ fun MapScreen(
     val gen = rememberArtGeneration()
     // RomRegionMap lands a hack's own map in the background and announces it as new art.
     val model = remember(snapshot.game, gen) { activeRegionMap() }
-    Box(modifier = modifier.fillMaxSize()) {
+    // A cave or building with a map of its own (AreaMap.kt): its AREA map first, the region map a button away.
+    val area = rememberPlayerArea(snapshot)
+    if (area != null && AreaMapChoice.showsArea(area, com.pokedaisy.app.companion.data.AreaMap.MapId(snapshot.mapGroup, snapshot.mapNum))) {
+        AreaMapPane(area, snapshot, onRegion = { AreaMapChoice.showRegion(area) }, modifier = modifier)
+    } else Box(modifier = modifier.fillMaxSize()) {
         val playerRegion = model?.sections?.get(snapshot.regionMapSectionId)?.region?.takeIf { it in model.images.indices }
         var selection by remember(model) { mutableStateOf<MapSelection?>(null) }
         // The tile the D-pad moves the cursor from (the companion's window): the last one tapped or moved to; null = the
@@ -122,8 +126,11 @@ fun MapScreen(
         // FLY: its destinations once asked for, or what kept it from starting.
         var flyTargets by remember { mutableStateOf(initialFly) }
         var flyNote by remember { mutableStateOf<String?>(null) }
-        // The button shows where the ROM has FLY and someone in the party knows it.
-        val canFly = fly?.canFly() == true && snapshot.party.any { !it.isEgg && it.moves.any { mv -> mv.id == FLY_MOVE } }
+        // The button shows where the ROM has FLY and someone in the party knows it (anyone, with NO HMS NEEDED, or in a
+        // game whose own party menu offers Fly without the move: Unbound's, which FLY then asks).
+        val canFly = fly?.canFly() == true && (com.pokedaisy.app.companion.data.HmFree.active ||
+            com.pokedaisy.app.companion.data.FlyWithoutMoveGame.active ||
+            snapshot.party.any { !it.isEgg && it.moves.any { mv -> mv.id == FLY_MOVE } })
         val openFly: (() -> Unit)? = fly?.takeIf { canFly }?.let { f ->
             {
                 f.targets { t ->
@@ -266,6 +273,7 @@ fun MapScreen(
                         onTakeOff = takeOff, flying = flyingNow,
                         onRegion = { selection = null; cursorTile = null; shownOverride = (shown + 1) % model.images.size },
                         onMe = { selection = null; cursorTile = null; shownOverride = null },
+                        onArea = area?.let { a -> { AreaMapChoice.showArea(a) } },
                     )
                 }
             }
@@ -356,6 +364,7 @@ internal enum class MapLabelStyle(val width: Int, val height: Int) {
             else if (game == GameKind.POLISHED_CRYSTAL) com.pokedaisy.app.companion.data.Gen2Art.POLISHED_PLAYERS.getOrNull(gender)
             else if (game == GameKind.GOLD || game == GameKind.SILVER) com.pokedaisy.app.companion.data.Gen2Art.GOLD_SILVER_PLAYER
             else if (game == GameKind.RED || game == GameKind.BLUE) "player_red_blue"
+            else if (game == GameKind.BROWN) "player_brown"
             else if (game == GameKind.PURE_RED || game == GameKind.PURE_BLUE) "player_${com.pokedaisy.app.companion.data.Gen1Art.pureTownMapName(game)}"
             else if (game != GameKind.CRYSTAL && game != GameKind.CRYSTAL_LEGACY) "player_yellow"
             else if (gender == 1) com.pokedaisy.app.companion.data.Gen2Art.CRYSTAL_PLAYER_F
@@ -680,6 +689,8 @@ private fun BoxScope.MapButtons(
     /** FREE FLIGHT's TAKE OFF / LAND, under FLY; null = none. */
     onTakeOff: (() -> Unit)? = null,
     flying: Boolean = false,
+    /** Back to the AREA map (AreaMapView.kt) of the cave / building the player is in; null = none. */
+    onArea: (() -> Unit)? = null,
 ) {
     val m = rememberGbaTextMetrics(1f)
     // Toward the map from a button: UP from the bottom row; LEFT from the top right (but between a row's own buttons),
@@ -695,6 +706,7 @@ private fun BoxScope.MapButtons(
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier.align(Alignment.BottomStart).padding(m.u * 8).focusRequester(group),
         ) {
+            if (onArea != null) OptionButton(tr("AREA MAP"), m, onClick = onArea, emphasis = true, modifier = toMap(up = true))
             if (regionLabel != null) OptionButton(regionLabel, m, onClick = onRegion, modifier = toMap(up = true))
             OptionButton(tr("PLACES"), m, onClick = onPlaces, modifier = toMap(up = true))
             if (onFly != null) FlyButton(onFly, toMap(up = true))
@@ -715,6 +727,7 @@ private fun BoxScope.MapButtons(
             onFly != null -> "FLY"
             else -> "TOP"
         }
+        if (onArea != null) OptionButton(tr("AREA MAP"), m, onClick = onArea, emphasis = true, modifier = toMap(left = true))
         Row(horizontalArrangement = Arrangement.spacedBy(m.u * 4)) {
             if (regionLabel != null) OptionButton(regionLabel, m, onClick = onRegion, modifier = toMap(left = true, down = lowest == "TOP"))
             OptionButton(tr("PLACES"), m, onClick = onPlaces, modifier = toMap(left = regionLabel == null, down = lowest == "TOP"))

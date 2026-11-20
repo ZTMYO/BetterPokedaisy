@@ -65,10 +65,11 @@ private val IvPerfect = Color(0xFFE8B830)
 @Composable
 internal fun MonStatsSection(
     stats: MonStats,
-    ability: String? = null,
     m: GbaTextMetrics,
     small: GbaTextMetrics,
     modifier: Modifier = Modifier,
+    /** The individual's ability, when the summary read the data for it; null = no row. */
+    ability: String? = null,
 ) {
     val u = m.u
     val up = natureRaises(stats.nature)
@@ -228,8 +229,9 @@ private fun StatsColumn(
             val stats = mon.stats
             if (stats != null) {
                 MonStatsSection(
-                    stats, rememberFoeAbility(mon, dexTables), m, small,
+                    stats, m, small,
                     if (single) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(small.lineHeight * 15),
+                    ability = rememberFoeAbility(mon, dexTables),
                 )
             }
             else GbaText(tr("NO STATS FOR THIS ONE"), optionLook.muted, optionLook.mutedShadow, small)

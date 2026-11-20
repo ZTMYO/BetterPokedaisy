@@ -46,7 +46,7 @@ keywords: [帮助, 常见问题, 故障, 错误, 无法使用, 游戏缺失, 隐
 
 1. 用 USB 将设备连接电脑（Android 11 及更新版本上，大多数文件管理器无法打开这些文件夹）。
 2. 在设备存储中找到 `Android/data/com.pokedaisey.app/files/`，或 `Android/data/com.pokedaisey.PokeDaiseyApp/files/`。
-3. 将其中的 `roms` 和 `saves` 文件夹复制到新应用的 `Android/data/com.pokedaisy.app/files/`。请先打开一次 PokeDaisy，让该文件夹生成。
+3. 将其中的 `roms` 和 `saves` 文件夹复制到新应用的 `Android/data/com.ztmyo.betterpokedaisy/files/`。请先打开一次 PokeDaisy，让该文件夹生成。
 4. 打开 PokeDaisy，游戏及其存档应会出现。
 
 如果游戏位于关联的 ROM 文件夹、存档位于你自己的文件夹（如 RetroArch 文件夹），无需复制；在设置 > `文件夹` 中重新关联相同文件夹即可。
@@ -100,7 +100,7 @@ keywords: [帮助, 常见问题, 故障, 错误, 无法使用, 游戏缺失, 隐
 发现新版本后，PokeDaisy 会下载并打开 Android 安装程序。如果失败：
 
 - **允许安装应用。** 首次安装时 Android 会要求允许 PokeDaisy 安装应用（“安装未知应用”）。允许后返回并再次点击更新。已完成的下载会被复用，无需重新下载。
-- **签名相同且版本更新。** 只有新旧应用来自同一来源，Android 才允许覆盖安装。如果你自行构建 PokeDaisy 或从其他来源安装，官方更新无法覆盖。必须先卸载，而卸载会删除 PokeDaisy 自有文件夹中的全部内容，因此请先从 `Android/data/com.pokedaisy.app/files/` 复制出 `saves`，如果导入过游戏也复制出 `roms`。
+- **签名相同且版本更新。** 只有新旧应用来自同一来源，Android 才允许覆盖安装。如果你自行构建 PokeDaisy 或从其他来源安装，官方更新无法覆盖。必须先卸载，而卸载会删除 PokeDaisy 自有文件夹中的全部内容，因此请先从 `Android/data/com.ztmyo.betterpokedaisy/files/` 复制出 `saves`，如果导入过游戏也复制出 `roms`。
 
 也可以随时从[发布页面](https://github.com/lidor30/pokedaisy/releases/latest)手动获取最新版，或在设置 > `版本` 中检查更新。
 

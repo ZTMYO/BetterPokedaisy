@@ -27,7 +27,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONF="$SCRIPT_DIR/roms.conf"
 SERIAL="${1:-}"
 WAIT_SECS="${2:-10}"
-PKG="com.pokedaisy.app"
+PKG="com.ztmyo.betterpokedaisy"
+# The Kotlin package: activity names live here, not under the app id.
+NS="com.pokedaisy.app"
 
 ADB=(adb)
 if [[ -n "$SERIAL" ]]; then
@@ -64,7 +66,7 @@ for conf_line in "${conf_lines[@]}"; do
     # the DEVICE's /system/bin/sh, which chokes on the parens/spaces most of
     # these ROM filenames have unless the path is quoted for THAT shell (not
     # just the local one) - single-quote it inside one shell string.
-    if ! "${ADB[@]}" shell "am start -n '$PKG/.PokeDaisyActivity' --es rom '$path'" >/dev/null 2>&1 </dev/null; then
+    if ! "${ADB[@]}" shell "am start -n '$PKG/$NS.PokeDaisyActivity' --es rom '$path'" >/dev/null 2>&1 </dev/null; then
         echo "FAIL  $label — am start failed (is the debug APK installed? scripts/roms.conf path exist on device?)"
         fail=$((fail + 1))
         fail_labels+=("$label: am start failed")

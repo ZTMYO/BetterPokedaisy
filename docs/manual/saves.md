@@ -36,7 +36,7 @@ If none of them has a save yet, the game's first save goes into the saves folder
 Open Settings > `FOLDERS` > `GAME SAVES`. You'll see the current folder and the saves in it:
 
 - `CHANGE FOLDER` picks another folder.
-- `USE DEFAULT` goes back to PokeDaisy's own folder, `Android/data/com.pokedaisy.app/files/saves/`.
+- `USE DEFAULT` goes back to PokeDaisy's own folder, `Android/data/com.ztmyo.betterpokedaisy/files/saves/`.
 - `COPY PATH` copies the folder's path, handy for a file manager.
 
 Changing the folder doesn't move any saves. Copy them over yourself if you want them in the new place.
@@ -64,7 +64,7 @@ If that folder has no save for the game yet, your current save is copied there (
 
 ## Backups and RESTORE BACKUP
 
-Backups go into a `pokedaisy-backups` folder beside the save, named after the game with the date and time, like `Pokemon Emerald.backup-20261007-233512.sav`. Whether they survive uninstall depends on where the saves are. Android removes app-specific storage, including the default `Android/data/com.pokedaisy.app/files/`, when an app is uninstalled. Before uninstalling, copy any saves and backups you need outside the app-specific folder.
+Backups go into a `pokedaisy-backups` folder beside the save, named after the game with the date and time, like `Pokemon Emerald.backup-20261007-233512.sav`. Whether they survive uninstall depends on where the saves are. Android removes app-specific storage, including the default `Android/data/com.ztmyo.betterpokedaisy/files/`, when an app is uninstalled. Before uninstalling, copy any saves and backups you need outside the app-specific folder.
 
 To bring one back, long-press the game in the library and tap `RESTORE BACKUP`. Pick a backup by its date and time, then confirm with `LOAD`. Your current save is kept as a dated copy first, so restoring is never a one-way trip.
 
@@ -143,7 +143,7 @@ You can save and load without opening the tab:
 
 Change them under `HOTKEYS` in Settings. See [Controls](controls.md).
 
-Save states are kept per game in `Android/data/com.pokedaisy.app/files/states/`, listed in Settings > `FOLDERS` > `SAVE STATES`. The library's `INFO` for a game shows how many slots it uses.
+Save states are kept per game in `Android/data/com.ztmyo.betterpokedaisy/files/states/`, listed in Settings > `FOLDERS` > `SAVE STATES`. The library's `INFO` for a game shows how many slots it uses.
 
 ## Rewind
 

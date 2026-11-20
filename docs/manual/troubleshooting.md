@@ -45,7 +45,7 @@ They're not lost. To bring them over:
 
 1. Connect the device to a computer over USB (on Android 11 and newer, most file manager apps can't open these folders).
 2. Find `Android/data/com.pokedaisey.app/files/` (or `Android/data/com.pokedaisey.PokeDaiseyApp/files/`) on the device's storage.
-3. Copy its `roms` and `saves` folders into `Android/data/com.pokedaisy.app/files/`, the new app's folder (open PokeDaisy once first, so the folder exists).
+3. Copy its `roms` and `saves` folders into `Android/data/com.ztmyo.betterpokedaisy/files/`, the new app's folder (open PokeDaisy once first, so the folder exists).
 4. Open PokeDaisy. Your games show up with their saves.
 
 If you kept your games in a linked ROMs folder and your saves in a folder of your own (like RetroArch's), there's nothing to copy: link the same folders again in Settings > `FOLDERS`.
@@ -106,7 +106,7 @@ More in [Achievements](achievements.md).
 When PokeDaisy finds a new version, it downloads it and opens Android's installer. If that doesn't work:
 
 - **Allow installing apps.** The first time, Android asks you to let PokeDaisy install apps ("Install unknown apps"). Allow it, then go back and tap the update again. A download that already finished is reused, so it won't download again.
-- **Same signer, newer version.** Android only installs an update over the app you have if both come from the same place. If you built PokeDaisy yourself or installed a copy from somewhere else, the official update won't go over it. You'd have to uninstall first, and uninstalling deletes everything in PokeDaisy's own folder, so copy your `saves` (and `roms`, if you imported games) out of `Android/data/com.pokedaisy.app/files/` before you do.
+- **Same signer, newer version.** Android only installs an update over the app you have if both come from the same place. If you built PokeDaisy yourself or installed a copy from somewhere else, the official update won't go over it. You'd have to uninstall first, and uninstalling deletes everything in PokeDaisy's own folder, so copy your `saves` (and `roms`, if you imported games) out of `Android/data/com.ztmyo.betterpokedaisy/files/` before you do.
 
 You can always get the newest version by hand from the [releases page](https://github.com/lidor30/pokedaisy/releases/latest), and check for one any time with Settings > `VERSION`.
 

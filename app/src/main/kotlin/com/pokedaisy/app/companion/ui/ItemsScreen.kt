@@ -127,6 +127,23 @@ private enum class ItemSort(val label: String) { DEFAULT(tk("Default")), NAME(tk
 internal fun bagItemName(id: Int): String =
     com.pokedaisy.app.companion.data.displayItemName(id, com.pokedaisy.app.companion.data.gameItemName(id))
 
+/**
+ * Item names from a game the app's tables don't cover (a 3DS game, read from its cart: n3ds/Gen6Text.kt): set, the bag
+ * keeps the names it's given and the held-item tag asks here, instead of the running GBA / DS game's tables by id (whose
+ * ids mean other items there), and neither draws an item picture from those tables.
+ */
+val LocalItemNames = androidx.compose.runtime.staticCompositionLocalOf<((Int) -> String?)?> { null }
+
+/** [LocalItemNames] for screens hosted where nothing provides it (the game screen's companion, its HUD): the running 3DS
+ * game's, set by [com.pokedaisy.app.n3ds.N3dsSession] while it runs; null = none. */
+object OwnItemNames {
+    @Volatile var lookup: ((Int) -> String?)? = null
+}
+
+/** [LocalItemNames], else [OwnItemNames]. */
+@androidx.compose.runtime.Composable
+internal fun ownItemNames(): ((Int) -> String?)? = LocalItemNames.current ?: OwnItemNames.lookup
+
 private fun capsBagLabels(game: GameKind): Boolean =
     com.pokedaisy.app.companion.data.gameItemNames(game) != null || game == GameKind.HEART_AND_SOUL || game == GameKind.ORANGE_ISLANDS ||
         (game.isGen2 && game != GameKind.PRISM && game != GameKind.POLISHED_CRYSTAL)   // Prism's and Polished's bags are mixed case
@@ -355,6 +372,19 @@ private val RadicalRedBag = BagPalette(
  * (the tabs: red with white text), the black description bar, a light icon box with a gold
  * edge, the orange pocket arrows (underline) and a flat light-grey backdrop.
  */
+/** Pokemon X: its menus' greens (CompanionSkins.POKEMON_XY): white rows in the dark green rim, white pocket names on the
+ * green tabs, the cursor's orange underline, descriptions on a dark green band; no backdrop of its own (the party's). */
+private val XyBag = BagPalette(
+    panelLayers = listOf(Color(0xFF2B8E26) to 1, Color(0xFF8ED46A) to 2, Color(0xFF5FB043) to 2),
+    tabLayerCount = 2,
+    fill = Color(0xFFF6F7F1), divider = Color(0xFFCFDCC4),
+    text = Color(0xFF353535), textShadow = Color(0x22000000),
+    tabText = Color(0xFFFFFFFF), tabTextShadow = Color(0xFF2B6E26), tabUnderline = Color(0xFFF08A1E),
+    descLayers = listOf(Color(0xFF2B8E26) to 1), descFill = Color(0xFF2E6A28),
+    descText = Color(0xFFFFFFFF), descTextShadow = Color(0xFF1C4418),
+    iconBox = Color(0xFFE6EEDF), iconBoxEdge = Color(0xFF8ED46A),
+)
+
 private val SwordShieldBag = BagPalette(
     panelLayers = listOf(Color(0xFF393939) to 2, Color(0xFFA50018) to 1, Color(0xFFD60021) to 3, Color(0xFF292929) to 2),
     tabLayerCount = 2,
@@ -584,6 +614,19 @@ private val RedBlueBag = YellowBag.copy(
     backdrop = Color(0xFFFFEFFF) to Color(0xFFFFEFFF),
 )
 
+/**
+ * Pokémon Brown: its ITEM window in pure black on white, its own text box frame - black, cream, green, black (the game's
+ * are two pixels each of cream and green; its party screen's colours, sampled headless; over the field the frame takes the
+ * map's two middle colours), a pixel each here so the pocket tabs keep their room.
+ */
+private val BrownBag = YellowBag.copy(
+    panelLayers = listOf(Color.Black to 1, Color(0xFFF7D67B) to 1, Color(0xFF4AA55A) to 1, Color.Black to 1, Color.White to 1),
+    tabLayerCount = 4,
+    text = Color.Black, tabText = Color.Black, tabUnderline = Color.Black,
+    descLayers = listOf(Color.Black to 1, Color(0xFFF7D67B) to 1, Color(0xFF4AA55A) to 1, Color.Black to 1),
+    descText = Color.Black, iconBoxEdge = Color.Black,
+)
+
 /** PureRed / PureBlue (on a Color, headless): Yellow's ITEM window in pure black on white. */
 private val PureRgbBag = YellowBag.copy(
     panelLayers = listOf(Color.Black to 1, Color.White to 1, Color.Black to 1, Color.White to 1),
@@ -727,6 +770,7 @@ private fun lightBagFor(game: GameKind, hgssPocket: Int = 0): BagPalette = when 
     GameKind.SOULGOLD -> SoulGoldBag
     GameKind.YELLOW, GameKind.YELLOW_LEGACY -> YellowBag
     GameKind.RED, GameKind.BLUE -> RedBlueBag
+    GameKind.BROWN -> BrownBag
     GameKind.PURE_RED, GameKind.PURE_BLUE -> PureRgbBag
     // Gold's and Silver's PACK is Crystal's, pixel for pixel (sampled headless in both).
     GameKind.CRYSTAL, GameKind.GOLD, GameKind.SILVER, GameKind.CRYSTAL_LEGACY -> CrystalBag
@@ -736,6 +780,7 @@ private fun lightBagFor(game: GameKind, hgssPocket: Int = 0): BagPalette = when 
     GameKind.POLISHED_CRYSTAL -> PolishedCrystalBag
     GameKind.MARIOMON -> MariomonBag
     GameKind.MONOMYTH -> MonomythBag
+    GameKind.POKEMON_X, GameKind.POKEMON_Y -> XyBag
     GameKind.HEARTGOLD, GameKind.SOULSILVER -> hgssBags.getOrElse(hgssPocket) { HeartGoldBag }
     GameKind.PLATINUM -> PlatinumBag
     GameKind.BLACK, GameKind.WHITE, GameKind.BLACK2, GameKind.WHITE2 -> BlackBag
@@ -776,11 +821,12 @@ fun ItemsScreen(
     val actionFocus = remember { FocusRequester() }
     val hgssState = LocalHgssBag.current ?: remember { HgssBagState() }
     val pal = bagPaletteFor(activeGame, hgssState.pocket)
-    val caps = com.pokedaisy.app.companion.data.gameItemNames(activeGame)
+    val ownNames = ownItemNames()
+    val caps = if (ownNames != null) null else com.pokedaisy.app.companion.data.gameItemNames(activeGame)
     val shown = items.map { item ->
         val romName = caps?.get(item.itemId) ?: item.name
         val name = com.pokedaisy.app.companion.data.displayItemName(item.itemId, romName)
-        item.copy(name = tmMoves[item.itemId]?.let { "$name $it" } ?: name)
+        item.copy(name = (if (ownNames != null) null else tmMoves[item.itemId])?.let { "$name $it" } ?: name)
     }
     val m = rememberGbaTextMetrics()
     val u = m.u

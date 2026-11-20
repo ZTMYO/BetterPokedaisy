@@ -2,10 +2,9 @@ package com.pokedaisy.app.companion.data
 
 import com.pokedaisy.app.companion.i18n.AppLanguage
 import com.pokedaisy.app.companion.i18n.L10n
-import java.text.Normalizer
 
 private fun dexKey(s: String): String =
-    Normalizer.normalize(s, Normalizer.Form.NFD).uppercase().filter { it in 'A'..'Z' || it in '0'..'9' }
+    asciiFold(s).uppercase().filter { it in 'A'..'Z' || it in '0'..'9' }
 
 /**
  * [national]'s Chinese Pokédex text, when the ROM's [english] description still matches the bundled Emerald one:

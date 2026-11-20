@@ -65,8 +65,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.zIndex
 import com.pokedaisy.app.companion.data.GENDER_SYMBOL_FEMALE
 import com.pokedaisy.app.companion.data.GENDER_SYMBOL_MALE
+import com.pokedaisy.app.companion.data.MonStats
+import com.pokedaisy.app.companion.data.abilityForSlot
+import com.pokedaisy.app.companion.data.abilitySlotReadable
 import com.pokedaisy.app.companion.data.MonView
 import com.pokedaisy.app.companion.data.MoveView
+import com.pokedaisy.app.companion.data.PokedexSource
+import com.pokedaisy.app.companion.data.PokedexTables
 import com.pokedaisy.app.companion.data.TypeMatchup
 import com.pokedaisy.app.companion.data.eggHatchName
 import com.pokedaisy.app.companion.ui.theme.AppColors
@@ -122,7 +127,9 @@ fun MonDetailScreen(
     /** The game's move-learning summary is up: LEARN is shown with this move picked, until it closes. */
     learnFocus: Int? = null,
     /** The running game's dex tables, for the STATS page's ABILITY row; null = no row. */
-    dexTables: com.pokedaisy.app.companion.data.PokedexTables? = null,
+    dexTables: PokedexTables? = null,
+    /** Open with the CENTER's list up (screenshot tests). */
+    initialCenterMenu: Boolean = false,
 ) {
     val m = rememberGbaTextMetrics()
     val small = rememberGbaTextMetrics(1f)
@@ -178,6 +185,28 @@ fun MonDetailScreen(
     val evoTarget = party.getOrNull(index)?.takeIf { !it.isEgg }?.let { tradeTargets[it.personality] }
     var evolveAsk by remember { mutableStateOf(initialEvolveAsk) }
     var evolveResult by remember { mutableStateOf<String?>(null) }
+    // The POKéMON CENTER (PokemonCenter.kt): its list, then FORGET's moves and its question.
+    val center = itemUse?.takeIf { partyOrder }?.center()
+    var centerMenu by remember { mutableStateOf(initialCenterMenu) }
+    var forgetPick by remember { mutableStateOf(false) }
+    var forgetAsk by remember { mutableStateOf<Int?>(null) }
+    val centerMon = party.getOrNull(index)?.takeIf { !it.isEgg && it.personality != 0L }
+    // What the Move Tutor would list for it (its level-up moves so far it doesn't know); null = not known here.
+    val relearnable by androidx.compose.runtime.produceState<List<Int>?>(null, centerMon?.species, centerMon?.level, centerMon?.moves, learn) {
+        val mon = centerMon
+        val l = learn
+        value = if (mon == null || l == null || center?.relearn != true) null
+        else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                com.pokedaisy.app.companion.data.relearnableMoves(l.tables, l.guide, mon.species, mon.level, mon.moves.map { it.id })
+            }.getOrNull()
+        }
+    }
+    fun centerDone(r: com.pokedaisy.app.companion.data.CenterResult, ok: String?) {
+        val name = centerMon?.name.orEmpty()
+        if (r == com.pokedaisy.app.companion.data.CenterResult.OK) { if (ok != null) notice = ItemNotice(0, ok) }
+        else notice = ItemNotice(0, centerMessage(r, name), ok = false)
+    }
     if (switching && reorders != null) {
         CompanionBackHandler { switching = false }
         Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -257,7 +286,7 @@ fun MonDetailScreen(
                             val right = Modifier.weight(0.5f).fillMaxHeight().padding(start = gap)
                             val stats = mon.stats
                             if (showStats && stats != null) {
-                                MonStatsSection(stats, individualAbility(mon, stats, dexTables), m, small, right)
+                                MonStatsSection(stats, m, small, right, ability = individualAbility(mon, stats, dexTables))
                             } else MovesSection(
                                 mon, m, small, right,
                                 reorderMoves = moveOrder?.let { use ->
@@ -282,13 +311,15 @@ fun MonDetailScreen(
         val stats = party.getOrNull(index)?.stats != null && !showLearn
         val learns = canLearn && party.getOrNull(index)?.isEgg == false
         val evolve = evolves != null && evoTarget != null && !showLearn
-        if (stats || learns || evolve || reorders != null || onDeposit != null || onWithdraw != null) {
+        val centers = center != null && centerMon != null && !showLearn
+        if (stats || learns || evolve || centers || reorders != null || onDeposit != null || onWithdraw != null) {
             Row(Modifier.height(SummaryButtonSize), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val size = SummaryButtonSize
                 if (stats) TextNavButton(if (showStats) tr("MOVES") else tr("STATS"), StatsPurple, StatsPurpleDark, size) { showStats = !showStats }
                 if (learns) TextNavButton(if (showLearn) tr("MOVES") else tr("LEARN"), SuggestGold, SuggestGoldDark, size) { showLearn = !showLearn; learnPick = 0 }
                 if (evolve) TextNavButton(tr("EVOLVE"), EvolveBlue, EvolveBlueDark, size) { evolveResult = null; evolveAsk = true }
                 if (reorders != null) TextNavButton(tr("SWITCH"), RunBlue, RunBlueDark, size) { switching = true }
+                if (centers) TextNavButton(tr("CENTER"), CenterPink, CenterPinkDark, size) { centerMenu = true }
                 if (onDeposit != null) TextNavButton(tr("DEPOSIT"), PcGreen, PcGreenDark, size, onClick = onDeposit)
                 if (onWithdraw != null) TextNavButton(tr("WITHDRAW"), PcGreen, PcGreenDark, size, onClick = onWithdraw)
             }
@@ -337,6 +368,62 @@ fun MonDetailScreen(
         } else {
             OptionConfirm(tk("TRADE EVOLUTION"), evolveResult ?: tradeEvoMessage(com.pokedaisy.app.companion.data.TradeEvoResult.NO_EVOLUTION, evolving.name),
                 tk("OK"), m, onConfirm = { evolveAsk = false }, onDismiss = { evolveAsk = false }, cancelLabel = null)
+        }
+    }
+    val cm = centerMon
+    if (center != null && cm != null) {
+        val i = index
+        val moves = cm.moves.filter { it.id != 0 }
+        if (centerMenu) {
+            // The services this Pokémon can have here, as the game's own NPCs would offer them.
+            val options = buildList {
+                if (center.heal) add(tk("HEAL THE PARTY"))
+                if (center.relearn && relearnable?.isNotEmpty() == true) add(tk("RELEARN A MOVE"))
+                if (center.forget && moves.size > 1) add(tk("FORGET A MOVE"))
+                if (center.nickname) add(tk("NICKNAME"))
+            }
+            OptionSelector(
+                title = tr("POKéMON CENTER"),
+                options = options,
+                selected = "",
+                label = { it },
+                m = m,
+                onPick = { o ->
+                    centerMenu = false
+                    when (o) {
+                        "HEAL THE PARTY" -> itemUse.centerHeal { r -> centerDone(r, tr("Your POKéMON are fully healed.")) }
+                        "RELEARN A MOVE" -> itemUse.centerRelearn(i, cm.personality) { r -> centerDone(r, null) }
+                        "FORGET A MOVE" -> forgetPick = true
+                        "NICKNAME" -> itemUse.centerNickname(i, cm.personality) { r -> centerDone(r, null) }
+                    }
+                },
+                onDismiss = { centerMenu = false },
+            )
+        }
+        if (forgetPick) {
+            OptionSelector(
+                title = tr("Forget which move?"),
+                options = moves.indices.toList(),
+                selected = -1,
+                label = { moves[it].name },
+                m = m,
+                onPick = { forgetPick = false; forgetAsk = it },
+                onDismiss = { forgetPick = false },
+            )
+        }
+        forgetAsk?.let { k ->
+            val move = moves.getOrNull(k)
+            if (move == null) forgetAsk = null
+            else OptionConfirm(
+                tk("FORGET A MOVE"), tr("{0} forgets {1}?", cm.name, move.name), tk("FORGET"), m,
+                onConfirm = {
+                    forgetAsk = null
+                    itemUse.centerForget(i, cm.personality, cm.moves.indexOf(move), move.id) { r ->
+                        centerDone(r, tr("{0} forgot {1}.", cm.name, move.name))
+                    }
+                },
+                onDismiss = { forgetAsk = null },
+            )
         }
     }
     androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
@@ -419,7 +506,7 @@ internal val NavButtonSize: androidx.compose.ui.unit.Dp
 /** The Pokémon summary's buttons (STATS / LEARN / the PC's, Back) and its party column: a little over a tab chip's height
  * (44 dp was a touch small to tap, the user's call, 2026-11-03; a short screen's stays 34, its STATS page has no width to
  * spare). The battle panes keep [NavButtonSize], whose bar holds the FOE TEAM's icons. */
-private val SummaryButtonSize: androidx.compose.ui.unit.Dp
+internal val SummaryButtonSize: androidx.compose.ui.unit.Dp
     @Composable get() = if (LocalShortCompanion.current) 34.dp else 48.dp
 
 @Composable
@@ -439,6 +526,24 @@ internal fun NavButton(
         contentPadding = PaddingValues(0.dp),
         onClick = onClick,
     ) { PixelIcon(icon, buttonContent, Modifier.size(size * 26 / 60)) }
+}
+
+/** [mon]'s own ability: Gen 3's aptitude bit picks one of its species' two, read from the dex tables off the UI thread. */
+@Composable
+private fun individualAbility(mon: MonView, stats: MonStats, tables: PokedexTables?): String? {
+    if (tables == null || mon.isEgg) return null
+    // Formats that don't read the bit (Elite Redux, R.O.W.E.) leave it null, and games with hidden abilities keep the
+    // slot elsewhere: say nothing rather than guess.
+    val slot = stats.abilityNum ?: return null
+    if (!abilitySlotReadable(tables)) return null
+    return rememberLoaded(
+        tables, mon.species, slot,
+        cached = { null },
+        load = {
+            val national = PokedexSource.nationalOf(tables, mon.species)
+            if (national > 0) PokedexSource.entry(tables, national)?.abilities?.let { abilityForSlot(it, slot) } else null
+        },
+    )
 }
 
 /** The party as a column of slots on the right, like battle INFO's foe team: the one shown framed in red, a tap on
@@ -462,29 +567,6 @@ private fun PartyColumn(
             } }
         }
     }
-}
-
-/** [mon]'s own ability: Gen 3's aptitude bit picks one of its species' two, read from the dex tables off the UI thread. */
-@Composable
-private fun individualAbility(
-    mon: MonView,
-    stats: com.pokedaisy.app.companion.data.MonStats,
-    tables: com.pokedaisy.app.companion.data.PokedexTables?,
-): String? {
-    if (tables == null) return null
-    return rememberLoaded(
-        tables, mon.species, stats.abilityNum,
-        cached = { null },
-        load = {
-            val national = com.pokedaisy.app.companion.data.PokedexSource.nationalOf(tables, mon.species)
-            val names = if (national > 0) {
-                com.pokedaisy.app.companion.data.PokedexSource.entry(tables, national)?.abilities.orEmpty()
-                    .filter { it.isNotBlank() }
-            } else emptyList()
-            (names.getOrNull(stats.abilityNum ?: 0) ?: names.firstOrNull())
-                ?.let { com.pokedaisy.app.companion.data.displayAbilityName(it) }
-        },
-    )
 }
 
 /** One of [PartyColumn]'s slots: [mon]'s icon in a white window, the one on show ([current]) framed in the values' red
@@ -541,6 +623,22 @@ internal fun Separator(m: GbaTextMetrics, modifier: Modifier = Modifier, vertica
 /** TRADE EVOLUTIONS' EVOLVE button: the party menu's field-move blue. */
 private val EvolveBlue = Color(0xFF5878E8)
 private val EvolveBlueDark = Color(0xFF3152CD)
+
+/** The POKéMON CENTER's button: its roof's pink. */
+private val CenterPink = Color(0xFFE8687C)
+private val CenterPinkDark = Color(0xFFB03850)
+
+/** What a POKéMON CENTER service said instead of going ahead, in the companion's words. */
+internal fun centerMessage(r: com.pokedaisy.app.companion.data.CenterResult, mon: String): String = when (r) {
+    com.pokedaisy.app.companion.data.CenterResult.NOT_NOW -> tr("Not now: close the game's menus and battles first.")
+    com.pokedaisy.app.companion.data.CenterResult.IN_BATTLE -> tr("You can't do that during a battle.")
+    com.pokedaisy.app.companion.data.CenterResult.EGG -> tr("Not for an EGG.")
+    com.pokedaisy.app.companion.data.CenterResult.TRADED -> tr("Only the trainer who caught {0} can rename it.", mon)
+    com.pokedaisy.app.companion.data.CenterResult.LAST_MOVE -> tr("{0} knows only one move.", mon)
+    com.pokedaisy.app.companion.data.CenterResult.LAST_SURFER -> tr("{0} is the only one in your party that knows SURF.", mon)
+    com.pokedaisy.app.companion.data.CenterResult.PARTY_CHANGED -> tr("The party has changed. Try again.")
+    else -> tr("It can't be used here.")
+}
 
 /** The PC's DEPOSIT / WITHDRAW buttons: the party menu's HP green. */
 private val PcGreen = Color(0xFF58C060)

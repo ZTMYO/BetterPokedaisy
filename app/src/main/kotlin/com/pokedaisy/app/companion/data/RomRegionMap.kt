@@ -1,7 +1,12 @@
 package com.pokedaisy.app.companion.data
 
-import java.io.File
-import java.io.RandomAccessFile
+import kotlin.concurrent.Volatile
+import okio.Buffer
+import okio.FileHandle
+import okio.HashingSink
+import okio.Path
+import okio.blackholeSink
+import okio.buffer
 
 /**
  * A FireRed-engine hack's own region map - Unbound's Borrius, Odyssey's,
@@ -61,52 +66,70 @@ object RomRegionMap {
     /** Bump when the images change, so ROMs read before get new ones. */
     private const val VERSION = 3 // 2: junk Sevii screens dropped (Odyssey, Sword and Shield Ultimate Plus); 3: and unused ones (GS Chronicles, Gaia)
 
+    /** Bytes per read while hashing the ROM. */
+    private const val CHUNK = 1 shl 16
+
     // FireRed 1.0's own Sevii tilemaps and region map tiles: a hack that moved the tiles but still points a screen
     // at one of these draws FireRed's islands in its own tiles.
     private val FIRERED_SEVII_TILEMAPS = setOf(0x3F0AFC, 0x3F0C0C, 0x3F0CF0)
     private const val FIRERED_TILES = 0x3EF61C
 
     /** Reads [rom] in the background and publishes its map as [current]. */
-    fun load(filesDir: File, romKey: String, rom: File) {
+    fun load(filesDir: Path, romKey: String, rom: Path) {
         current = null
-        Thread({
+        background("pokedaisy-region-map") {
             try {
-                current = loadNow(filesDir, romKey, rom) ?: return@Thread
+                current = loadNow(filesDir, romKey, rom) ?: return@background
                 RomArt.announce()
             } catch (t: Throwable) {
-                android.util.Log.w("pokedaisy", "RomRegionMap: read failed", t)
+                Logs.w("RomRegionMap: read failed", t)
             }
-        }, "pokedaisy-region-map").apply { isDaemon = true; start() }
+        }
     }
 
     /** [read] [rom], writing its screens (once per [romKey]) where [RomArt]'s art goes. */
-    fun loadNow(filesDir: File, romKey: String, rom: File): Data? {
+    fun loadNow(filesDir: Path, romKey: String, rom: Path): Data? {
         // Map loading runs independently of the Poller; choose this ROM's
         // charmap by file identity instead of whichever game initialized first.
-        val charmap = CjkTables.forSha(com.pokedaisy.app.RomIdentity.sha1(rom))
-        val parsed = RandomAccessFile(rom, "r").use { read(FileRom(it), charmap) } ?: return null
-        val dir = File(RomArt.dir(filesDir), "regionmap").apply { mkdirs() }
+        val parsed = withRomFile(rom) { f ->
+            val charmap = CjkTables.forSha(sha1Hex(f))
+            read(FileRom(f), charmap)
+        } ?: return null
+        val dir = (RomArt.dir(filesDir) / "regionmap").apply { mkdirs() }
         val names = parsed.images.mapIndexed { i, img ->
             val name = "rom-$romKey-v$VERSION-$i"
-            val f = File(dir, "$name.png")
-            if (!f.isFile) {
-                val tmp = File(dir, "$name.png.tmp")
-                tmp.writeBytes(img.png())
-                tmp.renameTo(f)
-            }
+            val f = dir / "$name.png"
+            if (!f.isFile) f.writeAtomically(img.png())
             name
         }
         return Data(names.toTypedArray(), parsed.sections, parsed.layouts)
     }
 
-    private class FileRom(private val f: RandomAccessFile) : Rom {
-        override val size = f.length().toInt()
+    /**
+     * Whole-file SHA-1, lowercase hex, read through okio (the shared module can't use
+     * java.security): the key [CjkTables.forSha] takes.
+     */
+    private fun sha1Hex(f: FileHandle): String {
+        val hashing = HashingSink.sha1(blackholeSink())
+        val sink = hashing.buffer()
+        val buffer = Buffer()
+        var off = 0L
+        val size = f.size()
+        while (off < size) {
+            val n = f.read(off, buffer, minOf(CHUNK.toLong(), size - off))
+            if (n <= 0) break
+            sink.write(buffer, n)
+            off += n
+        }
+        sink.flush()
+        return hashing.hash.hex()
+    }
+
+    private class FileRom(private val f: FileHandle) : Rom {
+        override val size = f.size().toInt()
         override fun read(off: Int, n: Int): ByteArray {
             if (off < 0 || off >= size) return ByteArray(0)
-            val out = ByteArray(minOf(n, size - off))
-            f.seek(off.toLong())
-            f.readFully(out)
-            return out
+            return f.readFully(off.toLong(), minOf(n, size - off))
         }
     }
 
@@ -116,7 +139,7 @@ object RomRegionMap {
         // Rev 1 has its code elsewhere. Anything else is taken as rev 0's code - Unbound's French
         // translation left its revision byte at 0x9E - and the literal pools below must still
         // land on data of the right shape.
-        if (header.size < 0x11 || String(header, 0, 4, Charsets.US_ASCII) != "BPRE" || header[0x10].toInt() == 1) return null
+        if (header.size < 0x11 || asciiString(header, 0, 4) != "BPRE" || header[0x10].toInt() == 1) return null
 
         fun u16(b: ByteArray, i: Int) = (b[i].toInt() and 0xFF) or ((b[i + 1].toInt() and 0xFF) shl 8)
         fun ptr(at: Int): Int? {
@@ -153,7 +176,7 @@ object RomRegionMap {
         val images = screens.mapIndexed { i, img ->
             val (left, top, right, bottom) = crops[i]
             RomArt.Image((right - left) * 8, (bottom - top) * 8).also { out ->
-                for (y in 0 until out.height) System.arraycopy(img.argb, (top * 8 + y) * 240 + left * 8, out.argb, y * out.width, out.width)
+                for (y in 0 until out.height) ((top * 8 + y) * 240 + left * 8).let { img.argb.copyInto(out.argb, y * out.width, it, it + out.width) }
             }
         }
 

@@ -1,18 +1,16 @@
 package com.pokedaisy.app.companion.data
 
-import java.util.concurrent.ConcurrentHashMap
-
 /** ROM-owned names for the hash-verified Unbound 2.1.1.1 Chinese build only. */
 object UnboundChineseBattleNames {
     @Volatile private var enabled = false
-    private val speciesCache = ConcurrentHashMap<Int, String>()
-    private val moveCache = ConcurrentHashMap<Int, String>()
+    private val speciesCache = LockedMap<Int, String>()
+    private val moveCache = LockedMap<Int, String>()
     fun use(enabled: Boolean) {
         this.enabled = enabled
         speciesCache.clear()
         moveCache.clear()
     }
-    private fun read(id: Int, range: IntRange, base: Long, stride: Int, cache: ConcurrentHashMap<Int, String>): String? {
+    private fun read(id: Int, range: IntRange, base: Long, stride: Int, cache: LockedMap<Int, String>): String? {
         if (!enabled || id !in range) return null
         cache[id]?.let { return it }
         val value = runCatching {

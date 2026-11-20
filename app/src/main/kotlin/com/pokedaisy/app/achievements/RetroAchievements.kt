@@ -92,6 +92,7 @@ object RetroAchievements : CompanionAchievements {
     // RC_* (rc_error.h)
     private const val RC_OK = 0
     private const val RC_NO_GAME_LOADED = -29
+    private const val RC_LOGIN_REQUIRED = -28
     private const val RC_ABORTED = -31
     private const val RC_ACCESS_DENIED = -33
     private const val RC_INVALID_CREDENTIALS = -34
@@ -122,6 +123,11 @@ object RetroAchievements : CompanionAchievements {
     /** Signed in while a game was already running: load it on the next frame. */
     @Volatile private var loadWanted = false
     @Volatile private var loadInFlight = false
+    /** This game's set couldn't load for want of the server: the notice went up once (GitHub #925). */
+    @Volatile private var offlineNoticeShown = false
+    /** Signed in but the set's download failed (no connection): try it again later. */
+    private var reload: ScheduledFuture<*>? = null
+    private var reloadDelaySec = 15L
     /** Rebuild [state]'s achievement list on the emu thread (it reads rc_client's game). */
     @Volatile private var listDirty = false
     private var framesSinceList = 0
@@ -137,6 +143,7 @@ object RetroAchievements : CompanionAchievements {
 
     /** SHINY ODDS is raised on a game it works in (ShinyOdds.kt): paused the same way, since sets reward catching a shiny. */
     @Volatile private var shinyOddsActive = false
+    @Volatile private var expShareActive = false
     /** FLIGHT AREA is ANYWHERE and the player took off with it (companion.data.FlightArea): flying past the story could
      * reach a set's places early, so paused the same way until it's VISITED again. */
     @Volatile private var flightActive = false
@@ -353,7 +360,15 @@ object RetroAchievements : CompanionAchievements {
     }
 
     override fun retry() {
-        if (!ready || _user.value != null) return
+        if (!ready) return
+        // Signed in, but the game's set didn't download: fetch it now.
+        if (_user.value != null) {
+            if (coreAttached && !loadInFlight && _state.value.game == null) {
+                cancelReload()
+                loadWanted = true
+            }
+            return
+        }
         cancelRetry()
         retryDelaySec = 15L
         tokenLogin()
@@ -363,6 +378,25 @@ object RetroAchievements : CompanionAchievements {
     private fun cancelRetry() {
         retry?.cancel(false)
         retry = null
+    }
+
+    @Synchronized
+    private fun cancelReload() {
+        reload?.cancel(false)
+        reload = null
+        reloadDelaySec = 15L
+    }
+
+    /** The set's download failed while signed in: load it again later, 15 s doubling to 5 min. */
+    @Synchronized
+    private fun scheduleReload() {
+        if (reload != null) return
+        val delay = reloadDelaySec
+        reloadDelaySec = (reloadDelaySec * 2).coerceAtMost(300L)
+        reload = timer.schedule({
+            synchronized(this) { reload = null }
+            if (coreAttached && !loadInFlight && _state.value.game == null) loadWanted = true
+        }, delay, TimeUnit.SECONDS)
     }
 
     @Synchronized
@@ -389,7 +423,16 @@ object RetroAchievements : CompanionAchievements {
         if (!ready) return
         coreAttached = true
         loadWanted = false
+        offlineNoticeShown = false
+        cancelReload()
         _state.update { it.copy(game = null, achievements = emptyList(), challenges = emptyList(), trackers = emptyList()) }
+        // Offline since an earlier try: ask again now, so the load below waits for this answer rather than
+        // failing at once (and the player hears about it if it's still down).
+        if (prefs?.raToken != null && _user.value == null && _state.value.offline) {
+            cancelRetry()
+            retryDelaySec = 15L
+            tokenLogin()
+        }
         // Signed out: nothing to load; signing in later sets loadWanted.
         // A token login still in flight is fine: rc_client holds the load until it answers.
         if (prefs?.raToken != null) beginLoad()
@@ -426,7 +469,7 @@ object RetroAchievements : CompanionAchievements {
             resumeProgress?.let { RaNative.raDeserializeProgress(it) }
             resumeProgress = null
         }
-        if (cheatsActive || shinyOddsActive || flightActive || coopBattle) RaNative.raIdle() else RaNative.raDoFrame()
+        if (cheatsActive || shinyOddsActive || flightActive || expShareActive || coopBattle) RaNative.raIdle() else RaNative.raDoFrame()
         // Debug builds: what rc_client sees, every ~10 s of emulated time.
         if (BuildConfig.DEBUG && ++debugFrames >= 600) {
             debugFrames = 0
@@ -456,6 +499,18 @@ object RetroAchievements : CompanionAchievements {
         if (!ready || !coreAttached) return
         if ((_state.value.game?.total ?: 0) > 0) emitPopup(shinyOddsPopup(active))
     }
+
+    fun setExpShareActive(active: Boolean) {
+        if (active == expShareActive) return
+        expShareActive = active
+        _state.update { it.copy(expSharePaused = active) }
+        if (!ready || !coreAttached) return
+        if ((_state.value.game?.total ?: 0) > 0) emitPopup(expSharePopup(active))
+    }
+
+    private fun expSharePopup(active: Boolean) =
+        if (active) AchievementPopup(AchievementPopup.Kind.NOTICE, tr("EXP SHARE") + ": " + tr("ON"), tr("Achievements are paused while EXP SHARE is on."))
+        else AchievementPopup(AchievementPopup.Kind.NOTICE, tr("EXP SHARE") + ": " + tr("OFF"), tr("Achievements are back on."))
 
     fun setFlightAnywhere(active: Boolean) {
         if (active == flightActive) return
@@ -488,6 +543,7 @@ object RetroAchievements : CompanionAchievements {
     fun onCoreStopped() {
         if (!ready) return
         coreAttached = false
+        cancelReload()
         RaNative.raPump()
     }
 
@@ -610,7 +666,8 @@ object RetroAchievements : CompanionAchievements {
         when (result) {
             RC_OK -> {
                 val game = AchievementGame(gameId, title, hash, achievements, unlocked, points, pointsUnlocked)
-                _state.update { it.copy(game = game) }
+                cancelReload()
+                _state.update { it.copy(game = game, offline = false) }
                 resumeProgressDue = resumeProgress != null
                 listDirty = true
                 framesSinceList = 30
@@ -634,7 +691,19 @@ object RetroAchievements : CompanionAchievements {
                 Log.i(TAG, "no achievement set for this ROM ($hash)")
             }
             RC_ABORTED -> Unit
-            else -> Log.w(TAG, "game load failed ($result): $error")
+            else -> {
+                Log.w(TAG, "game load failed ($result): $error")
+                // No server (GitHub #925: nothing said so, and a player played on for nothing): say it once a game,
+                // then keep trying - a token login that comes back loads the game (onLogin), a set that didn't
+                // download is fetched again.
+                if (!coreAttached || prefs?.raToken == null) return
+                _state.update { it.copy(offline = true) }
+                if (result != RC_LOGIN_REQUIRED) scheduleReload()
+                if (!offlineNoticeShown) {
+                    offlineNoticeShown = true
+                    emitPopup(offlinePopup())
+                }
+            }
         }
     }
 
@@ -685,6 +754,12 @@ object RetroAchievements : CompanionAchievements {
         if (message != null) Log.i(TAG, message)
     }
 }
+
+/** A game started but its achievements couldn't load: no server. */
+internal fun offlinePopup() = AchievementPopup(
+    AchievementPopup.Kind.NOTICE, tr("ACHIEVEMENTS OFFLINE"),
+    tr("Can't reach RetroAchievements, so achievements are off for now. They come on by themselves once it's back."),
+)
 
 /** Whether a [kind] popup shows, given Settings > RetroAchievements' two notification switches. */
 internal fun popupAllowed(kind: AchievementPopup.Kind, notifications: Boolean, progressNotifications: Boolean): Boolean =

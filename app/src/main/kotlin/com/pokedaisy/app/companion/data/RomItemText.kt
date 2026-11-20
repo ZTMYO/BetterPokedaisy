@@ -1,6 +1,6 @@
 package com.pokedaisy.app.companion.data
 
-import java.util.concurrent.ConcurrentHashMap
+import kotlin.concurrent.Volatile
 
 /**
  * Where a game keeps its item descriptions: the pointer to item `id`'s text sits at
@@ -44,8 +44,8 @@ object RomItemText {
     var table: ItemDescTable? = null
         private set
 
-    private val cache = ConcurrentHashMap<Int, String>()
-    private val nameCache = ConcurrentHashMap<Int, String>()
+    private val cache = LockedMap<Int, String>()
+    private val nameCache = LockedMap<Int, String>()
     @Volatile private var readChineseNames = false
 
     /** The running game's table (null = none: "" for every item). Clears what an earlier ROM left. */

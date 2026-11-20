@@ -2,7 +2,6 @@ package com.pokedaisy.app.companion.data
 
 import com.pokedaisy.app.companion.i18n.AppLanguage
 import com.pokedaisy.app.companion.i18n.L10n
-import java.text.Normalizer
 
 /**
  * Chinese names for data the ROM owns, for the companion's screens. Every table entry carries the
@@ -11,8 +10,40 @@ import java.text.Normalizer
  * Otherwise the ROM's own text is kept (or marked [markUntranslated] in the Pokédex).
  */
 
+/** Latin letters without their accents, for comparing names the way NFD + a letter filter did (pure Kotlin: the
+ * data code is shared with iOS, where java.text doesn't exist). */
+internal fun asciiFold(s: String): String {
+    if (s.all { it.code < 0x80 }) return s
+    return buildString(s.length) {
+        for (c in s) {
+            when (c) {
+                in '\u0300'..'\u036F' -> Unit
+                'à', 'á', 'â', 'ã', 'ä', 'å', 'ā', 'ă', 'ą' -> append('a')
+                'ç', 'ć', 'ĉ', 'ċ', 'č' -> append('c')
+                'ď', 'đ' -> append('d')
+                'è', 'é', 'ê', 'ë', 'ē', 'ĕ', 'ė', 'ę', 'ě' -> append('e')
+                'ĝ', 'ğ', 'ġ', 'ģ' -> append('g')
+                'ì', 'í', 'î', 'ï', 'ĩ', 'ī', 'ĭ', 'į', 'ı' -> append('i')
+                'ł', 'ĺ', 'ľ', 'ļ' -> append('l')
+                'ñ', 'ń', 'ņ', 'ň' -> append('n')
+                'ò', 'ó', 'ô', 'õ', 'ö', 'ø', 'ō', 'ŏ', 'ő' -> append('o')
+                'ŕ', 'ŗ', 'ř' -> append('r')
+                'ś', 'ŝ', 'ş', 'š' -> append('s')
+                'ţ', 'ť', 'ŧ' -> append('t')
+                'ù', 'ú', 'û', 'ü', 'ũ', 'ū', 'ŭ', 'ů', 'ű', 'ų' -> append('u')
+                'ý', 'ÿ', 'ŷ' -> append('y')
+                'ź', 'ż', 'ž' -> append('z')
+                'æ', 'Æ' -> append("ae")
+                'œ', 'Œ' -> append("oe")
+                'ß' -> append("ss")
+                else -> append(c)
+            }
+        }
+    }
+}
+
 private fun nameKey(s: String): String =
-    Normalizer.normalize(s, Normalizer.Form.NFD)
+    asciiFold(s)
         .uppercase()
         .filter { it in 'A'..'Z' || it in '0'..'9' }
 
@@ -43,7 +74,7 @@ private fun translated(entry: String?, romName: String): String? {
 }
 
 /** A move name's key, with the words Gen 6 renamed (the Chinese table uses the modern spellings). */
-private fun moveKey(s: String): String = nameKey(s)
+private fun chineseMoveKey(s: String): String = nameKey(s)
     .replace("FAINTATTACK", "FEINTATTACK")
     .replace("HIJUMPKICK", "HIGHJUMPKICK")
 
@@ -51,7 +82,7 @@ private fun translatedMove(entry: String?, romName: String): String? {
     val zh = entryZh(entry) ?: return null
     if (!romName.readsAsText()) return zh
     val en = entryEn(entry) ?: return null
-    return if (moveKey(en) == moveKey(romName)) zh else null
+    return if (chineseMoveKey(en) == chineseMoveKey(romName)) zh else null
 }
 
 private fun hasHan(s: String): Boolean = s.any { it in '\u3400'..'\u9fff' }

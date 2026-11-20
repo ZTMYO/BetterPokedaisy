@@ -17,7 +17,7 @@ if it isn't there):
 <ruleList>
     <emulator name="POKEDAISY">
         <rule type="androidpackage">
-            <entry>com.pokedaisy.app/.LaunchActivity</entry>
+            <entry>com.ztmyo.betterpokedaisy/com.pokedaisy.app.LaunchActivity</entry>
         </rule>
     </emulator>
 </ruleList>

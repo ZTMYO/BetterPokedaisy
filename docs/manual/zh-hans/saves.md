@@ -37,7 +37,7 @@ PokeDaisy 按以下顺序查找游戏存档，并使用第一个找到存档的�
 打开设置 > `文件夹` > `游戏存档`。你会看到当前文件夹及其中的存档：
 
 - `更改文件夹` 选择其他文件夹。
-- `使用默认值` 返回 PokeDaisy 自己的文件夹 `Android/data/com.pokedaisy.app/files/saves/`。
+- `使用默认值` 返回 PokeDaisy 自己的文件夹 `Android/data/com.ztmyo.betterpokedaisy/files/saves/`。
 - `复制路径` 复制文件夹路径，方便在文件管理器中使用。
 
 更改文件夹不会移动任何存档。如果希望存档出现在新位置，请自行复制过去。
@@ -65,7 +65,7 @@ PokeDaisy 按以下顺序查找游戏存档，并使用第一个找到存档的�
 
 ## 备份和恢复备份
 
-备份保存在存档旁边的 `pokedaisy-backups` 文件夹中，以游戏命名并包含日期和时间，例如 `Pokemon Emerald.backup-20261007-233512.sav`。备份能否在卸载后保留取决于存档所在的位置。Android 在卸载应用时会删除应用专属存储，包括默认的 `Android/data/com.pokedaisy.app/files/`。卸载前，请将需要保留的存档和备份复制到应用专属文件夹之外。
+备份保存在存档旁边的 `pokedaisy-backups` 文件夹中，以游戏命名并包含日期和时间，例如 `Pokemon Emerald.backup-20261007-233512.sav`。备份能否在卸载后保留取决于存档所在的位置。Android 在卸载应用时会删除应用专属存储，包括默认的 `Android/data/com.ztmyo.betterpokedaisy/files/`。卸载前，请将需要保留的存档和备份复制到应用专属文件夹之外。
 
 要恢复备份，请在游戏库中长按游戏并点击 `恢复备份`。按日期和时间选择备份，然后点击 `读取` 确认。当前存档会先保留为带日期的副本，因此恢复绝不会是一条无法回头的路。
 
@@ -144,7 +144,7 @@ PokeDaisy 按以下顺序查找游戏存档，并使用第一个找到存档的�
 
 可在设置中的 `快捷键` 下更改。参见[控制](controls.md)。
 
-即时存档按游戏保存在 `Android/data/com.pokedaisy.app/files/states/` 中，可在设置 > `文件夹` > `即时存档` 中查看。游戏库中该游戏的 `信息` 会显示已使用的槽位数量。
+即时存档按游戏保存在 `Android/data/com.ztmyo.betterpokedaisy/files/states/` 中，可在设置 > `文件夹` > `即时存档` 中查看。游戏库中该游戏的 `信息` 会显示已使用的槽位数量。
 
 ## 倒退
 

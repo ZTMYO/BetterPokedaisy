@@ -31,14 +31,14 @@ PokeDaisy's entry to the list your iiSU already has.
      "commands": [
        {
          "description": "PokeDaisy",
-         "command": "com.pokedaisy.app/.LaunchActivity -a android.intent.action.VIEW -d %ROM_URI%"
+         "command": "com.ztmyo.betterpokedaisy/com.pokedaisy.app.LaunchActivity -a android.intent.action.VIEW -d %ROM_URI%"
        },
        {
          "description": "PokeDaisy Path",
-         "command": "com.pokedaisy.app/.LaunchActivity -e rom %ROM_PATH%"
+         "command": "com.ztmyo.betterpokedaisy/com.pokedaisy.app.LaunchActivity -e rom %ROM_PATH%"
        }
      ],
-     "packages": ["com.pokedaisy.app"]
+     "packages": ["com.ztmyo.betterpokedaisy"]
    }
    ```
 
@@ -58,10 +58,10 @@ PokeDaisy's entry to the list your iiSU already has.
        "id": "POKEDAISY", "name": "PokeDaisy (Standalone)", "routeType": "uri",
        "commands": [
            {"description": "PokeDaisy",
-            "command": "com.pokedaisy.app/.LaunchActivity -a android.intent.action.VIEW -d %ROM_URI%"},
+            "command": "com.ztmyo.betterpokedaisy/com.pokedaisy.app.LaunchActivity -a android.intent.action.VIEW -d %ROM_URI%"},
            {"description": "PokeDaisy Path",
-            "command": "com.pokedaisy.app/.LaunchActivity -e rom %ROM_PATH%"}],
-       "packages": ["com.pokedaisy.app"]}]
+            "command": "com.ztmyo.betterpokedaisy/com.pokedaisy.app.LaunchActivity -e rom %ROM_PATH%"}],
+       "packages": ["com.ztmyo.betterpokedaisy"]}]
    json.dump(d, open("emuladores.json", "w"), indent=2, ensure_ascii=False)
    EOF
    adb push emuladores.json /sdcard/Download/
@@ -72,7 +72,7 @@ PokeDaisy's entry to the list your iiSU already has.
 3. In iiSU, open Settings (Select) > iiSU Settings > Updates > **Import
    emuladores.json** and pick your edited file. To do the same for
    `supported_emulators.json` (from the same folder), add
-   `{"name": "PokeDaisy", "packages": ["com.pokedaisy.app"]}` to the end of its
+   `{"name": "PokeDaisy", "packages": ["com.ztmyo.betterpokedaisy"]}` to the end of its
    list.
 
 Leave the GBA console's own emulator as it is: the next step sets PokeDaisy for

@@ -3,7 +3,8 @@ package com.pokedaisy.app.companion.i18n
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import java.util.Locale
+import androidx.compose.ui.text.intl.Locale
+import kotlin.concurrent.Volatile
 
 /**
  * The app's own text in ten languages. Game data (Pokémon / move / item / type
@@ -48,12 +49,12 @@ enum class AppLanguage(val code: String, val romLetter: Char?, val locale: Strin
 
         /** Portuguese by region: Brazil's for pt-BR, Portugal's for every other pt. */
         fun ofLocale(locale: Locale): AppLanguage? =
-            if (locale.language == "pt") { if (locale.country == "BR") BR else PT }
+            if (locale.language == "pt") { if (locale.region == "BR") BR else PT }
             else if (locale.language == "zh") {
                 when {
                     locale.script.equals("Hant", ignoreCase = true) -> null
                     locale.script.equals("Hans", ignoreCase = true) -> ZH_CN
-                    locale.country in setOf("TW", "HK", "MO") -> null
+                    locale.region in setOf("TW", "HK", "MO") -> null
                     else -> ZH_CN
                 }
             } else entries.firstOrNull { it.locale == locale.language }
@@ -101,7 +102,7 @@ object L10n {
      * (Library / Settings) the device's, else English. A language no ROM comes in
      * (Portuguese or Simplified Chinese) wins over an English game too.
      */
-    fun apply(setting: String, romCode: String?, device: Locale = Locale.getDefault()) {
+    fun apply(setting: String, romCode: String?, device: Locale = Locale.current) {
         if (romCode != lastRomCode) gameLetter = null
         lastRomCode = romCode
         lastSetting = setting

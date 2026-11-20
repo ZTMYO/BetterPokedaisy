@@ -6,7 +6,7 @@ A single Android app for the AYN Thor (and other dual-screen Android handhelds):
 Adds RetroArch-style **savestates** and **speed control** on user-configurable
 shortcuts.
 
-Lives in ``. Package / `applicationId` `com.pokedaisy.app`.
+Lives in ``. Package / `applicationId` `com.ztmyo.betterpokedaisy`.
 
 **Target ROMs**: **vanilla FireRed**, **vanilla Emerald**, and **Unbound** via the
 native-RAM readers — and arbitrary future GBA ROMs/hacks.
@@ -41,7 +41,7 @@ to compile. We deliberately chose the emulator path so FireRed + Emerald + **Unb
 ## Architecture
 
 ```
-┌─ Android app (com.pokedaisy.app) ──────────────────────────┐
+┌─ Android app (com.ztmyo.betterpokedaisy) ──────────────────────────┐
 │                                                                       │
 │  EmulatorActivity (top screen)          DualScreenPresentation        │
 │   ├─ GLSurfaceView: textured quad,       (bottom screen, via          │
@@ -130,7 +130,7 @@ output contract: a `GameState` snapshot per tick.
 
 ### ROM & save management
 
-- SAF picker or drop into `Android/data/com.pokedaisy.app/files/roms/`.
+- SAF picker or drop into `Android/data/com.ztmyo.betterpokedaisy/files/roms/`.
   Every target is just a `.gba` file — vanilla FireRed / Emerald / Unbound need nothing
   special.
 - Per-game `.srm` next to the ROM; `mCore` loads/saves it. Same 128 KB flash format
