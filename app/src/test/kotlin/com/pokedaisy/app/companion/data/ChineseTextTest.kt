@@ -86,6 +86,9 @@ class ChineseTextTest {
         assertEquals(english, displaySpeciesName(1))
         L10n.apply("ZH_CN", null)
         assertEquals("妙蛙种子", displaySpeciesName(1))
+        // The runtime table says Nidoran-F / Nidoran-M; the Chinese entry's English key has the symbols.
+        assertEquals("尼多兰", displaySpeciesName(29))
+        assertEquals("尼多朗", displaySpeciesName(32))
         assertEquals("若叶镇", displayLocationName("NEW BARK TOWN"))
         assertEquals("10号道路", displayLocationName("ROUTE 10"))
         assertEquals("12-15号道路", displayLocationName("ROUTES 12-15"))

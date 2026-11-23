@@ -178,7 +178,7 @@ fun displaySpeciesName(id: Int): String {
     val zh = halfWidthAscii(names[0])
     // A translated ROM's own name is not text: the national number still identifies the species.
     if (!original.readsAsText()) return zh
-    return if (names.drop(1).any { it.equals(original.trim(), ignoreCase = true) }) zh else original
+    return if (names.drop(1).any { speciesNameKey(it) == speciesNameKey(original) }) zh else original
 }
 
 /** A move's name in Chinese, verified against the ROM's own name; the ROM's name otherwise. */

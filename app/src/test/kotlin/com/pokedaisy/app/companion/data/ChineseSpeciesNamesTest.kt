@@ -24,6 +24,11 @@ class ChineseSpeciesNamesTest {
         assertEquals("妙蛙种子", dexSpeciesLabel(1, "BULBASAUR"))
         assertEquals("皮卡丘", dexSpeciesLabel(25, "PIKACHU"))
         assertEquals("皮卡丘", dexSpeciesLabel(25, "ピカチュウ"))
+        // Gen 3 writes the Nidoran pair with -F / -M; the tables use the gender symbols.
+        assertEquals("尼多兰", dexSpeciesLabel(29, "NIDORAN-F"))
+        assertEquals("尼多朗", dexSpeciesLabel(32, "NIDORAN-M"))
+        assertEquals("尼多兰", dexSpeciesLabel(29, "NIDORAN♀"))
+        assertEquals("尼多朗", dexSpeciesLabel(32, "NIDORAN♂"))
         assertEquals("负电拍拍", dexSpeciesLabel(312, "MINUN"))
         assertEquals("缠红鹤", dexSpeciesLabel(973, "FLAMIGO"))
         assertEquals("铁辙迹", dexSpeciesLabel(990, "IRON TREADS"))
@@ -37,6 +42,12 @@ class ChineseSpeciesNamesTest {
         assertEquals("", dexSpeciesLabel(25, ""))
         L10n.apply("EN", null)
         assertEquals("PIKACHU", dexSpeciesLabel(25, "PIKACHU"))
+    }
+
+    @Test fun `gender symbols and -F -M are the same species name`() {
+        assertEquals(speciesNameKey("Nidoran♀"), speciesNameKey("Nidoran-F"))
+        assertEquals(speciesNameKey("Nidoran♂"), speciesNameKey("Nidoran-M"))
+        assertEquals(speciesNameKey("NIDORAN♀"), speciesNameKey("nidoran-f"))
     }
 
     @Test fun `a key item read from the ROM still uses its Chinese name`() {

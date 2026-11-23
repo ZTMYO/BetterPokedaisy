@@ -4,6 +4,14 @@ import com.pokedaisy.app.companion.i18n.AppLanguage
 import com.pokedaisy.app.companion.i18n.L10n
 
 /**
+ * A species name as the tables compare it: Gen 3's tables write Nidoran as "Nidoran-F" / "Nidoran-M",
+ * while the dex table (and some ROMs) use "Nidoran♀" / "Nidoran♂". Same species, same key.
+ */
+internal fun speciesNameKey(s: String): String = s.trim().uppercase()
+    .replace("♀", "-F")
+    .replace("♂", "-M")
+
+/**
  * Translate only when both the National Dex number and the ROM's name agree with
  * a PokeAPI name for that species. A hack may reuse a dex number for its own
  * species: matching the number alone would silently label it as something else.
@@ -12,7 +20,7 @@ import com.pokedaisy.app.companion.i18n.L10n
 fun dexSpeciesLabel(national: Int, original: String): String {
     if (L10n.language != AppLanguage.ZH_CN || original.isBlank()) return original
     val entry = chineseSpeciesNames.getOrNull(national)?.split('|')
-    if (entry != null && entry.any { it.equals(original.trim(), ignoreCase = true) }) return entry.first()
+    if (entry != null && entry.any { speciesNameKey(it) == speciesNameKey(original) }) return entry.first()
     return "未译：$original"
 }
 
