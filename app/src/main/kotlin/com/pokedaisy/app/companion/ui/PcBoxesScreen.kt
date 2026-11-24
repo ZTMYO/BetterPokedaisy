@@ -40,6 +40,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.pokedaisy.app.companion.data.Gen3Text
 import com.pokedaisy.app.companion.data.natureName
+import com.pokedaisy.app.companion.data.readsAsText
 import com.pokedaisy.app.companion.data.save.PocketKind
 import com.pokedaisy.app.companion.data.save.TrainerBagEditor
 import com.pokedaisy.app.companion.data.save.BoxSlot
@@ -610,11 +611,11 @@ internal fun caps(s: String): String = buildString(s.length) { for (c in s) appe
 
 internal fun speciesLabel(id: Int, game: SaveGameData = Gen3GameData): String = game.speciesName(id)?.let(::caps) ?: "#$id"
 
-/** The nickname as the game shows it, else the species' name (a Japanese Gen 3 game's kana the Western table can't read). */
+/** The nickname as the game shows it, else the species' name (a translated ROM's nickname decodes to junk). */
 internal fun monLabel(mon: SaveMon): String = when {
     mon.isBadEgg -> tk("BAD EGG")
     mon.isEgg -> tk("EGG")
-    else -> mon.nickname ?: speciesLabel(mon.species, mon.game)
+    else -> mon.nickname?.takeIf { it.readsAsText() } ?: speciesLabel(mon.species, mon.game)
 }
 
 /** An item's name in [game]'s words, in capitals. */
