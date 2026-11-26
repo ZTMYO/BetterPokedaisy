@@ -449,6 +449,8 @@ class TelemetrySampler {
     }
 
     private fun detect(reader: MemoryReader) {
+        // A later GB / DS cart must not inherit this flag from a Gen 3 cart.
+        retailGen3Rom = false
         when (runCatching { EmulatorCore.current.platform() }.getOrDefault(0)) {
             EmulatorCore.PLATFORM_GB -> return detectGameBoy()
             EmulatorCore.PLATFORM_NDS -> return detectDs()
@@ -477,6 +479,7 @@ class TelemetrySampler {
                     val hash = runCatching { romHash(reader, size) }.getOrNull()
                     val retail = hash in ShinyOdds.RETAIL_SHA1S
                     retailRom = retail
+                    retailGen3Rom = retail
                     // Retail LeafGreen's battle cursors: on its own configs, checked on the retail carts only.
                     val cfg = when {
                         !retail -> cfg
@@ -548,6 +551,7 @@ class TelemetrySampler {
             }
             retailHash = hash in RETAIL_SHA1S || retailDump(reader, code, size) || randomizedDump(reader, code, size)
             retailRom = retailHash
+            retailGen3Rom = retailHash
             smallHash = hash
         }
 
@@ -739,6 +743,7 @@ class TelemetrySampler {
             }
             retailHash = hash in RETAIL_SHA1S || retailDump(reader, code, size) || randomizedDump(reader, code, size)
             retailRom = retailHash
+            retailGen3Rom = retailHash
             smallHash = hash
         }
 

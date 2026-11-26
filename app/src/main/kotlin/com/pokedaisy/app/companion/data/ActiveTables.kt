@@ -56,6 +56,11 @@ val GAMES_WITH_OWN_AUTO_RUN = setOf(GameKind.SOULGOLD, GameKind.ODYSSEY)
 @Volatile
 var activeGame: GameKind = GameKind.FIRERED
 
+/** The running Gen 3 game is a retail cart (any language): its own dex text can differ from the bundled
+ * Emerald text the Chinese table was checked against, so the Chinese description goes by national number. */
+@Volatile
+var retailGen3Rom = false
+
 private inline val unbound get() = activeGame == GameKind.UNBOUND
 private inline val emerald get() = activeGame == GameKind.EMERALD
 

@@ -54,6 +54,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pokedaisy.app.companion.data.DexEntry
+import com.pokedaisy.app.companion.data.UnboundChineseBattleNames
+import com.pokedaisy.app.companion.data.displayAbilityNameMarked
+import com.pokedaisy.app.companion.data.displayRegionName
 import com.pokedaisy.app.companion.data.GameKind
 import com.pokedaisy.app.companion.data.GuideTables
 import com.pokedaisy.app.companion.data.RomArt
@@ -63,7 +66,8 @@ import com.pokedaisy.app.companion.data.PokedexState
 import com.pokedaisy.app.companion.data.PokedexTables
 import com.pokedaisy.app.companion.data.DEX_IN_PARTY
 import com.pokedaisy.app.companion.data.activeSpeciesTypeData
-import com.pokedaisy.app.companion.data.dexCategoryLine
+import com.pokedaisy.app.companion.data.chineseDexDescription
+import com.pokedaisy.app.companion.data.displayDexCategoryLine
 import com.pokedaisy.app.companion.data.monTypes
 import com.pokedaisy.app.companion.data.typeLabel
 import com.pokedaisy.app.companion.data.formatDexHeight
@@ -71,6 +75,8 @@ import com.pokedaisy.app.companion.data.formatDexWeight
 import com.pokedaisy.app.companion.data.dexSpeciesLabel
 import com.pokedaisy.app.companion.data.speciesName
 import com.pokedaisy.app.companion.data.spriteAsset
+import com.pokedaisy.app.companion.i18n.AppLanguage
+import com.pokedaisy.app.companion.i18n.L10n
 import com.pokedaisy.app.companion.i18n.tk
 import com.pokedaisy.app.companion.i18n.tr
 import kotlinx.coroutines.Dispatchers
@@ -230,7 +236,7 @@ fun PokedexScreen(
             // Games with one dex (Gaia, Celia's hack) get no toggle.
             dex.tables.regionName?.let { region ->
                 OptionButton(
-                    if (national) tr("NATIONAL DEX") else tr("{0} DEX", region), small,
+                    if (national) tr("NATIONAL DEX") else tr("{0} DEX", displayRegionName(region)), small,
                     onClick = { ui.national = !national },
                     modifier = Modifier.fillMaxWidth(),
                     emphasis = true,
@@ -479,7 +485,7 @@ private fun EntryPage(
                     Spacer(Modifier.width(u * 5))
                 }
                 // A narrow column (a short screen's, the RG DS): the category takes a second line rather than being cut.
-                GbaText(e?.let { dexCategoryLine(t, it.category) } ?: "", OptionColors.label, OptionColors.labelShadow, small, maxLines = 2)
+                GbaText(e?.let { displayDexCategoryLine(t, it) } ?: "", OptionColors.label, OptionColors.labelShadow, small, maxLines = 2)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { e?.types?.forEach { TypeBadge(it) } }
             val height = @Composable { Stat(tr("HT"), e?.let { formatDexHeight(t, it) } ?: "", small) }
@@ -522,7 +528,12 @@ private fun DexInfoSection(e: DexEntry?, small: GbaTextMetrics, m: GbaTextMetric
     // Nothing to tap: one D-pad stop that scrolls (the companion's window).
     val scroll = rememberScrollState()
     Column(modifier.dpadScroll(scroll, RectangleShape, m.lineHeight * 3).verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(u * 2)) {
-        GbaText(e?.description ?: "", OptionColors.label, OptionColors.labelShadow, small, maxLines = 6)
+        // The bundled Chinese dex text first (checked against the ROM's English); a hack or another language keeps its own.
+        val english = e?.description.orEmpty()
+        val shown = e?.let { chineseDexDescription(it.national, it.description) }
+            ?: UnboundChineseBattleNames.dexOriginal(english)
+        GbaText(shown, OptionColors.label, OptionColors.labelShadow, small,
+            maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 6)
         // A MENU STYLE: the summary's labelled sections (STATS, PROFILE) instead of plain lines.
         val style = OptionColors.style
         val section = @Composable { label: String ->
@@ -537,9 +548,11 @@ private fun DexInfoSection(e: DexEntry?, small: GbaTextMetrics, m: GbaTextMetric
             // Two names outrun a line in a wide game font (Polished Crystal's): one a line there.
             val wide = com.pokedaisy.app.companion.ui.theme.LocalGameFont.current != null
             if (e.abilities.isNotEmpty()) {
-                InfoLine(tr("ABILITY"), e.abilities.joinToString(if (wide) "\n" else " / "), small, maxLines = if (wide) e.abilities.size else 1)
+                InfoLine(tr("ABILITY"), e.abilities.joinToString(if (wide || L10n.language == AppLanguage.ZH_CN) "\n" else " / ") { displayAbilityNameMarked(it) }, small,
+                    maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else if (wide) e.abilities.size else 1)
             }
-            e.hiddenAbility?.let { InfoLine(tr("HIDDEN|ability"), it, small) }
+            e.hiddenAbility?.let { InfoLine(tr("HIDDEN|ability"), displayAbilityNameMarked(it), small,
+                maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 1) }
             if (e.eggGroups.isNotEmpty()) InfoLine(tr("EGG GROUP"), e.eggGroups.joinToString(" / ") { dexCase(it) }, small)
             if (e.genderRatio >= 0) InfoLine(tr("GENDER"), genderLabel(e.genderRatio), small)
             InfoLine(tr("CATCH RATE"), "${e.catchRate}", small)

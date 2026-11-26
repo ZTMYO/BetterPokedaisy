@@ -9,7 +9,10 @@ import org.junit.Test
 
 /** The bundled Chinese dex text, checked against the Emerald description it was made for. */
 class ChineseDexDescriptionsTest {
-    @After fun reset() = L10n.apply("EN", null)
+    @After fun reset() {
+        L10n.apply("EN", null)
+        retailGen3Rom = false
+    }
 
     @Test
     fun `an Emerald entry finds its Chinese text`() {
@@ -18,6 +21,15 @@ class ChineseDexDescriptionsTest {
             "By soaking up the sun's rays, the seed\ngrows progressively larger."
         assertTrue(chineseDexDescription(1, bulbasaur).orEmpty().contains("种子"))
         assertNull(chineseDexDescription(1, "A different ROM's description."))
+    }
+
+    @Test
+    fun `a retail cart's own entry goes by the national number`() {
+        L10n.apply("ZH_CN", null)
+        retailGen3Rom = true
+        // FireRed's Charmander entry, worded differently from Emerald's.
+        val fireRed = "Obviously prefers hot places. When it rains, steam is said to spout from the tip of its tail."
+        assertTrue(chineseDexDescription(4, fireRed).orEmpty().contains("尾巴"))
     }
 
     @Test
