@@ -657,30 +657,18 @@ internal fun MoveCell(
     }
 }
 
-/** How [mv] fares: one plain-words pill against a single foe, a "NAME 2x"
- * chip per foe in a double battle. Status moves ignore the type chart. */
+/** How [mv] fares: one plain-words verdict against a single foe, one per foe in a double battle. Status moves ignore
+ * the type chart. */
 @Composable
 internal fun MoveVerdict(mv: MoveView, foeCount: Int, short: Boolean = false, threat: Boolean = false) {
-    // A foe's move against the player: what's good for it is bad news.
-    fun color(pct: Int) = if (threat) threatColor(pct) else verdictColor(pct)
     when {
-        mv.pp == 0 -> VerdictPill(tr("NO PP"), VerdictGrey)
-        mv.power == 0 -> if (!short) VerdictPill(tr("STATUS"), VerdictGrey)   // short: its "PWR -" says it
+        mv.pp == 0 -> Text(tr("NO PP"), color = VerdictGrey, fontSize = 10.sp, fontFamily = pixelFontFamily(), maxLines = 1)
+        mv.power == 0 -> if (!short) Text(tr("STATUS"), color = VerdictGrey, fontSize = 10.sp, fontFamily = pixelFontFamily(), maxLines = 1)
         mv.vs.isEmpty() -> {}
-        foeCount > 1 || mv.vs.size > 1 -> Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            mv.vs.forEach { v -> VerdictPill("${v.vsName} ${v.label}", color(v.pct)) }
+        foeCount > 1 || mv.vs.size > 1 -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal) }
         }
-        // Just the multiplier, where the line is short (its colour still says which).
-        short -> mv.vs[0].let { v -> VerdictPill(v.label, color(v.pct)) }
-        else -> mv.vs[0].let { v ->
-            val words = when {
-                v.pct == 0 -> tr("IMMUNE {0}", v.label)
-                v.pct > 100 -> tr("SUPER {0}", v.label)
-                v.pct < 100 -> tr("RESISTED {0}", v.label)
-                else -> tr("NEUTRAL {0}", v.label)
-            }
-            VerdictPill(words, color(v.pct))
-        }
+        else -> EffectLabel(mv.vs[0].pct, fontSize = 11.sp, lethal = mv.vs[0].lethal, maybeLethal = mv.vs[0].maybeLethal)
     }
 }
 

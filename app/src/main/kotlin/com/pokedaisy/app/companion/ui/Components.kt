@@ -377,8 +377,28 @@ private val MOVE_KIND_COLORS = mapOf(
 
 @Composable
 fun TypeBadgeWithLabel(m: TypeMatchup, modifier: Modifier = Modifier) {
-    // The multiplier stays inside the tag (the user's call): a drawn tag, since the game's tag picture has no room for it.
-    GameTag("${com.pokedaisy.app.companion.data.typeLabel(m.type)} ${m.label}", AppColors.typeColors[m.type] ?: AppColors.muted, modifier)
+    val color = AppColors.typeColors[m.type] ?: AppColors.muted
+    val icon = TYPE_ICON_VECTORS[m.type.uppercase()]
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(color)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            icon?.let {
+                Image(
+                    painter = rememberVectorPainter(it), contentDescription = null,
+                    modifier = Modifier.size(14.dp), contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(Color.White),
+                )
+            }
+            Text(
+                "${com.pokedaisy.app.companion.data.typeLabel(m.type)} ${m.label}",
+                color = Color.White, fontSize = 15.sp, fontFamily = pixelFontFamily(), maxLines = 1,
+            )
+        }
+    }
 }
 
 @Composable
