@@ -1,6 +1,8 @@
 package com.pokedaisy.app.companion.ui
 
 import com.pokedaisy.app.companion.data.LockedMap
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -119,7 +121,7 @@ fun rememberMonIconSheet(asset: String?): ImageBitmap? {
 private fun rememberIconGeneration(): Int = DecompIconSource.generation.collectAsState().value
 
 @Composable
-fun SpeciesIcon(asset: String?, size: Dp, modifier: Modifier = Modifier) {
+fun SpeciesIcon(asset: String?, size: Dp, modifier: Modifier = Modifier, silhouette: Boolean = false) {
     // Starts from an already-decoded icon, so a list scrolling back doesn't flash blank.
     var bitmap by remember(asset) { mutableStateOf(peekMonIcon(asset)?.let { cropToFirstFrame(it) }) }
     // Again when the icons change (a launch's saved companion data shows before the core is up).
@@ -131,7 +133,10 @@ fun SpeciesIcon(asset: String?, size: Dp, modifier: Modifier = Modifier) {
     Box(modifier = modifier.size(size)) {
         bitmap?.let {
             // Nearest-neighbour: a pixel-art sprite, often scaled up.
-            Image(bitmap = it, contentDescription = null, modifier = Modifier.size(size), filterQuality = FilterQuality.None)
+            Image(
+                bitmap = it, contentDescription = null, modifier = Modifier.size(size), filterQuality = FilterQuality.None,
+                colorFilter = if (silhouette) ColorFilter.tint(Color.Black) else null,
+            )
         }
     }
 }

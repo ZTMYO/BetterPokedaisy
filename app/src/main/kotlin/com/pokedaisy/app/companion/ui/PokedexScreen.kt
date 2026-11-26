@@ -255,7 +255,7 @@ fun PokedexScreen(
                             order.number(n), species?.getOrNull(n) ?: 0, n in dex.caught, n in dex.seen, m, small,
                             start = n == (back ?: top),
                             holding = holdingLabel(species?.getOrNull(n) ?: 0, n in dex.caught, holdings),
-                        ) { ui.lastOpened = n; ui.open = n }
+                        ) { if (n in dex.seen) { ui.lastOpened = n; ui.open = n } }
                     }
                 }
             }
@@ -330,13 +330,16 @@ private fun DexRow(
         DexMark(caught, seen, Modifier.size(u * 12))
         Spacer(Modifier.width(u * 4))
         Box(Modifier.size(u * 32).alpha(if (seen) 1f else 0.45f)) {
-            if (species > 0) SpeciesPicture(species, spriteAsset("pokemon", species), size = u * 32, fit = true)
+            if (species > 0) {
+                if (seen) SpeciesPicture(species, spriteAsset("pokemon", species), size = u * 32, fit = true)
+                else SpeciesIcon(spriteAsset("pokemon", species), size = u * 32, silhouette = true)
+            }
         }
         Spacer(Modifier.width(u * 6))
         GbaText(dexNo(n), OptionColors.muted, OptionColors.mutedShadow, small)
         Spacer(Modifier.width(u * 8))
         GbaText(
-            if (species > 0) dexSpeciesLabel(n, speciesName(species)) else "-----",
+            if (species > 0 && seen) dexSpeciesLabel(n, speciesName(species)) else if (species > 0) "???" else "-----",
             if (seen) OptionColors.label else OptionColors.muted,
             if (seen) OptionColors.labelShadow else OptionColors.mutedShadow,
             m, Modifier.weight(1f),

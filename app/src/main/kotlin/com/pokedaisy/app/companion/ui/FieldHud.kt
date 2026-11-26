@@ -1783,7 +1783,7 @@ private fun HudWildPanel(snapshot: SnapshotView, wild: List<HudWild>, m: GbaText
                     list.forEach { w ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Box(Modifier.size(icon), contentAlignment = Alignment.Center) {
-                                if (w.seen) { if (LocalPokemonPictures.current != null) SpeciesPicture(w.species, null, icon, fit = true) else HudSpecies(spriteAsset("pokemon", w.species), icon) } else GbaText("?", c.muted, c.shadow, m)
+                                if (w.seen) { if (LocalPokemonPictures.current != null) SpeciesPicture(w.species, null, icon, fit = true) else HudSpecies(spriteAsset("pokemon", w.species), icon) } else GbaText("???", c.muted, c.shadow, m)
                             }
                             Spacer(Modifier.width(u * 2))
                             GbaText(com.pokedaisy.app.companion.data.displaySpeciesName(w.species), c.text, c.shadow, m, Modifier.weight(1f))
