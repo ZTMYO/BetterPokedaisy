@@ -2412,6 +2412,48 @@ val FLIGHT_LEAFGREEN_REV1: FlightFns by lazy {
     )
 }
 
+// ---- gamedata\gen3\records\mercury.toml ----
+
+// 宝可梦水银 v1.33's POKéDEX tables. Its dex entries are still FireRed's
+// (0x0844E850, 386 national entries); gSpeciesInfo moved to 0x0976DFBC and
+// sSpeciesToNationalPokedexNum to 0x097E7A78 (checked against Starly 449 -> 396
+// and Turtwig 440 -> 387). The other tables are unmodified FireRed rev 0's.
+val POKEDEX_MERCURY: PokedexTables by lazy {
+    PokedexTables(
+        entries = 0x0844E850L,
+        frontPics = 0,
+        palettes = 0,
+        speciesInfo = 0x0976DFBCL,
+        speciesToNational = 0x097E7A78L,
+        abilityNames = 0x0824FC40L,
+        footprints = 0,
+        evolutions = 0x08259754L,
+        tmhmLearnsets = 0x08252BC8L,
+        tmhmMoves = 0x0845A5A4L,
+        categorySuffix = "宝可梦",
+        categorySeparator = "",
+        regionName = "JOHTO",
+        regionalOrder = 0x097E7BA6L,
+        regionalCount = 385,
+        flags = MERCURY_DEX_FLAGS,
+        nationalMagicOff = -1,
+    )
+}
+
+// Mercury moved the save's dex bitmaps into SaveBlock1: 52-byte seen at +0x310
+// and caught at +0x38D (found live: Totodile 158 and Starly 396 seen, 158/172
+// caught; stable across two captures). The national dex is treated as always
+// available (its old SaveBlock2 magic isn't at FireRed's offset).
+val MERCURY_DEX_FLAGS: DexFlags by lazy {
+    DexFlags(
+        block = DexFlagBlock.SAVE_BLOCK_1,
+        seen = 0x310L,
+        caught = 0x38DL,
+        bytes = 125,
+        byRegional = false,
+    )
+}
+
 // ---- gamedata\gen3\records\ported.toml ----
 
 // FLASH (Flash.kt): retail Ruby rev 1 and rev 2 (the same addresses and code), pret's pokeruby built as ruby_rev1 /

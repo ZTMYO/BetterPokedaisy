@@ -1,0 +1,35 @@
+# 宝可梦水银 v1.33's POKéDEX tables. Its dex entries are still FireRed's
+# (0x0844E850, 386 national entries); gSpeciesInfo moved to 0x0976DFBC and
+# sSpeciesToNationalPokedexNum to 0x097E7A78 (checked against Starly 449 -> 396
+# and Turtwig 440 -> 387). The other tables are unmodified FireRed rev 0's.
+[record.POKEDEX_MERCURY]
+schema = 'gen3_pokedex'
+entries = 0x0844E850
+frontPics = 0
+palettes = 0
+speciesInfo = 0x0976DFBC
+speciesToNational = 0x097E7A78
+abilityNames = 0x0824FC40
+footprints = 0
+evolutions = 0x08259754
+tmhmLearnsets = 0x08252BC8
+tmhmMoves = 0x0845A5A4
+categorySuffix = '宝可梦'
+categorySeparator = ''
+regionName = 'JOHTO'
+regionalOrder = 0x097E7BA6
+regionalCount = 385
+flags = 'MERCURY_DEX_FLAGS'
+nationalMagicOff = -1
+
+# Mercury moved the save's dex bitmaps into SaveBlock1: 52-byte seen at +0x310
+# and caught at +0x38D (found live: Totodile 158 and Starly 396 seen, 158/172
+# caught; stable across two captures). The national dex is treated as always
+# available (its old SaveBlock2 magic isn't at FireRed's offset).
+[record.MERCURY_DEX_FLAGS]
+schema = 'gen3_dexflags'
+block = 'DexFlagBlock.SAVE_BLOCK_1'
+seen = 0x310
+caught = 0x38D
+bytes = 125
+byRegional = false

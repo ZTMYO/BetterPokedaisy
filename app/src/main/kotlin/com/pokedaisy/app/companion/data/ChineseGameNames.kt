@@ -68,6 +68,9 @@ internal fun halfWidthAscii(s: String): String {
 
 private fun translated(entry: String?, romName: String): String? {
     val zh = entryZh(entry) ?: return null
+    // "???" is the shared table's placeholder for an item it has no translation for; a ROM's own
+    // name (Mercury's 肌力之羽) must stand, not be replaced by the placeholder.
+    if (zh.isBlank() || zh == "???") return null
     if (!romName.readsAsText()) return zh
     val en = entryEn(entry) ?: return null
     return if (nameKey(en) == nameKey(romName)) zh else null
@@ -153,6 +156,29 @@ fun displaySpeciesCategory(national: Int, romCategory: String): String {
     return if (!romCategory.readsAsText() || genusKey(en) == genusKey(romCategory)) zh else romCategory
 }
 
+/** The dex page's egg groups, in the standard Chinese names. */
+fun displayEggGroup(name: String): String {
+    if (L10n.language != AppLanguage.ZH_CN || name.isBlank()) return name
+    return when (name.trim().uppercase()) {
+        "MONSTER" -> "怪兽"
+        "WATER 1" -> "水中1"
+        "BUG" -> "虫"
+        "FLYING" -> "飞行"
+        "FIELD" -> "陆上"
+        "FAIRY" -> "妖精"
+        "GRASS" -> "植物"
+        "HUMAN-LIKE" -> "人形"
+        "WATER 3" -> "水中3"
+        "MINERAL" -> "矿物"
+        "AMORPHOUS" -> "不定形"
+        "WATER 2" -> "水中2"
+        "DITTO" -> "百变怪"
+        "DRAGON" -> "龙"
+        "UNDISCOVERED" -> "未发现"
+        else -> name
+    }
+}
+
 /** The dex page's "MUD FISH POKéMON" line: "沼鱼宝可梦" in Chinese when the category is known. */
 fun displayDexCategoryLine(t: PokedexTables, e: DexEntry): String {
     val zh = displaySpeciesCategory(e.national, e.category)
@@ -171,7 +197,8 @@ fun chineseAbilityNameById(id: Int): String? = entryZh(chineseAbilityNames.getOr
 fun displaySpeciesName(id: Int): String {
     val original = speciesName(id)
     if (L10n.language != AppLanguage.ZH_CN || id <= 0) return original
-    val national = PokedexSource.nationalOf(id).takeIf { it > 0 } ?: id
+    val national = if (mercuryCn) mercurySpeciesNational[id] ?: id
+        else PokedexSource.nationalOf(id).takeIf { it > 0 } ?: id
     val entry = chineseSpeciesNames.getOrNull(national) ?: return original
     val names = entry.split('|')
     if (names.size < 2) return original
@@ -184,6 +211,9 @@ fun displaySpeciesName(id: Int): String {
 /** A move's name in Chinese, verified against the ROM's own name; the ROM's name otherwise. */
 fun displayMoveName(id: Int, romName: String): String {
     if (L10n.language != AppLanguage.ZH_CN || id <= 0) return romName
+    // A custom Chinese hack's own name (Mercury's 蹭蹭脸颊) is already the name to show; the bundled table is
+    // keyed by national move ids, the hack by its expanded ids, so it would name a different move.
+    if (mercuryCn && romName.any { it in '㐀'..'鿿' }) return romName
     return translatedMove(chineseMoveNames.getOrNull(id), romName) ?: romName
 }
 

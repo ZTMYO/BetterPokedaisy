@@ -61,6 +61,11 @@ var activeGame: GameKind = GameKind.FIRERED
 @Volatile
 var retailGen3Rom = false
 
+/** 宝可梦水银 v1.33: a FireRed hack that redrew its region map but has no full HackText
+ * tables yet, so the MAP must read the ROM's own map without switching every name table. */
+@Volatile
+var mercuryCn = false
+
 private inline val unbound get() = activeGame == GameKind.UNBOUND
 private inline val emerald get() = activeGame == GameKind.EMERALD
 
@@ -322,7 +327,7 @@ val readsRomRegionMap: Boolean get() = when {
     activeGame.isGameBoyGame || activeGame.isDsGame -> false
     // Recharged Yellow is a rebuild: FireRed 1.0's literal pools RomRegionMap follows aren't its code.
     activeGame == GameKind.RECHARGED_YELLOW -> false
-    activeGame == GameKind.FIRERED -> runningFireRedHack?.ownRegionMap == true
+    activeGame == GameKind.FIRERED -> runningFireRedHack?.ownRegionMap == true || mercuryCn
     else -> true
 }
 /** Super Mariomon v1.2.1 / v1.2.2 / v1.3 share their tables, v1.5.x has its own (a species and seven
@@ -426,8 +431,19 @@ val activeSpeciesNames: Map<Int, String> get() = localText?.species ?: when {
     recordKeepers -> speciesNamesRecordKeepers
     dreamstone -> speciesNamesDreamstone
     monomyth -> speciesNamesMonomyth
+    mercuryCn -> speciesNames + mercurySpeciesNational.mapNotNull { (id, national) ->
+        (speciesNamesPlatinum[national] ?: speciesNamesBlack[national] ?: speciesNames[national])?.let { id to it }
+    }
     else -> frHack?.speciesMerged ?: speciesNames
 }
+/** Mercury's own move names (CFRU/expanded ids); type and power come from the Unbound table by the same id. */
+val mercuryMoveData: Map<Int, MoveInfo> by lazy {
+    mercuryMoveNames.mapValues { (id, name) ->
+        val info = moveDataUnbound[id] ?: moveData[id]
+        MoveInfo(name, info?.type ?: 0, info?.power ?: 0)
+    }
+}
+
 val activeMoveData: Map<Int, MoveInfo> get() = localText?.moveData ?: when {
     redux -> Black2Redux.data?.moveData ?: NdsArt.names?.movesMerged ?: moveDataBlack
     black -> NdsArt.names?.movesMerged ?: moveDataBlack
@@ -473,6 +489,7 @@ val activeMoveData: Map<Int, MoveInfo> get() = localText?.moveData ?: when {
     dreamstone -> moveDataDreamstone
     monomyth -> if (monomythV1_2) moveDataMonomythV1_2 else moveDataMonomyth
     odyssey -> fireRedHackOdyssey.movesMerged
+    mercuryCn -> mercuryMoveData
     else -> frHack?.movesMerged ?: moveData
 }
 val activeItemNames: Map<Int, String> get() = localText?.items ?: when {
@@ -518,13 +535,14 @@ val activeItemNames: Map<Int, String> get() = localText?.items ?: when {
     dreamstone -> itemNamesDreamstone
     monomyth -> itemNamesMonomyth
     odyssey -> fireRedHackOdyssey.itemsMerged
+    mercuryCn -> itemNames + mercuryItemNames
     else -> frHack?.itemsMerged ?: itemNames
 }
 
 /** The bag's own item table for [game] (its casing and spelling); null = the app-wide table. */
 fun gameItemNames(game: GameKind): Map<Int, String>? = when (game) {
     // A localized game's own (GameText), already in its casing.
-    GameKind.FIRERED -> localText?.items ?: runningFireRedHack?.itemsGame ?: itemNamesFireRedGame
+    GameKind.FIRERED -> localText?.items ?: (if (mercuryCn) mercuryItemNames + itemNamesFireRedGame else runningFireRedHack?.itemsGame) ?: itemNamesFireRedGame
     // Recharged Emerald: its own whole table, in its mixed case.
     GameKind.EMERALD -> localText?.items ?: runningEmeraldHack?.items ?: itemNamesEmeraldGame
     else -> null
@@ -575,6 +593,7 @@ val activeSpeciesTypeData: Map<Int, SpeciesTypes> get() = when {
     dreamstone -> speciesTypeDataDreamstone
     monomyth -> speciesTypeDataMonomyth
     odyssey -> fireRedHackOdyssey.typesMerged   // its regional forms (GitHub #206)
+    mercuryCn -> speciesTypeData + mercurySpeciesTypes
     else -> frHack?.typesMerged ?: speciesTypeData
 }
 /** Emerald Legacy: retail's types (unchanged, checked against its gSpeciesInfo), plus its Deoxys forms at 412-414. */

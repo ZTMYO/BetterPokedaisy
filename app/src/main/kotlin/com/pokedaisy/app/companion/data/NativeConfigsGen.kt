@@ -4052,7 +4052,30 @@ val NATIVE_MARIOMON_V1_2_1 = NATIVE_MARIOMON_V1_2_2.copy(
 // 有效 —— 大量原生表保持原位，RAM 全局地址高概率沿用 FireRed rev0。
 // ⚠ 尚未动态验证（新游戏无存档）：拿到第一只宝可梦后须按仓库铁律补验
 // （≥3 次独立采集逐字节一致，ROM 表须端到端解码确认）。
-val NATIVE_MERCURY_CN = NATIVE_FIRERED_REV0.copy()
+val NATIVE_MERCURY_CN = NATIVE_FIRERED_REV0.copy(
+    // DEX: FireRed's national entries + Mercury's own gSpeciesInfo and species->national table.
+    pokedex = POKEDEX_MERCURY,
+    // Icons found through FireRed rev 0's own code (2026-11-26, live ROM sha1 2d0d2b26…):
+    // GetMonIconTiles / GetValidMonIconPalettePtr's literal pools are still at rev 0's
+    // offsets, but hold Mercury's tables - 0x08097050 -> gMonIconTable 0x097BFC18,
+    // 0x080970D8 -> gMonIconPaletteIndices 0x097BF606; gMonIconPaletteTable stays
+    // 0x083D4038. Decoded Bulbasaur/Charmander/Pikachu/Totodile end to end (recognisable
+    // two-frame icons), not just "the pointer is in ROM".
+    monIconTable = 0x097BFC18L,
+    monIconPaletteIndices = 0x097BF606L,
+    monIconPaletteTable = 0x083D4038L,
+    // GetItemIconGfxPtr's literal pool at 0x0809899C: LZ77 tiles + palette per item.
+    itemIconTable = 0x093C8100L,
+    // Its real gItems (the vanilla copy at 0x083DB028 is unreferenced): descriptions by item id.
+    itemDescs = vanillaItems(0x087C7E00L),
+    // The FOE's party record (wild and trainer foes): FireRed rev 0's addresses, kept in
+    // Mercury. Matching a battle mon to this record gives the foe's IVs/nature/stats
+    // (the compact IV row), and the enemy's next-switch id.
+    enemyParty = 0x0202402CL,
+    battlerPartyIndexes = 0x02023BCEL,
+    battleStructPtr = 0x02023FE8L,
+    monToSwitchIntoOff = 0x5C,
+)
 
 // ---- gamedata/gen3/hacks/modern_emerald.toml ----
 

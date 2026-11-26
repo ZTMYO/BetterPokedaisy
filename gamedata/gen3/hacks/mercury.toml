@@ -8,3 +8,25 @@
 # （≥3 次独立采集逐字节一致，ROM 表须端到端解码确认）。
 [config.mercury_cn]
 base = 'firered_rev0'
+# DEX: FireRed's national entries + Mercury's own gSpeciesInfo and species->national table.
+pokedex = 'POKEDEX_MERCURY'
+# Icons found through FireRed rev 0's own code (2026-11-26, live ROM sha1 2d0d2b26…):
+# GetMonIconTiles / GetValidMonIconPalettePtr's literal pools are still at rev 0's
+# offsets, but hold Mercury's tables - 0x08097050 -> gMonIconTable 0x097BFC18,
+# 0x080970D8 -> gMonIconPaletteIndices 0x097BF606; gMonIconPaletteTable stays
+# 0x083D4038. Decoded Bulbasaur/Charmander/Pikachu/Totodile end to end (recognisable
+# two-frame icons), not just "the pointer is in ROM".
+monIconTable = 0x097BFC18
+monIconPaletteIndices = 0x097BF606
+monIconPaletteTable = 0x083D4038
+# GetItemIconGfxPtr's literal pool at 0x0809899C: LZ77 tiles + palette per item.
+itemIconTable = 0x093C8100
+# Its real gItems (the vanilla copy at 0x083DB028 is unreferenced): descriptions by item id.
+itemDescs = { preset = 'vanilla', base = 0x087C7E00 }
+# The FOE's party record (wild and trainer foes): FireRed rev 0's addresses, kept in
+# Mercury. Matching a battle mon to this record gives the foe's IVs/nature/stats
+# (the compact IV row), and the enemy's next-switch id.
+enemyParty = 0x0202402C
+battlerPartyIndexes = 0x02023BCE
+battleStructPtr = 0x02023FE8
+monToSwitchIntoOff = 0x5C

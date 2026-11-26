@@ -35,6 +35,8 @@ data class DexFlags(
     val caughtRegions: List<Long> = emptyList(),
     /** Quetzal Alpha 0.8.4: no caught arrays - a [seenLevels] level of 2 or more is caught (its POKéDEX's OWN). */
     val caughtFromLevel: Boolean = false,
+    /** The bit arrays are indexed by regional dex number, not national number (Mercury's Johto dex). */
+    val byRegional: Boolean = false,
     /** Emerald Rogue: the arrays are indexed by species id, not dex number (No. n reads its species' bit). */
     val bySpecies: Boolean = false,
     /** Emerald Rogue's 2-bit state per species: [seen] holds bit 0 and [caught] bit 1 (1 seen, 2 caught,
@@ -1556,6 +1558,24 @@ fun readPokedexState(c: MemoryReader, cfg: NativeConfig, t: PokedexTables): Poke
     }
     val seen = mutableSetOf<Int>()
     val caught = mutableSetOf<Int>()
+    val regional = if (f.byRegional) PokedexSource.regionalOrder(t) else null
+    if (regional != null) {
+        for (pos in regional.indices) {
+            val n = regional[pos]
+            val i = pos + 1 - f.firstBit
+            val c = bit(caughtBits, i)
+            val s = bit(seenBits, i) || (f.seenOrCaught && c)
+            if (copies.isEmpty()) {
+                if (s) seen.add(n)
+                if (c) caught.add(n)
+            } else if (s && copies.all { bit(it, i) }) {
+                seen.add(n)
+                if (c) caught.add(n)
+            }
+        }
+        // The Johto dex is the one the game opens; the National Dex is a toggle.
+        return PokedexState(t, seen, caught, false)
+    }
     for (n in 1..t.nationalCount) {
         val i = if (f.bySpecies) PokedexSource.speciesFor(t, n).takeIf { it > 0 } ?: continue else n
         val c = bit(caughtBits, i)
@@ -1845,7 +1865,11 @@ object PokedexSource {
                 .getOrNull()?.also { sprites[species] = it }
         }
         t.gen4?.let { g -> return Gen4Dex.front(g, species)?.also { sprites[species] = it } }
-        return decodeFrontSprite(t, species, ::rd)?.also { sprites[species] = it }
+        val decoded = decodeFrontSprite(t, species, ::rd)?.also { sprites[species] = it }
+        if (decoded != null) return decoded
+        // Mercury moved its front-pic data and some of it no longer decodes as LZ77; its party icon is still
+        // the game's own art, so show that rather than an empty DEX panel.
+        return if (mercuryCn) DecompIconSource.get(species)?.also { sprites[species] = it } else null
     }
 
     /** The 16x16 footprint (black on transparent). */

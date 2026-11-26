@@ -451,6 +451,7 @@ class TelemetrySampler {
     private fun detect(reader: MemoryReader) {
         // A later GB / DS cart must not inherit this flag from a Gen 3 cart.
         retailGen3Rom = false
+        mercuryCn = false
         when (runCatching { EmulatorCore.current.platform() }.getOrDefault(0)) {
             EmulatorCore.PLATFORM_GB -> return detectGameBoy()
             EmulatorCore.PLATFORM_NDS -> return detectDs()
@@ -588,7 +589,7 @@ class TelemetrySampler {
                 GAIA_V3_2_SHA1 -> { kind = GameKind.GAIA; nativeCfg = NATIVE_GAIA_V3_2 }
                 RADICAL_RED_V4_1_SHA1 -> { kind = GameKind.RADICAL_RED; nativeCfg = NATIVE_RADICAL_RED_V4_1 }
                 RADICAL_RED_V4_1_CN_SHA1 -> { kind = GameKind.RADICAL_RED; nativeCfg = NATIVE_RADICAL_RED_V4_1_CN }
-                MERCURY_V1_33_CN_SHA1 -> { kind = GameKind.FIRERED; nativeCfg = NATIVE_MERCURY_CN }
+                MERCURY_V1_33_CN_SHA1 -> { kind = GameKind.FIRERED; nativeCfg = NATIVE_MERCURY_CN; mercuryCn = true }
                 ODYSSEY_V4_1_1_SHA1 -> { kind = GameKind.ODYSSEY; nativeCfg = NATIVE_ODYSSEY }
                 AMETHYST_V1_3_0_SHA1 -> { kind = GameKind.AMETHYST; nativeCfg = NATIVE_AMETHYST }
                 AMETHYST_V1_4_1_SHA1 -> { kind = GameKind.AMETHYST; nativeCfg = NATIVE_AMETHYST_V1_4_1 }

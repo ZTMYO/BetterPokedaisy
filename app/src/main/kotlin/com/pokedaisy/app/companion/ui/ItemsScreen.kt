@@ -129,7 +129,7 @@ private enum class ItemSort(val label: String) { DEFAULT(tk("Default")), NAME(tk
  */
 private fun gameItemNames(game: GameKind): Map<Int, String>? = when (game) {
     // A localized game's own (GameText), already in its casing.
-    GameKind.FIRERED -> localText?.items ?: runningFireRedHack?.itemsGame ?: itemNamesFireRedGame
+    GameKind.FIRERED -> localText?.items ?: (if (com.pokedaisy.app.companion.data.mercuryCn) com.pokedaisy.app.companion.data.mercuryItemNames + itemNamesFireRedGame else runningFireRedHack?.itemsGame) ?: itemNamesFireRedGame
     // Recharged Emerald: its own whole table, in its mixed case.
     GameKind.EMERALD -> localText?.items ?: runningEmeraldHack?.items ?: itemNamesEmeraldGame
     else -> null

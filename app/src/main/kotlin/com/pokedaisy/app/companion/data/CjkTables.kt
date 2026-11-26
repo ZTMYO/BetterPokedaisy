@@ -1046,7 +1046,9 @@ object CjkTables {
     /** The masked-ROM sha1 -> its charmap; Gen3Text.cjk at detection. */
     fun forSha(sha1: String?): IntArray? = when (sha1) {
         "d5a391ad7527495324e9acd88535a9a5bcd1a1b3",
-        "40104331f1899b23cd5b6cee9612b775e6bb4234" -> ELITE_REDUX_CN
+        "40104331f1899b23cd5b6cee9612b775e6bb4234",
+        // 宝可梦水银 v1.33: the same Chinese charmap (its map name 29号道路 decodes with it).
+        "2d0d2b269199b90564e141518ad0e44cb2ada04f" -> ELITE_REDUX_CN
         "4ea5b01ee2feda127c230a0d2f80e1aa2b3b81b0" -> TEAM_ROCKET_CN
         else -> null
     }

@@ -56,6 +56,12 @@ kotlin = 'Boolean'
 type = 'bool'
 default = false
 
+# The arrays are indexed by regional dex number, not national number (a hack's Johto dex).
+[field.byRegional]
+kotlin = 'Boolean'
+type = 'bool'
+default = false
+
 # Emerald Rogue: the arrays are indexed by species id, not dex number (No. n reads its species' bit).
 [field.bySpecies]
 kotlin = 'Boolean'

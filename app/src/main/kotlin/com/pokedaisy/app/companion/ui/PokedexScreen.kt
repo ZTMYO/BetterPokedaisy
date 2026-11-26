@@ -68,6 +68,7 @@ import com.pokedaisy.app.companion.data.DEX_IN_PARTY
 import com.pokedaisy.app.companion.data.activeSpeciesTypeData
 import com.pokedaisy.app.companion.data.chineseDexDescription
 import com.pokedaisy.app.companion.data.displayDexCategoryLine
+import com.pokedaisy.app.companion.data.displayEggGroup
 import com.pokedaisy.app.companion.data.monTypes
 import com.pokedaisy.app.companion.data.typeLabel
 import com.pokedaisy.app.companion.data.formatDexHeight
@@ -258,7 +259,7 @@ fun PokedexScreen(
                 LazyColumn(Modifier.fillMaxSize(), state = ui.list) {
                     items(entries, key = { it }) { n ->
                         DexRow(
-                            order.number(n), species?.getOrNull(n) ?: 0, n in dex.caught, n in dex.seen, m, small,
+                            order.number(n), n, species?.getOrNull(n) ?: 0, n in dex.caught, n in dex.seen, m, small,
                             start = n == (back ?: top),
                             holding = holdingLabel(species?.getOrNull(n) ?: 0, n in dex.caught, holdings),
                         ) { if (n in dex.seen) { ui.lastOpened = n; ui.open = n } }
@@ -310,7 +311,7 @@ private fun CountLine(label: String, value: Int, small: GbaTextMetrics) {
  * [n] is the number in the dex being shown. */
 @Composable
 private fun DexRow(
-    n: Int, species: Int, caught: Boolean, seen: Boolean,
+    n: Int, national: Int, species: Int, caught: Boolean, seen: Boolean,
     m: GbaTextMetrics, small: GbaTextMetrics,
     /** Where the D-pad starts in the list (the companion's window). */
     start: Boolean = false,
@@ -345,7 +346,7 @@ private fun DexRow(
         GbaText(dexNo(n), OptionColors.muted, OptionColors.mutedShadow, small)
         Spacer(Modifier.width(u * 8))
         GbaText(
-            if (species > 0 && seen) dexSpeciesLabel(n, speciesName(species)) else if (species > 0) "???" else "-----",
+            if (species > 0 && seen) dexSpeciesLabel(national, speciesName(species)) else if (species > 0) "???" else "-----",
             if (seen) OptionColors.label else OptionColors.muted,
             if (seen) OptionColors.labelShadow else OptionColors.mutedShadow,
             m, Modifier.weight(1f),
@@ -457,11 +458,11 @@ private fun EntryPage(
                 if (style == null) {
                     GbaText(dexNo(shownNo), OptionColors.value, OptionColors.valueShadow, small)
                     Spacer(Modifier.width(u * 6))
-                    GbaText(if (species > 0) dexSpeciesLabel(shownNo, speciesName(species)) else "-----", OptionColors.label, OptionColors.labelShadow, m, Modifier.weight(1f))
+                    GbaText(if (species > 0) dexSpeciesLabel(n, speciesName(species)) else "-----", OptionColors.label, OptionColors.labelShadow, m, Modifier.weight(1f))
                 } else {
                     GbaText(dexNo(shownNo), style.sectionText, style.sectionShadow, small)
                     Spacer(Modifier.width(u * 6))
-                    GbaText(if (species > 0) dexSpeciesLabel(shownNo, speciesName(species)) else "-----", style.sectionText, style.sectionShadow, m, Modifier.weight(1f))
+                    GbaText(if (species > 0) dexSpeciesLabel(n, speciesName(species)) else "-----", style.sectionText, style.sectionShadow, m, Modifier.weight(1f))
                 }
                 DexMark(caught, seen, Modifier.size(u * 12))
             }
@@ -553,7 +554,7 @@ private fun DexInfoSection(e: DexEntry?, small: GbaTextMetrics, m: GbaTextMetric
             }
             e.hiddenAbility?.let { InfoLine(tr("HIDDEN|ability"), displayAbilityNameMarked(it), small,
                 maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 1) }
-            if (e.eggGroups.isNotEmpty()) InfoLine(tr("EGG GROUP"), e.eggGroups.joinToString(" / ") { dexCase(it) }, small)
+            if (e.eggGroups.isNotEmpty()) InfoLine(tr("EGG GROUP"), e.eggGroups.joinToString(" / ") { displayEggGroup(dexCase(it)) }, small)
             if (e.genderRatio >= 0) InfoLine(tr("GENDER"), genderLabel(e.genderRatio), small)
             InfoLine(tr("CATCH RATE"), "${e.catchRate}", small)
         }
