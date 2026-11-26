@@ -372,6 +372,8 @@ lazy = true
 port = 'BPRS0'
 language = 'S'
 gameCode = 'BPRS'
+# This port's EWRAM moved: don't inherit firered_rev1's summary addresses (MOVE ADVICE stays off).
+summaryScreen = 0
 trainerCard = 'TRAINER_CARD_FIRERED_ES'
 actionCursor = 0x02023FF8
 bagPockets = 0x0203988C

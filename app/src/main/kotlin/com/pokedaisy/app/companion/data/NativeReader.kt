@@ -462,6 +462,21 @@ private const val SUMMARY_MODE_OFF = 0x40BC
 private const val SUMMARY_CUR_MON_OFF = 0x40BE
 private const val SUMMARY_NEW_MOVE_OFF = 0x40C4
 
+// FireRed / LeafGreen's struct PokemonSummaryScreenData (pokemon_summary_screen.c is the same engine): page 3
+// (PSS_PAGE_MOVES_INFO) is the select-move page, mode 2 is PSS_MODE_SELECT_MOVE, and ShowSelectMovePokemonSummaryScreen
+// writes the move being learned into moveIds[4] at +0x3260. sLastViewedMonIndex sits 0x2C bytes after the
+// sMonSummaryScreen pointer itself (0x0203B140 -> 0x0203B16C), not inside the struct.
+private const val FRLG_SUMMARY_MODE_OFF = 0x3208
+private const val FRLG_SUMMARY_PAGE_OFF = 0x3214
+private const val FRLG_SUMMARY_INPUT_STATE_OFF = 0x3288
+private const val FRLG_SUMMARY_NEW_MOVE_OFF = 0x3260
+private const val FRLG_SUMMARY_MON_INDEX_OFF = 0x2C
+private const val FRLG_SUMMARY_MODE_SELECT_MOVE = 2
+private const val FRLG_SUMMARY_PAGE_MOVES_INFO = 3
+// Select-move states 0-5 are on the page (5 is the transient "HM moves can't be forgotten" note); 6 starts the
+// exit fade and 7 tears the screen down, so the page is gone while the struct still says mode 2 / page 3.
+private const val FRLG_SUMMARY_INPUT_EXIT = 6
+
 /** What sMonSummaryScreen says right now: its mode, curMonIndex and newMove. */
 private data class SummarySelect(val mode: Int, val mon: Int, val newMove: Int)
 
@@ -593,14 +608,38 @@ fun readNativeTelemetry(client: MemoryReader, cfg: NativeConfig, moveWatch: Move
     val summary = if (summaryPtr <= 0L || summaryPtr < 0x02000000L || summaryPtr >= 0x02040000L || summaryPtr and 3L != 0L) {
         null
     } else runCatching {
-        val raw = client.readCoreMemory(summaryPtr + SUMMARY_MODE_OFF, 0x0A)
-        SummarySelect(
-            mode = raw[0].toInt() and 0xFF,
-            mon = raw[SUMMARY_CUR_MON_OFF - SUMMARY_MODE_OFF].toInt() and 0xFF,
-            newMove = u16le(raw, SUMMARY_NEW_MOVE_OFF - SUMMARY_MODE_OFF),
-        )
+        if (activeGame == GameKind.FIRERED) {
+            // Through the input state: it sits past moveIds[4], and reading up to newMove alone made this
+            // raw[FRLG_SUMMARY_INPUT_STATE_OFF - ...] throw (caught below, so the page looked closed).
+            val raw = client.readCoreMemory(summaryPtr + FRLG_SUMMARY_MODE_OFF,
+                FRLG_SUMMARY_INPUT_STATE_OFF - FRLG_SUMMARY_MODE_OFF + 1)
+            val mode = raw[0].toInt() and 0xFF
+            val page = raw[FRLG_SUMMARY_PAGE_OFF - FRLG_SUMMARY_MODE_OFF].toInt() and 0xFF
+            val inputState = raw[FRLG_SUMMARY_INPUT_STATE_OFF - FRLG_SUMMARY_MODE_OFF].toInt() and 0xFF
+            // Backing out to the ordinary moves page changes curPageIndex to 2; choosing a move starts the exit fade
+            // (state 6) without clearing either. Both mean the replacement page is gone even though the struct lives on.
+            if (mode != FRLG_SUMMARY_MODE_SELECT_MOVE || page != FRLG_SUMMARY_PAGE_MOVES_INFO ||
+                inputState >= FRLG_SUMMARY_INPUT_EXIT) null
+            else SummarySelect(
+                // The watch's constant, not the game's: FRLG calls its select mode 2.
+                mode = SUMMARY_MODE_SELECT_MOVE,
+                mon = client.readCoreMemory(cfg.summaryScreen + FRLG_SUMMARY_MON_INDEX_OFF, 1)[0].toInt() and 0xFF,
+                newMove = u16le(raw, FRLG_SUMMARY_NEW_MOVE_OFF - FRLG_SUMMARY_MODE_OFF),
+            )
+        } else {
+            val raw = client.readCoreMemory(summaryPtr + SUMMARY_MODE_OFF, 0x0A)
+            SummarySelect(
+                mode = raw[0].toInt() and 0xFF,
+                mon = raw[SUMMARY_CUR_MON_OFF - SUMMARY_MODE_OFF].toInt() and 0xFF,
+                newMove = u16le(raw, SUMMARY_NEW_MOVE_OFF - SUMMARY_MODE_OFF),
+            )
+        }
     }.getOrNull()
-    val levelMove = if (cfg.moveToLearn == 0L) 0 else
+    // FRLG's summary carries the move being learned itself (moveIds[4]); Emerald pairs the struct with gMoveToLearn or
+    // gPartyMenu.data1, which is why only the Emerald path reads those two globals.
+    val levelMove = if (activeGame == GameKind.FIRERED && cfg.summaryScreen != 0L) {
+        summary?.newMove ?: 0
+    } else if (cfg.moveToLearn == 0L) 0 else
         runCatching { u16le(client.readCoreMemory(cfg.moveToLearn, 2), 0) }.getOrDefault(0)
     // gPartyMenu.data1 (s16 at +0xE): the move a TM / tutor / party-menu learn is teaching.
     val menuMove = if (cfg.partyMenu == 0L) 0 else

@@ -88,6 +88,9 @@ battlerPartyIndexes = 0x02023BCE
 battleStructPtr = 0x02023FE8
 monToSwitchIntoOff = 0x5C  # include/battle.h struct BattleStruct (field_78 lands at 0x78)
 trainerCard = 'TRAINER_CARD_FIRERED'
+# sMonSummaryScreen's pointer (EWRAM, same in rev 0 and rev 1). FireRed's select-move summary is mode 2 on page 3,
+# and the move being learned is moveIds[4] (0x3260); sLastViewedMonIndex is at this pointer + 0x2C (0x0203B16C).
+summaryScreen = 0x0203B140
 
 # Retail FireRed 1.0 itself (the Poller's, on a retail hash only): rev 0's config is the CFRU hacks' base, so the card
 # and the battle menus' cursors go here, never on it. The cursors are rev 1's: checked headless on the retail cart
@@ -101,3 +104,5 @@ pokedex = 'POKEDEX_FIRERED_REV0'
 guideTables = 'GUIDE_TABLES_FIRERED_REV0'
 actionCursor = 0x02023FF8
 moveCursor = 0x02023FFC
+# As firered_rev1's: the same EWRAM layout in both revisions.
+summaryScreen = 0x0203B140
