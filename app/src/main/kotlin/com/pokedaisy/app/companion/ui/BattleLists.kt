@@ -116,10 +116,11 @@ private fun MoveListRow(
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 3)) {
                 TypeBadge(mv.type, fontSize = 12.sp)
+                MoveKindIcon(mv, m)
                 GbaText(tr("PWR {0}", powerLabel(mv.power)), AppColors.muted, Color.Transparent, small, Modifier.weight(1f))
                 val v = mv.vs.firstOrNull()
                 if (showHints && v != null) {
-                    MultiplierChip(v.label, v.pct, fontSize = 10.sp, lethal = v.lethal, maybeLethal = v.maybeLethal)
+                    EffectLabel(v.pct, fontSize = 10.sp, lethal = v.lethal, maybeLethal = v.maybeLethal)
                 }
             }
         }

@@ -803,13 +803,14 @@ private fun MovePlate(g: G5, rect: Rect, mv: MoveView?, battleInput: BattleInput
                 Spacer(Modifier.size(with(LocalDensity.current) { (d * 2).toDp() }))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TypeTag(mv.type, small, d)
+                    MoveKindIcon(mv, small)
                     Spacer(Modifier.width(with(LocalDensity.current) { (d * 4).toDp() }))
                     GbaText(tr("PP {0}", mv.pp), PlateText, PlateTextShadow, m)
                 }
                 Spacer(Modifier.size(with(LocalDensity.current) { (d * 2).toDp() }))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(with(LocalDensity.current) { (d * 3).toDp() })) {
                     GbaText(tr("PWR {0}", powerLabel(mv.power)), PlateMuted, PlateTextShadow, small)
-                    if (showHints) mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp, lethal = v.lethal, maybeLethal = v.maybeLethal) }
+                    if (showHints) mv.vs.forEach { v -> EffectLabel(v.pct, fontSize = 16.sp, lethal = v.lethal, maybeLethal = v.maybeLethal) }
                 }
             }
         }
@@ -1368,6 +1369,7 @@ internal fun Gen5MoveRow(
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 3)) {
                 TypeTag(mv.type, small, d)
+                    MoveKindIcon(mv, small)
                 GbaText(tr("PWR {0}", powerLabel(mv.power)), PlateMuted, PlateTextShadow, small, Modifier.weight(1f))
                 val v = mv.vs.firstOrNull()
                 if (showHints && v != null) {

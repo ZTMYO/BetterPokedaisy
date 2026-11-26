@@ -636,6 +636,7 @@ internal fun MoveCard(
     // everywhere else.
     // HeartGold's card: the type's colour round a panel white over beige. A move the Pokémon doesn't have is an empty place.
     if (mv == null) return BattlePlaceholder(modifier)
+    val kindM = rememberGbaTextMetrics()
     val frame = AppColors.typeColors[mv.type] ?: AppColors.slotFrame
     PlatinumButton(
         fill = frame,
@@ -669,19 +670,21 @@ internal fun MoveCard(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp * k)) {
                     TypeBadge(mv.type, fontSize = 16.sp * k)
+                    MoveKindIcon(mv, kindM)
                     Text(tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 22.sp * k, style = tight, maxLines = 1)
-                    if (showHints) mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp * k, lethal = v.lethal, maybeLethal = v.maybeLethal) }
+                    if (showHints) mv.vs.forEach { v -> EffectLabel(v.pct, fontSize = 16.sp * k, lethal = v.lethal, maybeLethal = v.maybeLethal) }
                 }
             } else Column(modifier = Modifier.fillMaxSize()) {
                 // HeartGold's halves: the name on the white, then type, power and PP on the beige; the verdict by the name.
                 Row(Modifier.fillMaxWidth().weight(0.47f), verticalAlignment = Alignment.CenterVertically) {
                     FittedText(if (mv.id > 0) com.pokedaisy.app.companion.data.displayMoveName(mv.id, mv.name) else mv.name, AppColors.text, tight, maxSize = 32, minSize = 20, modifier = Modifier.weight(1f))
                     if (showHints) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp, lethal = v.lethal, maybeLethal = v.maybeLethal) }
+                        mv.vs.forEach { v -> EffectLabel(v.pct, fontSize = 16.sp, lethal = v.lethal, maybeLethal = v.maybeLethal) }
                     }
                 }
                 Row(Modifier.fillMaxWidth().weight(0.53f), verticalAlignment = Alignment.CenterVertically) {
                     TypeBadge(mv.type, fontSize = 16.sp)
+                    MoveKindIcon(mv, kindM)
                     Text(
                         tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 20.sp, style = tight, maxLines = 1,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f),
@@ -910,7 +913,7 @@ private fun Gen1MoveList(
                                     TypeBadge(mv.type, fontSize = pill)
                                     if (showHints && mv.power > 0) mv.vs.firstOrNull()?.let { v ->   // status moves ignore the chart
                                         Spacer(Modifier.width(m.u * 4))
-                                        MultiplierChip(v.label, v.pct, fontSize = pill, lethal = v.lethal, maybeLethal = v.maybeLethal)
+                                        EffectLabel(v.pct, fontSize = pill, lethal = v.lethal, maybeLethal = v.maybeLethal)
                                     }
                                     Spacer(Modifier.width(m.u * 8))
                                     GbaText(tr("PP {0}", mv.pp), buttonContent, Color.Transparent, small)

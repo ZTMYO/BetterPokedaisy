@@ -865,7 +865,7 @@ fun ItemsScreen(
     val ownNames = ownItemNames()
     val caps = if (ownNames != null) null else gameItemNames(activeGame)
     val shown = items.map { item ->
-        val name = caps?.get(item.itemId) ?: item.name
+        val name = com.pokedaisy.app.companion.data.displayItemName(item.itemId, caps?.get(item.itemId) ?: item.name)
         item.copy(name = (if (ownNames != null) null else tmMoves[item.itemId])?.let { "$name $it" } ?: name)
     }
     val m = rememberGbaTextMetrics()
@@ -986,7 +986,7 @@ fun ItemsScreen(
     pick?.let { p ->
         ItemPartyPicker(
             p, party, m, modifier,
-            itemName = caps?.get(p.item.itemId) ?: p.item.name,
+            itemName = com.pokedaisy.app.companion.data.displayItemName(p.item.itemId, caps?.get(p.item.itemId) ?: p.item.name),
             picksMove = !p.give && itemUse?.picksMove(p.item.itemId) == true,
             onCancel = { pick = null },
             onPick = { target, move ->
