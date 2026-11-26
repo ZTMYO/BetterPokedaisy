@@ -137,7 +137,8 @@ private fun gameItemNames(game: GameKind): Map<Int, String>? = when (game) {
 
 /** Games whose bag prints pocket titles in caps; their item tables already are. */
 /** [id]'s name as this game's bag writes it (its own casing and spelling: "EXP. SHARE"). */
-internal fun bagItemName(id: Int): String = gameItemNames(activeGame)?.get(id) ?: itemName(id)
+internal fun bagItemName(id: Int): String =
+    com.pokedaisy.app.companion.data.displayItemName(id, gameItemNames(activeGame)?.get(id) ?: itemName(id))
 
 /**
  * Item names from a game the app's tables don't cover (a 3DS game, read from its cart: n3ds/Gen6Text.kt): set, the bag

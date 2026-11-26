@@ -111,7 +111,7 @@ private fun MoveListRow(
         }
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                GbaText(mv.name, AppColors.text, MoveTextShadow, m, Modifier.weight(1f), bold = true)
+                GbaText(if (mv.id > 0) com.pokedaisy.app.companion.data.displayMoveName(mv.id, mv.name) else mv.name, AppColors.text, MoveTextShadow, m, Modifier.weight(1f), bold = true)
                 GbaText(tr("PP {0}", mv.pp), AppColors.text, MoveTextShadow, small)
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 3)) {

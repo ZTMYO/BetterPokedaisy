@@ -799,7 +799,7 @@ private fun MovePlate(g: G5, rect: Rect, mv: MoveView?, battleInput: BattleInput
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                FitText(g, mv.name, PlateText, PlateTextShadow, 1f)
+                FitText(g, if (mv.id > 0) com.pokedaisy.app.companion.data.displayMoveName(mv.id, mv.name) else mv.name, PlateText, PlateTextShadow, 1f)
                 Spacer(Modifier.size(with(LocalDensity.current) { (d * 2).toDp() }))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TypeTag(mv.type, small, d)
@@ -1363,7 +1363,7 @@ internal fun Gen5MoveRow(
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) { FitText(g, mv.name, PlateText, PlateTextShadow, 1f) }
+                Box(Modifier.weight(1f)) { FitText(g, if (mv.id > 0) com.pokedaisy.app.companion.data.displayMoveName(mv.id, mv.name) else mv.name, PlateText, PlateTextShadow, 1f) }
                 GbaText(tr("PP {0}", mv.pp), PlateText, PlateTextShadow, small)
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 3)) {

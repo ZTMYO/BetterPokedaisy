@@ -664,7 +664,7 @@ internal fun MoveCard(
                 // Name and PP, then type, power and the multipliers.
                 Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.fillMaxWidth()) {
                     // A long name (METAL CLAW) steps its size down to fit beside PP rather than being cut.
-                    FittedText(mv.name, AppColors.text, tight, maxSize = (32 * k).toInt(), minSize = (20 * k).toInt(), modifier = Modifier.weight(1f).padding(end = 10.dp * k))
+                    FittedText(if (mv.id > 0) com.pokedaisy.app.companion.data.displayMoveName(mv.id, mv.name) else mv.name, AppColors.text, tight, maxSize = (32 * k).toInt(), minSize = (20 * k).toInt(), modifier = Modifier.weight(1f).padding(end = 10.dp * k))
                     Text(tr("PP {0}", mv.pp), color = AppColors.text, fontSize = 20.sp * k, style = tight, maxLines = 1)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp * k)) {
@@ -675,7 +675,7 @@ internal fun MoveCard(
             } else Column(modifier = Modifier.fillMaxSize()) {
                 // HeartGold's halves: the name on the white, then type, power and PP on the beige; the verdict by the name.
                 Row(Modifier.fillMaxWidth().weight(0.47f), verticalAlignment = Alignment.CenterVertically) {
-                    FittedText(mv.name, AppColors.text, tight, maxSize = 32, minSize = 20, modifier = Modifier.weight(1f))
+                    FittedText(if (mv.id > 0) com.pokedaisy.app.companion.data.displayMoveName(mv.id, mv.name) else mv.name, AppColors.text, tight, maxSize = 32, minSize = 20, modifier = Modifier.weight(1f))
                     if (showHints) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp, lethal = v.lethal, maybeLethal = v.maybeLethal) }
                     }

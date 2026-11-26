@@ -627,4 +627,7 @@ internal fun monLabel(mon: SaveMon): String = when {
 }
 
 /** An item's name in [game]'s words, in capitals. */
-internal fun itemLabel(game: SaveGameData, id: Int): String = game.itemName(id)?.let(::caps) ?: "#$id"
+internal fun itemLabel(game: SaveGameData, id: Int): String = game.itemName(id)?.let { raw ->
+    val name = caps(raw)
+    if (game === Gen3GameData) com.pokedaisy.app.companion.data.displayItemName(id, name) else name
+} ?: "#$id"

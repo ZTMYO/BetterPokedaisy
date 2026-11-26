@@ -896,7 +896,7 @@ fun CompanionScreen(
                             ) { p ->
                                 when (p) {
                                     "CONTROLS" -> BattleControlsScreen(
-                                        activeMon = snapshot.battlePlayer.getOrNull(0),
+                                        activeMon = infoPlayer.getOrNull(0) ?: snapshot.battlePlayer.getOrNull(0),
                                         party = snapshot.party,
                                         battleInput = battleInput,
                                         battleInputState = inputState,

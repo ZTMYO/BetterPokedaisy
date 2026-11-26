@@ -141,7 +141,7 @@ private fun MoveFacts(mv: MoveView, m: GbaTextMetrics, small: GbaTextMetrics, mo
     }
     Column(modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(u * 4)) {
         Column {
-            HeadCell(mv.name, c, m, fill = type, shadow = lerp(type, Color.Black, 0.55f))
+            HeadCell(if (mv.id > 0) com.pokedaisy.app.companion.data.displayMoveName(mv.id, mv.name) else mv.name, c, m, fill = type, shadow = lerp(type, Color.Black, 0.55f))
             rows.forEachIndexed { i, (label, value) ->
                 val last = i == rows.lastIndex
                 Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
