@@ -356,7 +356,17 @@ fun MoveKindIcon(mv: com.pokedaisy.app.companion.data.MoveView, m: GbaTextMetric
     }
     val label = com.pokedaisy.app.companion.i18n.tr(kind.label)
     Spacer(Modifier.width(m.u * 3))
-    PixelArt(art, MOVE_KIND_COLORS, Modifier.size(m.u * 11).semantics { contentDescription = label })
+    val painter = moveKindPainter(kind)
+    if (painter != null) {
+        Image(
+            painter, contentDescription = label,
+            modifier = Modifier.size(m.u * 12),
+            colorFilter = ColorFilter.tint(OptionColors.label),
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+        )
+    } else {
+        PixelArt(art, MOVE_KIND_COLORS, Modifier.size(m.u * 11).semantics { contentDescription = label })
+    }
 }
 
 private val MOVE_KIND_COLORS = mapOf(
