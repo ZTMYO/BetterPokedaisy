@@ -1,7 +1,9 @@
 package com.pokedaisy.app.companion.ui
 
+import com.pokedaisy.app.companion.data.pad
+import androidx.compose.ui.graphics.ImageBitmap
+import com.pokedaisy.app.companion.i18n.stripAccents
 import androidx.compose.ui.graphics.RectangleShape
-import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -46,18 +48,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pokedaisy.app.companion.data.DexEntry
-import com.pokedaisy.app.companion.data.dexSpeciesLabel
-import com.pokedaisy.app.companion.data.displayRegionName
-import com.pokedaisy.app.companion.data.UnboundChineseBattleNames
-import com.pokedaisy.app.companion.i18n.AppLanguage
-import com.pokedaisy.app.companion.i18n.L10n
 import com.pokedaisy.app.companion.data.GameKind
 import com.pokedaisy.app.companion.data.GuideTables
 import com.pokedaisy.app.companion.data.RomArt
@@ -72,6 +68,7 @@ import com.pokedaisy.app.companion.data.monTypes
 import com.pokedaisy.app.companion.data.typeLabel
 import com.pokedaisy.app.companion.data.formatDexHeight
 import com.pokedaisy.app.companion.data.formatDexWeight
+import com.pokedaisy.app.companion.data.dexSpeciesLabel
 import com.pokedaisy.app.companion.data.speciesName
 import com.pokedaisy.app.companion.data.spriteAsset
 import com.pokedaisy.app.companion.i18n.tk
@@ -80,6 +77,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.floor
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import kotlin.math.roundToInt
+import kotlinx.coroutines.IO
 
 /** Which entries the list shows. SEEN = seen but not caught yet. [label] is English; OptionRows translates it. */
 enum class DexFilter(val label: String) { ALL(tk("ALL")), CAUGHT(tk("CAUGHT")), SEEN(tk("SEEN ONLY")), UNSEEN(tk("NOT SEEN")) }
@@ -131,7 +130,7 @@ private fun dexTypes(species: Int): List<String> = activeSpeciesTypeData[species
 
 /** The letter a species' name is filed under, accents gone; null for no name. */
 private fun dexInitial(species: Int): Char? = if (species <= 0) null else
-    java.text.Normalizer.normalize(speciesName(species), java.text.Normalizer.Form.NFD).firstOrNull { it.isLetter() }?.uppercaseChar()
+    stripAccents(speciesName(species)).firstOrNull { it.isLetter() }?.uppercaseChar()
 
 /**
  * The dex being shown, as national numbers in its own order - national, or the
@@ -231,7 +230,7 @@ fun PokedexScreen(
             // Games with one dex (Gaia, Celia's hack) get no toggle.
             dex.tables.regionName?.let { region ->
                 OptionButton(
-                    if (national) tr("NATIONAL DEX") else tr("{0} DEX", displayRegionName(region)), small,
+                    if (national) tr("NATIONAL DEX") else tr("{0} DEX", region), small,
                     onClick = { ui.national = !national },
                     modifier = Modifier.fillMaxWidth(),
                     emphasis = true,
@@ -253,7 +252,7 @@ fun PokedexScreen(
                 LazyColumn(Modifier.fillMaxSize(), state = ui.list) {
                     items(entries, key = { it }) { n ->
                         DexRow(
-                            order.number(n), n, species?.getOrNull(n) ?: 0, n in dex.caught, n in dex.seen, m, small,
+                            order.number(n), species?.getOrNull(n) ?: 0, n in dex.caught, n in dex.seen, m, small,
                             start = n == (back ?: top),
                             holding = holdingLabel(species?.getOrNull(n) ?: 0, n in dex.caught, holdings),
                         ) { ui.lastOpened = n; ui.open = n }
@@ -304,8 +303,8 @@ private fun CountLine(label: String, value: Int, small: GbaTextMetrics) {
 /** "● [icon] No.025 PIKACHU" - the ball marks a caught entry, a grey one a seen one.
  * [n] is the number in the dex being shown. */
 @Composable
-internal fun DexRow(
-    n: Int, national: Int, species: Int, caught: Boolean, seen: Boolean,
+private fun DexRow(
+    n: Int, species: Int, caught: Boolean, seen: Boolean,
     m: GbaTextMetrics, small: GbaTextMetrics,
     /** Where the D-pad starts in the list (the companion's window). */
     start: Boolean = false,
@@ -325,29 +324,19 @@ internal fun DexRow(
             .height(u * 34)
             .background(if (focused) OptionColors.rowSelected else Color.Transparent)
             .drawBehind { drawRowDivider(OptionColors.divider, u.toPx(), 4 * u.toPx()) }
-            .soundClickable(interactionSource = noRipple, indication = null, enabled = seen, onClick = onClick)
+            .soundClickable(interactionSource = noRipple, indication = null, onClick = onClick)
             .padding(horizontal = u * 4),
     ) {
         DexMark(caught, seen, Modifier.size(u * 12))
         Spacer(Modifier.width(u * 4))
-        Box(Modifier.size(u * 32), contentAlignment = Alignment.Center) {
-            if (species > 0) {
-                if (seen) {
-                    SpeciesIcon(spriteAsset("pokemon", species), size = u * 32)
-                } else {
-                    SpeciesIcon(spriteAsset("pokemon", species), size = u * 32, silhouette = true)
-                }
-            }
+        Box(Modifier.size(u * 32).alpha(if (seen) 1f else 0.45f)) {
+            if (species > 0) SpeciesPicture(species, spriteAsset("pokemon", species), size = u * 32, fit = true)
         }
         Spacer(Modifier.width(u * 6))
         GbaText(dexNo(n), OptionColors.muted, OptionColors.mutedShadow, small)
         Spacer(Modifier.width(u * 8))
         GbaText(
-            when {
-                species <= 0 -> "-----"
-                !seen -> "???"
-                else -> dexSpeciesLabel(national, speciesName(species))
-            },
+            if (species > 0) dexSpeciesLabel(n, speciesName(species)) else "-----",
             if (seen) OptionColors.label else OptionColors.muted,
             if (seen) OptionColors.labelShadow else OptionColors.mutedShadow,
             m, Modifier.weight(1f),
@@ -356,7 +345,7 @@ internal fun DexRow(
     }
 }
 
-private fun dexNo(n: Int) = "No.%03d".format(n)
+private fun dexNo(n: Int) = "No.${n.pad(3)}"
 
 internal val caughtBall = mapOf(
     'K' to Color(0xFF202020), 'R' to Color(0xFFE83028), 'W' to Color.White, 'H' to Color(0xFFF8A8A0),
@@ -400,18 +389,10 @@ fun PokedexEntryScreen(
     val order = rememberDexOrder(dex, ui.showsNational(dex))
     val entries = ui.entries(dex, order, rememberSpeciesMap(dex.tables))
     val index = entries.indexOf(current)
-    // Unseen entries can't be opened, so a step goes on to the next seen one instead of stopping on them.
-    val seenCount = entries.count { it in dex.seen }
-    val canStep = seenCount > 1
-    val step = step@{ d: Int ->
-        if (!canStep) return@step
-        var i = if (index >= 0) index else 0
-        repeat(entries.size) {
-            i = (i + d + entries.size) % entries.size
-            if (entries[i] in dex.seen) {
-                ui.open = entries[i]
-                return@step
-            }
+    val step = { d: Int ->
+        if (entries.isNotEmpty()) {
+            val i = if (index < 0) 0 else (index + d + entries.size) % entries.size
+            ui.open = entries[i]
         }
     }
     // Keep the list's scroll position on the entry being looked at.
@@ -420,8 +401,8 @@ fun PokedexEntryScreen(
     SummaryFrame(
         m, onBack = onBack ?: { ui.open = null }, modifier = modifier,
         buttons = {
-            NavButton(PixelIcons.arrowUp, tr("Previous entry"), MonGreen, MonGreenDark, canStep) { step(-1) }
-            NavButton(PixelIcons.arrowDown, tr("Next entry"), MonGreen, MonGreenDark, canStep) { step(1) }
+            NavButton(PixelIcons.arrowUp, tr("Previous entry"), MonGreen, MonGreenDark, entries.size > 1) { step(-1) }
+            NavButton(PixelIcons.arrowDown, tr("Next entry"), MonGreen, MonGreenDark, entries.size > 1) { step(1) }
             if (index >= 0) {
                 Spacer(Modifier.width(8.dp))
                 BackdropText("${index + 1} / ${entries.size}", small)
@@ -456,10 +437,23 @@ private fun EntryPage(
     val species = e?.species ?: 0
     Row(Modifier.fillMaxSize()) {
         Column(Modifier.weight(0.42f).fillMaxHeight().padding(end = gap), verticalArrangement = Arrangement.spacedBy(gap)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                GbaText(dexNo(shownNo), OptionColors.value, OptionColors.valueShadow, small)
-                Spacer(Modifier.width(u * 6))
-                GbaText(if (species > 0 && seen) dexSpeciesLabel(n, speciesName(species)) else if (species > 0) "???" else "-----", OptionColors.label, OptionColors.labelShadow, m, Modifier.weight(1f))
+            val style = OptionColors.style
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                // A MENU STYLE: the number and name on the style's section strip, like the summary's name bar.
+                modifier = if (style == null) Modifier else Modifier.fillMaxWidth()
+                    .background(OptionColors.tint(style.sectionFill), PixelRoundedShape(u * 3))
+                    .padding(horizontal = u * 4, vertical = u * 2),
+            ) {
+                if (style == null) {
+                    GbaText(dexNo(shownNo), OptionColors.value, OptionColors.valueShadow, small)
+                    Spacer(Modifier.width(u * 6))
+                    GbaText(if (species > 0) dexSpeciesLabel(shownNo, speciesName(species)) else "-----", OptionColors.label, OptionColors.labelShadow, m, Modifier.weight(1f))
+                } else {
+                    GbaText(dexNo(shownNo), style.sectionText, style.sectionShadow, small)
+                    Spacer(Modifier.width(u * 6))
+                    GbaText(if (species > 0) dexSpeciesLabel(shownNo, speciesName(species)) else "-----", style.sectionText, style.sectionShadow, m, Modifier.weight(1f))
+                }
                 DexMark(caught, seen, Modifier.size(u * 12))
             }
             // The sprite gets whatever height the text below and the SORT button leave it.
@@ -468,11 +462,11 @@ private fun EntryPage(
                 val paper = OptionColors.spritePaper
                 if (paper != null) {
                     // Dark mode on Gen 1: the picture on its own white card, padded inside the dark well.
-                    Box(Modifier.fillMaxSize().clip(PixelRoundedShape(u * 4)).background(OptionColors.listFill).padding(u * 4)) {
+                    Box(Modifier.fillMaxSize().clip(PixelRoundedShape(u * 4)).background(OptionColors.well).padding(u * 4)) {
                         PixelImage(sprite, 64, Modifier.fillMaxSize().clip(PixelRoundedShape(u * 3)).background(paper).padding(u * 4))
                     }
                 } else {
-                    PixelImage(sprite, 64, Modifier.fillMaxSize().clip(PixelRoundedShape(u * 4)).background(OptionColors.listFill))
+                    PixelImage(sprite, 64, Modifier.fillMaxSize().clip(PixelRoundedShape(u * 4)).background(OptionColors.well))
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -482,7 +476,7 @@ private fun EntryPage(
                     Spacer(Modifier.width(u * 5))
                 }
                 // A narrow column (a short screen's, the RG DS): the category takes a second line rather than being cut.
-                GbaText(e?.let { com.pokedaisy.app.companion.data.displayDexCategoryLine(t, it) } ?: "", OptionColors.label, OptionColors.labelShadow, small, maxLines = 2)
+                GbaText(e?.let { dexCategoryLine(t, it.category) } ?: "", OptionColors.label, OptionColors.labelShadow, small, maxLines = 2)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { e?.types?.forEach { TypeBadge(it) } }
             val height = @Composable { Stat(tr("HT"), e?.let { formatDexHeight(t, it) } ?: "", small) }
@@ -520,30 +514,29 @@ private fun EntryPage(
 
 /** INFO: the dex text, base stats, abilities, egg groups, gender and catch rate. */
 @Composable
-internal fun DexInfoSection(e: DexEntry?, small: GbaTextMetrics, m: GbaTextMetrics, modifier: Modifier) {
+private fun DexInfoSection(e: DexEntry?, small: GbaTextMetrics, m: GbaTextMetrics, modifier: Modifier) {
     val u = m.u
     // Nothing to tap: one D-pad stop that scrolls (the companion's window).
     val scroll = rememberScrollState()
     Column(modifier.dpadScroll(scroll, RectangleShape, m.lineHeight * 3).verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(u * 2)) {
-        // The bundled Chinese dex text first (checked against the ROM's English); a hack or another language keeps its own.
-        val english = e?.description.orEmpty()
-        val shown = e?.let { com.pokedaisy.app.companion.data.chineseDexDescription(it.national, it.description) }
-            ?: UnboundChineseBattleNames.dexOriginal(english)
-        GbaText(shown, OptionColors.label, OptionColors.labelShadow, small,
-            maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 6)
-        Separator(m, Modifier.fillMaxWidth())
+        GbaText(e?.description ?: "", OptionColors.label, OptionColors.labelShadow, small, maxLines = 6)
+        // A MENU STYLE: the summary's labelled sections (STATS, PROFILE) instead of plain lines.
+        val style = OptionColors.style
+        val section = @Composable { label: String ->
+            if (style != null) StyledGroupTitle(label, small, first = false, style = style, modifier = Modifier)
+            else Separator(m, Modifier.fillMaxWidth())
+        }
+        section(tk("STATS"))
         if (e != null) {
             BaseStats(e.baseStats, small)
-            Separator(m, Modifier.fillMaxWidth())
+            section(tk("PROFILE"))
             // Gen 1 has none of these: no abilities, eggs or genders (genderRatio -1).
             // Two names outrun a line in a wide game font (Polished Crystal's): one a line there.
             val wide = com.pokedaisy.app.companion.ui.theme.LocalGameFont.current != null
             if (e.abilities.isNotEmpty()) {
-                InfoLine(tr("ABILITY"), e.abilities.joinToString(if (wide || L10n.language == AppLanguage.ZH_CN) "\n" else " / ") { com.pokedaisy.app.companion.data.displayAbilityNameMarked(it) }, small,
-                    maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else if (wide) e.abilities.size else 1)
+                InfoLine(tr("ABILITY"), e.abilities.joinToString(if (wide) "\n" else " / "), small, maxLines = if (wide) e.abilities.size else 1)
             }
-            e.hiddenAbility?.let { InfoLine(tr("HIDDEN|ability"), com.pokedaisy.app.companion.data.displayAbilityNameMarked(it), small,
-                maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 1) }
+            e.hiddenAbility?.let { InfoLine(tr("HIDDEN|ability"), it, small) }
             if (e.eggGroups.isNotEmpty()) InfoLine(tr("EGG GROUP"), e.eggGroups.joinToString(" / ") { dexCase(it) }, small)
             if (e.genderRatio >= 0) InfoLine(tr("GENDER"), genderLabel(e.genderRatio), small)
             InfoLine(tr("CATCH RATE"), "${e.catchRate}", small)
@@ -624,8 +617,8 @@ private fun genderLabel(ratio: Int): String = when (ratio) {
     else -> {
         // The data is PERCENT_FEMALE(x) = x * 255 / 100 and every Gen 3 ratio
         // is a multiple of 12.5%: round back to it (31 -> 12.5%, not 12.1%).
-        val female = Math.round(ratio * 100 / 255.0 / 12.5).toInt() * 125 // tenths of a percent
-        "♂ %s%%  ♀ %s%%".format(pct(1000 - female), pct(female))
+        val female = (ratio * 100 / 255.0 / 12.5).roundToInt() * 125 // tenths of a percent
+        "♂ ${pct(1000 - female)}%  ♀ ${pct(female)}%"
     }
 }
 
@@ -635,9 +628,9 @@ private fun pct(tenths: Int) = if (tenths % 10 == 0) "${tenths / 10}" else "${te
 internal fun rememberRomBitmap(
     t: PokedexTables, species: Int,
     cached: (PokedexTables, Int) -> RomArt.Image?, load: (PokedexTables, Int) -> RomArt.Image?,
-): Bitmap? =
-    produceKeyedState(cached(t, species)?.bitmap(), t, species) {
-        if (value == null && species > 0) value = withContext(Dispatchers.IO) { load(t, species)?.bitmap() }
+): ImageBitmap? =
+    produceKeyedState(cached(t, species)?.imageBitmap(), t, species) {
+        if (value == null && species > 0) value = withContext(Dispatchers.IO) { load(t, species)?.imageBitmap() }
     }.value
 
 /**
@@ -645,7 +638,7 @@ internal fun rememberRomBitmap(
  * pixels per sprite pixel that fits, centered - pixel art stays crisp.
  */
 @Composable
-internal fun PixelImage(bitmap: Bitmap?, srcPx: Int, modifier: Modifier) {
+internal fun PixelImage(bitmap: ImageBitmap?, srcPx: Int, modifier: Modifier) {
     val density = LocalDensity.current
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val room = with(density) { minOf(maxWidth, maxHeight).toPx() }
@@ -653,7 +646,7 @@ internal fun PixelImage(bitmap: Bitmap?, srcPx: Int, modifier: Modifier) {
         val side = with(density) { (srcPx * scale).toDp() }
         if (bitmap != null) {
             Image(
-                bitmap.asImageBitmap(), contentDescription = null,
+                bitmap, contentDescription = null,
                 modifier = Modifier.size(side), filterQuality = FilterQuality.None,
             )
         }

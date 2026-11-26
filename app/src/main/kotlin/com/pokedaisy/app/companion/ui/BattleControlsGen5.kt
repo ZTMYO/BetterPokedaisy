@@ -527,7 +527,7 @@ private fun Gen5Button(
                 }
             }
             .then(
-                if (enabled) Modifier.clickable(interactionSource = interaction, indication = null) {
+                if (enabled) Modifier.menuClickable(interactionSource = interaction, indication = null) {
                     onClick()
                     if (!pressesGame || gameSilent()) sound()
                 } else Modifier,
@@ -809,7 +809,7 @@ private fun MovePlate(g: G5, rect: Rect, mv: MoveView?, battleInput: BattleInput
                 Spacer(Modifier.size(with(LocalDensity.current) { (d * 2).toDp() }))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(with(LocalDensity.current) { (d * 3).toDp() })) {
                     GbaText(tr("PWR {0}", powerLabel(mv.power)), PlateMuted, PlateTextShadow, small)
-                    if (showHints) mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal, fontSize = 16.sp) }
+                    if (showHints) mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp) }
                 }
             }
         }

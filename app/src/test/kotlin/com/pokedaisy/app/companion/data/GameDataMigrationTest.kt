@@ -33,11 +33,12 @@ class GameDataMigrationTest {
         "FIRERED_REV0_RETAIL", "LEAFGREEN_REV0_RETAIL", "LEAFGREEN_REV1_RETAIL", "EPSILON_EMERALD",
         // The Chinese fan translations (PKM-Bai): written in gamedata/ only.
         "UNBOUND_CN", "RADICAL_RED_V4_1_CN", "MERCURY_CN", "QUETZAL_CN", "TEAM_ROCKET_CN",
+        "CERULEUM", "RECORDKEEPERS",
     )
 
     @Test
     fun `every hand-written config has a generated one and no more`() {
-        assertEquals(68, legacy.size)
+        assertEquals(74, legacy.size)
         assertEquals((legacy.keys + bornInGamedata).sorted(), generated.keys.sorted())
     }
 

@@ -340,6 +340,11 @@ const val RECHARGED_YELLOW_ITEMS = 409
 fun isRechargedYellowRom(head: ByteArray): Boolean = head.size >= GF_HEADER_SB1_SIZE + 4 &&
     asciiString(head, 0xAC, 3) == "BPR" && u32le(head, GF_HEADER_SB1_SIZE) == RECHARGED_YELLOW_SB1_SIZE
 
+/** FireRed 1.0's code under Emerald's game code (Pokémon Clover): the cart header says BPEE, but the GF ROM header after it
+ * still names "pokemon red version" (0x108; Emerald's says "pokemon emerald version"). [head] from the ROM's start. */
+fun isFireRedUnderEmeraldHeader(head: ByteArray): Boolean = head.size >= 0x11B &&
+    asciiString(head, 0xAC, 4) == "BPEE" && asciiString(head, 0x108, 19) == "pokemon red version"
+
 private const val GF_HEADER_SB1_SIZE = 0x18C // struct GFRomHeader.saveBlock1Size
 private const val RECHARGED_YELLOW_SB1_SIZE = 0x3D94L
 
@@ -460,7 +465,9 @@ private const val SUMMARY_NEW_MOVE_OFF = 0x40C4
 /** What sMonSummaryScreen says right now: its mode, curMonIndex and newMove. */
 private data class SummarySelect(val mode: Int, val mon: Int, val newMove: Int)
 
-fun readNativeTelemetry(client: MemoryReader, cfg: NativeConfig): Telemetry {
+/** [moveWatch]: the sampler's own [MoveLearningWatch], for the move-learning card; null (BEST EFFORT's candidates, tests)
+ * = no card read. */
+fun readNativeTelemetry(client: MemoryReader, cfg: NativeConfig, moveWatch: MoveLearningWatch? = null): Telemetry {
     val frameCounter = runCatching { u32le(client.readCoreMemory(cfg.gMainVblankCtr, 4), 0) }.getOrDefault(0L)
 
     // --- party ---
@@ -598,7 +605,7 @@ fun readNativeTelemetry(client: MemoryReader, cfg: NativeConfig): Telemetry {
     // gPartyMenu.data1 (s16 at +0xE): the move a TM / tutor / party-menu learn is teaching.
     val menuMove = if (cfg.partyMenu == 0L) 0 else
         runCatching { u16le(client.readCoreMemory(cfg.partyMenu + 14, 4), 0) }.getOrDefault(0)
-    val moveLearning = MoveLearningWatch.check(
+    val moveLearning = moveWatch?.check(
         levelMove = levelMove,
         menuMove = menuMove,
         mode = summary?.mode ?: 0,
@@ -1051,10 +1058,14 @@ private fun Mon.withNativeGender(raw: ByteArray, off: Int, layout: PartyMonLayou
         GameKind.ORANGE_ISLANDS -> genderRatiosOrangeIslands
         GameKind.SWORD_SHIELD -> genderRatiosSwordShield
         GameKind.GS_CHRONICLES -> genderRatiosGsChronicles
+        GameKind.RHYTHM -> genderRatiosRhythm
+        GameKind.OOPS_ALL_EEVEES -> genderRatiosOopsAllEevees
         GameKind.MARIOMON -> if (mariomonV13) genderRatiosMariomonV13 else genderRatiosMariomon
         GameKind.ELITE_REDUX -> genderRatiosEliteRedux
         GameKind.TEAM_ROCKET -> if (teamRocketV3) genderRatiosTeamRocketV3 else genderRatiosTeamRocket
         GameKind.WISHES -> genderRatiosWishes
+        GameKind.CERULEUM -> genderRatiosCeruleum
+        GameKind.RECORDKEEPERS -> genderRatiosRecordKeepers
         GameKind.MONOMYTH -> genderRatiosMonomyth
         GameKind.DREAMSTONE -> genderRatiosDreamstone
         else -> return this

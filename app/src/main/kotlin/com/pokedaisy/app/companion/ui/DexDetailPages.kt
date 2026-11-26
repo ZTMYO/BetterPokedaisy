@@ -1,5 +1,6 @@
 package com.pokedaisy.app.companion.ui
 
+import com.pokedaisy.app.companion.data.pad
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.RectangleShape
@@ -66,6 +67,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.pokedaisy.app.companion.ui.theme.gbaFocusRing
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import kotlinx.coroutines.IO
 
 /*
  * The DEX page's sections past INFO (GitHub #28): EVOLVE (the whole family, both
@@ -181,7 +183,7 @@ internal fun FamilyMon(species: Int, national: Int, current: Int, m: GbaTextMetr
             .soundClickable(interactionSource = noRipple, indication = null, enabled = !here && national > 0) { onOpen(national) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SpeciesIcon(spriteAsset("pokemon", species), size = m.lineHeight * 1.5f)
+        SpeciesPicture(species, spriteAsset("pokemon", species), size = m.lineHeight * 1.5f, fit = true)
         Spacer(Modifier.width(m.u * 2))
         GbaText(
             displayName,
@@ -384,6 +386,7 @@ internal fun DexMovesSection(t: PokedexTables, g: GuideTables?, species: Int, m:
 }
 
 private fun LazyListScope.header(text: String, small: GbaTextMetrics) = item {
+    OptionColors.style?.let { style -> StyledGroupTitle(text, small, first = false, style = style, modifier = Modifier.padding(bottom = small.u * 2)); return@item }
     GbaText(text, OptionColors.muted, OptionColors.mutedShadow, small, Modifier.padding(top = small.u * 4, bottom = small.u * 2))
 }
 
@@ -405,7 +408,7 @@ internal fun MoveLine(label: String, move: Int, small: GbaTextMetrics) {
             Modifier.width(u * if (L10n.language == AppLanguage.ZH_CN) 72 else 40))
         GbaText(displayName, OptionColors.label, OptionColors.labelShadow, small, Modifier.weight(1f),
             maxLines = if (L10n.language == AppLanguage.ZH_CN) Int.MAX_VALUE else 1)
-        typeName(info.type).takeIf { it.isNotEmpty() }?.let { MoveTypeBadge(it, fontSize = 11.sp, iconSize = 13.dp) }
+        typeName(info.type).takeIf { it.isNotEmpty() }?.let { TypeBadge(it, fontSize = 11.sp) }
     }
 }
 

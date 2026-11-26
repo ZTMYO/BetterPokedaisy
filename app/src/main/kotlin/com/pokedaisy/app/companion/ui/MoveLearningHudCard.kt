@@ -29,6 +29,9 @@ import com.pokedaisy.app.companion.data.typeName
 import com.pokedaisy.app.companion.i18n.tr
 import com.pokedaisy.app.companion.ui.theme.AppColors
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
 
 /**
  * The move-learning card in the game picture's top right, while the game's summary asks which move to forget: the
@@ -36,16 +39,15 @@ import kotlin.math.roundToInt
  * the normal HUD is hidden in a battle or menu, and goes when the game's page does.
  */
 @Composable
-internal fun MoveLearningHudCard(snapshot: SnapshotView, style: FieldHudStyle, modifier: Modifier = Modifier) {
+fun MoveLearningHudCard(snapshot: SnapshotView, style: FieldHudStyle, modifier: Modifier = Modifier) {
     val ml = snapshot.moveLearning ?: return
     val mon = snapshot.party.getOrNull(ml.partyIndex) ?: return
     val tables = snapshot.pokedex?.tables ?: return
     if (!MoveLearning.available(tables, snapshot.guideTables)) return
-    val advice = rememberLoaded(
-        tables, mon, ml.move,
-        cached = { null },
-        load = { MoveLearning.advise(tables, mon, ml.move) },
-    ) ?: return
+    // Off the UI thread: the advice reads the ROM's TM / learnset tables the first time (DexDetails, cached after).
+    val advice = androidx.compose.runtime.produceState<com.pokedaisy.app.companion.data.MoveAdvice?>(null, tables, mon, ml.move) {
+        value = withContext(Dispatchers.IO) { MoveLearning.advise(tables, mon, ml.move) }
+    }.value ?: return
     // The same whole-screen-pixel density FieldHud draws its own text with: at the plain device density the card's
     // glyphs land on fractional pixels and look soft next to the HUD.
     val base = LocalDensity.current
@@ -64,9 +66,7 @@ internal fun MoveLearningHudCard(snapshot: SnapshotView, style: FieldHudStyle, m
                 Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 12.dp, end = 12.dp)
-                    // As wide as its text needs, up to the room beside the picture: a five-character move name must not
-                    // be cut to an ellipsis.
-                    .widthIn(max = maxWidth - 24.dp)
+                    .widthIn(max = minOf(260.dp, maxWidth - 24.dp))
                     .wrapContentWidth(Alignment.End)
                     .hudPanel(u, radius = 4)
                     .padding(horizontal = u * 6, vertical = u * 4),

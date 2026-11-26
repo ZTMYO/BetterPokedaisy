@@ -4,13 +4,7 @@ import com.pokedaisy.app.companion.i18n.tr
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 
-data class MoveVsFoe(
-    val vsName: String, val label: String, val pct: Int,
-    /** Even the lowest damage roll faints the foe. */
-    val lethal: Boolean = false,
-    /** The highest roll faints it, but the lowest doesn't. */
-    val maybeLethal: Boolean = false,
-)
+data class MoveVsFoe(val vsName: String, val label: String, val pct: Int)
 data class MoveView(val name: String, val type: String, val pp: Int, val power: Int, val vs: List<MoveVsFoe> = emptyList(), val id: Int = 0, val maxPp: Int = 0)
 
 /**
@@ -60,7 +54,7 @@ data class MonView(
     /** Shiny (the battle screen's and INFO's SHINY marks). */
     val shiny: Boolean = false,
 ) {
-    /** What the game's party menu prints: the nickname where it was read and reads as text, else the species ([name]). */
+    /** What the game's party menu prints: the nickname where it was read, else the species ([name]). */
     val shownName: String get() = nickname?.takeIf { it.readsAsText() } ?: name
 
     /** The nickname is the player's own, not the species' name (the summary adds the species then). */
@@ -70,7 +64,9 @@ data class MonView(
 /** An egg's hatch species' name for the summary's "EGG / name"; null when only the egg's placeholder id is known. */
 val MonView.eggHatchName: String? get() =
     if (!isEgg || species <= 0 || species == SPECIES_EGG_VANILLA || species == activeNativeConfig?.eggSpecies) null
-    else displaySpeciesName(species)
+    else speciesName(species)
+
+
 
 /**
  * Does this string read as text, or is it a translated ROM's own character set decoded as ours?
@@ -80,7 +76,7 @@ val MonView.eggHatchName: String? get() =
  */
 fun String.readsAsText(): Boolean {
     if (isBlank()) return false
-    if (contains('\uFFFD')) return false
+    if (contains('�')) return false
     val odd = count { it == '?' || it.code in 0xC0..0x24F || it.code in 0xE0..0xFF }
     return odd * 3 < length
 }
@@ -98,7 +94,7 @@ fun expProgress(species: Int, level: Int, exp: Long?): ExpProgress? {
     // Gen 1's growth rates and curves are Gen 3's for the first 151 (Yellow's species are Dex numbers here).
     if (activeGame != GameKind.FIRERED && activeGame != GameKind.EMERALD && !activeGame.isGen1 &&
         activeGame != GameKind.ORANGE_ISLANDS && activeGame != GameKind.RECHARGED_YELLOW &&
-        activeGame != GameKind.MARIOMON && activeGame != GameKind.TEAM_ROCKET && activeGame != GameKind.WISHES &&
+        activeGame != GameKind.MARIOMON && activeGame != GameKind.TEAM_ROCKET && activeGame != GameKind.WISHES && activeGame != GameKind.CERULEUM && activeGame != GameKind.RECORDKEEPERS &&
         activeGame != GameKind.DREAMSTONE && activeGame != GameKind.MONOMYTH &&
         // Crystal's growth rates for its 251 are Gen 3's, byte for byte, and its curves the same formulas (CrystalDecodeTest);
         // Crystal Clear, Gold and Silver kept Crystal's base data (gen_gen2_tables.py checks it).
@@ -136,6 +132,9 @@ fun expProgress(species: Int, level: Int, exp: Long?): ExpProgress? {
             (if (teamRocketV3) growthRatesTeamRocketV3 else growthRatesTeamRocket).getOrNull(species)?.takeIf { it <= 5 }
         // Wishes of Tomorrow (expansion 1.15.3): vanilla's curves, its gSpeciesInfo's rates (gen_expansion_tables.py).
         else if (activeGame == GameKind.WISHES) growthRatesWishes.getOrNull(species)?.takeIf { it <= 5 }
+        // Ceruleum (expansion 1.13.2) likewise.
+        else if (activeGame == GameKind.CERULEUM) growthRatesCeruleum.getOrNull(species)?.takeIf { it <= 5 }
+        else if (activeGame == GameKind.RECORDKEEPERS) growthRatesRecordKeepers.getOrNull(species)?.takeIf { it <= 5 }
         // PureRGB moved 25 species to other curves: its own BaseStats' (gen_gen1_tables.py purered).
         else if (activeGame.isPureRgb) gen1GrowthRatesPureRgb.getOrNull(species)
         // Yellow Legacy too (gen_gen1_tables.py yellow_legacy).
@@ -293,8 +292,7 @@ data class SnapshotView(
     val playerGender: Int = -1,
     /** The CARD tab's data; null = the game gets no card. */
     val trainerCard: TrainerCardInfo? = null,
-    /** The game's move-learning summary is up: that party member is choosing a move to forget (the companion shows
-     * its LEARN page meanwhile). */
+    /** The game's move-learning summary is up: that party member is choosing a move to forget. */
     val moveLearning: MoveLearningPrompt? = null,
     /** Non-null = the copy saved beside the savestate this launch resumed ([SnapshotCache]), shown
      * until the live game's data is in: the data tabs the game had then (DEX / GUIDE / CARD, whose
@@ -311,58 +309,19 @@ val SnapshotView.hasData: Boolean
 fun MonView.withMovesVs(foe: MonView): MonView = withMovesVs(listOf(foe))
 
 /** [withMovesVs] against every one of [targets] (a double battle's two). */
-fun MonView.withMovesVs(targets: List<MonView>): MonView {
-    val attacker = this
-    return copy(moves = moves.map { mv ->
-        val atk = typeIdOf(mv.type)
-        // A status move's verdict says nothing: the chart only rates damage (GitHub #90).
-        if (mv.power == 0) return@map mv.copy(vs = emptyList())
-        mv.copy(vs = targets.map { foe ->
-            val t = foe.types.map(::typeIdOf)
-            val t1 = t.getOrElse(0) { TYPE_NONE }
-            val t2 = t.getOrElse(1) { TYPE_NONE }
-            val pct = if (atk != TYPE_NONE && t1 != TYPE_NONE) moveMultiplierPct(mv.name, atk, t1, t2) else 100
-            val risk = faintRisk(attacker, foe, mv, pct)
-            MoveVsFoe(
-                foe.name, formatMultiplier(pct), pct,
-                lethal = risk == FaintRisk.GUARANTEED,
-                maybeLethal = risk == FaintRisk.MAYBE,
-            )
-        })
+fun MonView.withMovesVs(targets: List<MonView>): MonView = copy(moves = moves.map { mv ->
+    val atk = typeIdOf(mv.type)
+    // A status move's verdict says nothing: the chart only rates damage (GitHub #90).
+    if (mv.power == 0) return@map mv.copy(vs = emptyList())
+    mv.copy(vs = targets.map { foe ->
+        val t = foe.types.map(::typeIdOf)
+        val t1 = t.getOrElse(0) { TYPE_NONE }
+        val t2 = t.getOrElse(1) { TYPE_NONE }
+        val pct = if (atk != TYPE_NONE && t1 != TYPE_NONE) moveMultiplierPct(mv.name, atk, t1, t2) else 100
+        MoveVsFoe(foe.name, formatMultiplier(pct), pct)
     })
-}
+})
 
-private enum class FaintRisk { NONE, MAYBE, GUARANTEED }
-
-/**
- * Whether [attacker]'s move is likely to faint [defender] this turn: the Gen 3 damage formula at its lowest roll
- * (0.85) and highest (1.0). GUARANTEED when even the lowest roll faints; MAYBE when only the highest does. Critical
- * hits, abilities, items, screens, weather and stat stages outside [MonView.battleStats] aren't part of it.
- */
-private fun faintRisk(attacker: MonView, defender: MonView, mv: MoveView, pct: Int): FaintRisk {
-    if (pct <= 0 || defender.hp <= 0 || mv.power <= 1) return FaintRisk.NONE
-    if (typeIdOf(mv.type) == TYPE_NONE) return FaintRisk.NONE
-    val kind = moveKind(mv) ?: return FaintRisk.NONE
-    if (kind == MoveKind.STATUS) return FaintRisk.NONE
-    val a = attacker.stats?.stats ?: return FaintRisk.NONE
-    val d = defender.stats?.stats ?: return FaintRisk.NONE
-    val physical = kind == MoveKind.PHYSICAL
-    var atk = a.getOrNull(if (physical) STAT_ATK else STAT_SPATK) ?: return FaintRisk.NONE
-    val def = defender.battleStats?.let { if (physical) it.getOrNull(1) else it.getOrNull(4) }
-        ?: d.getOrNull(if (physical) STAT_DEF else STAT_SPDEF) ?: return FaintRisk.NONE
-    if (physical && attacker.status == "BRN") atk /= 2
-    if (atk <= 0 || def <= 0) return FaintRisk.NONE
-    val level = attacker.level.coerceIn(1, 100)
-    val base = ((2 * level / 5 + 2) * mv.power * atk / def) / 50 + 2
-    val stab = if (mv.type in attacker.types) 1.5 else 1.0
-    val minDamage = (base * stab * (pct / 100.0) * 0.85).toInt()
-    val maxDamage = (base * stab * (pct / 100.0)).toInt()
-    return when {
-        minDamage >= defender.hp -> FaintRisk.GUARANTEED
-        maxDamage >= defender.hp -> FaintRisk.MAYBE
-        else -> FaintRisk.NONE
-    }
-}
 
 private fun battleSpeciesName(id: Int): String = UnboundChineseBattleNames.species(id) ?: displaySpeciesName(id)
 private fun battleMoveName(id: Int, fallback: String): String = UnboundChineseBattleNames.move(id) ?: displayMoveName(id, fallback)
@@ -412,7 +371,10 @@ fun spriteAsset(kind: String, id: Int): String? {
 }
 
 /** A shiny Pokémon's party icon: `<dir>/shiny/<id>.png`, drawn in its species' shiny palette (DecompIconSource). */
-fun shinyIconAsset(species: Int): String? = spriteAsset("pokemon", species)?.let { it.substringBeforeLast('/') + "/shiny/" + it.substringAfterLast('/') }
+fun shinyIconAsset(species: Int): String? =
+    // The Game Boy and DS party icons don't change for a shiny one (and nothing makes shiny ones for them).
+    if (activeGame.isGameBoyGame || activeGame.isDsGame) spriteAsset("pokemon", species)
+    else spriteAsset("pokemon", species)?.let { it.substringBeforeLast('/') + "/shiny/" + it.substringAfterLast('/') }
 
 /** A party (or PC box) Pokémon as the PARTY tab and the summary show it. */
 fun partyMonView(m: Mon): MonView {
@@ -424,7 +386,7 @@ fun partyMonView(m: Mon): MonView {
         if (moveId == 0) null
         else {
             val info = lookupMove(moveId)
-            MoveView(battleMoveName(moveId, info.name), typeName(info.type), m.pp[idx], info.power, id = moveId)
+            MoveView(info.name, typeName(info.type), m.pp[idx], info.power, id = moveId)
         }
     }
     val isEgg = m.isEgg || isVanillaEgg(m.species)
@@ -493,8 +455,6 @@ private fun boxesView(b: PcBoxes): BoxesView = synchronized(pcBoxesLock) {
 }
 
 fun buildSnapshotView(t: Telemetry): SnapshotView {
-    // National-dex mapping for the name tables (Hoenn species ids aren't national numbers).
-    PokedexSource.useTables(t.pokedex?.tables)
     // v2 ROMs export the icon-graphics table addresses; hand them to the live
     // sprite reader so nothing has to be bundled.
     DecompIconSource.tables = t.icons
@@ -541,9 +501,9 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
                     val info = lookupMove(moveId)
                     val vs = if (info.power == 0) emptyList() else opponents.map { foe ->
                         val pct = if (info.type != TYPE_NONE) moveMultiplierPct(info.name, info.type, foe.type1, foe.type2) else 100
-                        MoveVsFoe(battleSpeciesName(foe.species), formatMultiplier(pct), pct)
+                        MoveVsFoe(speciesName(foe.species), formatMultiplier(pct), pct)
                     }
-                    MoveView(battleMoveName(moveId, info.name), typeName(info.type), b.pp[idx], info.power, vs, id = moveId)
+                    MoveView(info.name, typeName(info.type), b.pp[idx], info.power, vs, id = moveId)
                 }
             }
             return MonView(
@@ -553,7 +513,6 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
                 iconAsset = if (b.shiny) shinyIconAsset(b.species) else spriteAsset("pokemon", b.species),
                 moves = moves,
                 stats = statsFor(b, t.party, usedParty),
-                abilityId = b.ability,
             )
         }
 
@@ -605,9 +564,6 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
             buildOpponentMon(t.battleMons[BATTLE_POS_OPPONENT_LEFT], prefer = t.enemyActive),
             buildOpponentMon(t.battleMons[BATTLE_POS_OPPONENT_RIGHT]),
         )
-        // The player moves' "致命" verdict needs the foe stats, which are known only after
-        // the opponent side is built.
-        if (battleOpponent.isNotEmpty()) battlePlayer = battlePlayer.map { it.withMovesVs(battleOpponent) }
         // Party slots in the same order as battlePlayer / battleOpponent.
         fun slots(vararg pos: Int, size: Int) = pos.filter { t.battleMons[it].species != 0 }
             .map { p -> t.battlerPartySlots.getOrNull(p)?.takeIf { it in 0 until size } ?: -1 }
@@ -618,10 +574,9 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
 
     val items = (0 until t.itemCount.coerceAtMost(t.items.size)).map { i ->
         val it = t.items[i]
-        val romName = RomItemText.name(it.itemId) ?: gameItemName(it.itemId)
         ItemView(
             it.itemId,
-            displayItemName(it.itemId, romName),
+            itemName(it.itemId),
             it.quantity,
             spriteAsset("items", it.itemId),
             it.pocket,
@@ -709,7 +664,7 @@ fun isVanillaEgg(species: Int): Boolean =
     species == SPECIES_EGG_VANILLA && !emeraldLegacy && when (activeGame) {
         GameKind.FIRERED, GameKind.EMERALD,
         GameKind.UNBOUND, GameKind.RADICAL_RED, GameKind.ODYSSEY, GameKind.AMETHYST, GameKind.ORANGE_ISLANDS,
-        GameKind.SWORD_SHIELD, GameKind.RECHARGED_YELLOW, GameKind.GS_CHRONICLES -> true
+        GameKind.SWORD_SHIELD, GameKind.RECHARGED_YELLOW, GameKind.GS_CHRONICLES, GameKind.RHYTHM, GameKind.OOPS_ALL_EEVEES -> true
         else -> false
     }
 

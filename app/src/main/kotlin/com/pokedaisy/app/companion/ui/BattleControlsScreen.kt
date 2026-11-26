@@ -456,7 +456,7 @@ private fun ActionButtons(
                 pressesGame = onFight == null, onClick = { onFight?.invoke() ?: battleInput?.selectAction(0) },
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SpeciesIcon(activeMon?.iconAsset, size = 48.dp)
+                    MonIcon(activeMon, size = 48.dp)
                     ButtonLabel(tr("FIGHT"), 52.sp, outlined = true)
                 }
             }
@@ -661,32 +661,27 @@ internal fun MoveCard(
             val short = LocalShortCompanion.current
             val k = if (short) SHORT_MOVE_TEXT else 1f
             if (compact || short) Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
-                // The game's own move panel order: name and the multipliers on top, then type, power and PP.
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    // A long name (METAL CLAW) steps its size down to fit beside the multipliers rather than being cut.
+                // Name and PP, then type, power and the multipliers.
+                Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.fillMaxWidth()) {
+                    // A long name (METAL CLAW) steps its size down to fit beside PP rather than being cut.
                     FittedText(mv.name, AppColors.text, tight, maxSize = (32 * k).toInt(), minSize = (20 * k).toInt(), modifier = Modifier.weight(1f).padding(end = 10.dp * k))
-                    if (showHints) Row(horizontalArrangement = Arrangement.spacedBy(4.dp * k)) {
-                        mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal, fontSize = 16.sp * k) }
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    MoveTypeBadge(mv.type, fontSize = 16.sp * k, iconSize = 18.dp)
-                    Text(
-                        tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 22.sp * k, style = tight, maxLines = 1,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f),
-                    )
                     Text(tr("PP {0}", mv.pp), color = AppColors.text, fontSize = 20.sp * k, style = tight, maxLines = 1)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp * k)) {
+                    TypeBadge(mv.type, fontSize = 16.sp * k)
+                    Text(tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 22.sp * k, style = tight, maxLines = 1)
+                    if (showHints) mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp * k) }
                 }
             } else Column(modifier = Modifier.fillMaxSize()) {
                 // HeartGold's halves: the name on the white, then type, power and PP on the beige; the verdict by the name.
                 Row(Modifier.fillMaxWidth().weight(0.47f), verticalAlignment = Alignment.CenterVertically) {
                     FittedText(mv.name, AppColors.text, tight, maxSize = 32, minSize = 20, modifier = Modifier.weight(1f))
                     if (showHints) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        mv.vs.forEach { v -> EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal, fontSize = 16.sp) }
+                        mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp) }
                     }
                 }
                 Row(Modifier.fillMaxWidth().weight(0.53f), verticalAlignment = Alignment.CenterVertically) {
-                    MoveTypeBadge(mv.type, fontSize = 16.sp, iconSize = 18.dp)
+                    TypeBadge(mv.type, fontSize = 16.sp)
                     Text(
                         tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 20.sp, style = tight, maxLines = 1,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f),
@@ -770,7 +765,7 @@ internal fun PlatinumButton(
             )
             .then(
                 if (enabled) {
-                    Modifier.clickable(interactionSource = interaction, indication = androidx.compose.foundation.LocalIndication.current, onClick = {
+                    Modifier.menuClickable(interactionSource = interaction, indication = androidx.compose.foundation.LocalIndication.current, onClick = {
                         onClick()
                         // The game sounds its own button - unless it can't be heard (FF's STEADY music mutes it).
                         if (!pressesGame || gameSilent()) sound()
@@ -830,20 +825,8 @@ internal fun ButtonLabel(
  * text boxes (the game's own words; [BattleInput]'s indices stay Gen 3's: 1 = ITEM / BAG,
  * 2 = PkMn / POKEMON). The active mon's icon sits by FIGHT, as on the other games.
  */
-/** Keep game words for other languages; Chinese uses the app's labels without changing action indices. */
-internal fun gen1ActionLabel(index: Int, original: String): String {
-    if (com.pokedaisy.app.companion.i18n.L10n.language != com.pokedaisy.app.companion.i18n.AppLanguage.ZH_CN) return original
-    return when (index) {
-        0 -> tr("FIGHT")
-        1 -> companionTabLabel("ITEMS")
-        2 -> tr("POKéMON")
-        3 -> tr("RUN")
-        else -> original
-    }
-}
-
 @Composable
-internal fun Gen1ActionButtons(
+private fun Gen1ActionButtons(
     activeMon: MonView?,
     battleInput: BattleInput?,
     enabled: Boolean,
@@ -858,8 +841,8 @@ internal fun Gen1ActionButtons(
         onClick = { if (index == 2 && onPokemon != null) onPokemon() else battleInput?.selectAction(index) },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(m.u * 6)) {
-            if (icon) SpeciesIcon(activeMon?.iconAsset, size = m.u * 32)
-            GbaText(gen1ActionLabel(index, label), buttonContent, Color.Transparent, m, bold = true)
+            if (icon) MonIcon(activeMon, size = m.u * 32)
+            GbaText(label, buttonContent, Color.Transparent, m, bold = true)
         }
     }
     // Prism's menu is mixed case (Fight / PkMn / Pack / Run), Polished Crystal's too (its bag a Bag); Yellow's in each
@@ -924,10 +907,10 @@ private fun Gen1MoveList(
                             GbaText(mv?.name ?: "-", buttonContent, Color.Transparent, m, bold = true)
                             if (mv != null) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    MoveTypeBadge(mv.type, fontSize = pill, iconSize = 15.dp)
+                                    TypeBadge(mv.type, fontSize = pill)
                                     if (showHints && mv.power > 0) mv.vs.firstOrNull()?.let { v ->   // status moves ignore the chart
                                         Spacer(Modifier.width(m.u * 4))
-                                        EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal, fontSize = pill)
+                                        MultiplierChip(v.label, v.pct, fontSize = pill)
                                     }
                                     Spacer(Modifier.width(m.u * 8))
                                     GbaText(tr("PP {0}", mv.pp), buttonContent, Color.Transparent, small)

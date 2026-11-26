@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -29,6 +28,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pokedaisy.app.companion.BattleInput
 import com.pokedaisy.app.companion.data.GENDER_SYMBOL_FEMALE
 import com.pokedaisy.app.companion.data.GENDER_SYMBOL_MALE
@@ -115,11 +115,11 @@ private fun MoveListRow(
                 GbaText(tr("PP {0}", mv.pp), AppColors.text, MoveTextShadow, small)
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 3)) {
-                MoveTypeIcon(mv.type, size = u * 12)
+                TypeBadge(mv.type, fontSize = 12.sp)
                 GbaText(tr("PWR {0}", powerLabel(mv.power)), AppColors.muted, Color.Transparent, small, Modifier.weight(1f))
                 val v = mv.vs.firstOrNull()
                 if (showHints && v != null) {
-                    EffectLabel(v.pct, lethal = v.lethal, maybeLethal = v.maybeLethal)
+                    MultiplierChip(v.label, v.pct, fontSize = 10.sp)
                 }
             }
         }
@@ -129,8 +129,9 @@ private fun MoveListRow(
 /** A small white-on-[color] tag in the HUD's pixel units (a type, a verdict). */
 @Composable
 private fun ListPill(text: String, color: Color, m: GbaTextMetrics) {
-    Box(Modifier.background(color, PixelRoundedShape(m.u * 2)).padding(horizontal = m.u * 2)) {
-        GbaText(text, Color.White, Color.Transparent, m)
+    // The games' tag look (GameTag): notched corners, the #424242 shadow.
+    Box(Modifier.background(color, NotchedShape(m.u)).padding(horizontal = m.u * 2)) {
+        GbaText(text, Color.White, TAG_SHADOW, m)
     }
 }
 
@@ -215,7 +216,7 @@ private fun PartyListRow(palette: PartyPalette, mon: MonView, selected: Boolean,
     // The icon's two poses at the game's HP-based pace, and the selected one's bob (SpriteCB_BouncePartyMonIcon).
     // From an already-decoded sheet where there is one (no blank first frame), then the loaded one.
     val sheet = rememberMonIconSheet(mon.iconAsset) ?: remember(mon.iconAsset) { peekMonIcon(mon.iconAsset) }
-    val icon = remember(sheet) { sheet?.asImageBitmap() }
+    val icon = sheet
     val ticks = if (mon.isEgg || mon.hp <= 0) 0 else PartySlotLayout.ICON_FRAME_TICKS[listHpLevel(mon.hp, mon.maxHp)]
     val moving = CompanionTweaks[CompanionTweaks.Tweak.PARTY_ICONS_MOVE]
     val pose by rememberBlink(partyIconPoseMs(ticks), enabled = ticks > 0 && moving)
