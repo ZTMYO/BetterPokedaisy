@@ -389,6 +389,28 @@ internal fun FoeFacts(
                 }
             }
         }
+        // The fork's compact IV row: 31 is a gold V, as it was before the 1.6.2 merge.
+        if (foe.stats?.ivs?.size == 6) FoeIvs(foe, m, small)
+    }
+}
+
+/** The foe's six IVs, one compact row: 31 is a gold V. No stats, no row. */
+@Composable
+private fun FoeIvs(foe: MonView, m: GbaTextMetrics, small: GbaTextMetrics) {
+    val ivs = foe.stats?.ivs ?: return
+    if (ivs.size < 6) return
+    GbaText(tr("IV"), OptionColors.label, OptionColors.labelShadow, small, maxLines = 1)
+    // IVs are HP first, then Attack, Defense, Speed, Sp. Atk, Sp. Def; show them in the summary's order.
+    val order = listOf(0 to "HP", 1 to "ATTACK", 2 to "DEFENSE", 4 to "SP. ATK", 5 to "SP. DEF", 3 to "SPEED")
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.u * 2)) {
+        order.forEach { (i, label) ->
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                GbaText(tr(label), OptionColors.label, OptionColors.labelShadow, small, maxLines = 1)
+                val iv = ivs[i]
+                if (iv == 31) GbaText("V", ShinyGold, ShinyAmber, m, maxLines = 1)
+                else GbaText("$iv", OptionColors.value, OptionColors.valueShadow, m, maxLines = 1)
+            }
+        }
     }
 }
 
