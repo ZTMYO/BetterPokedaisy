@@ -119,7 +119,7 @@ private fun MoveListRow(
                 GbaText(tr("PWR {0}", powerLabel(mv.power)), AppColors.muted, Color.Transparent, small, Modifier.weight(1f))
                 val v = mv.vs.firstOrNull()
                 if (showHints && v != null) {
-                    MultiplierChip(v.label, v.pct, fontSize = 10.sp)
+                    MultiplierChip(v.label, v.pct, fontSize = 10.sp, lethal = v.lethal, maybeLethal = v.maybeLethal)
                 }
             }
         }

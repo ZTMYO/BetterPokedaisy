@@ -1,6 +1,12 @@
 package com.pokedaisy.app.companion.ui
 
 import com.pokedaisy.app.companion.i18n.tr
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -72,23 +78,59 @@ private fun rememberTypeTags(): androidx.compose.ui.graphics.ImageBitmap? {
 }
 
 @Composable
-fun TypeBadge(type: String, modifier: Modifier = Modifier, fontSize: TextUnit = 12.sp) {
-    val tags = rememberTypeTags()
-    val tile = TYPE_TAG_TILES[type]
-    if (tags != null && tile != null) {
-        // Whole pixels of the tag per GBA pixel, as large as the words the badge would have had.
-        val u = rememberGbaTextMetrics().u * (fontSize.value / TYPE_TAG_SP).toInt().coerceAtLeast(1)
-        androidx.compose.foundation.Canvas(modifier.size(u * TYPE_TAG_W, u * TYPE_TAG_H).semantics { contentDescription = com.pokedaisy.app.companion.data.typeLabel(type) }) {
-            drawImage(
-                tags, srcOffset = androidx.compose.ui.unit.IntOffset(tile % 16 * 8, tile / 16 * 8),
-                srcSize = androidx.compose.ui.unit.IntSize(TYPE_TAG_W, TYPE_TAG_H),
-                dstSize = androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt()),
-                filterQuality = androidx.compose.ui.graphics.FilterQuality.None,
+fun TypeBadge(type: String, modifier: Modifier = Modifier, fontSize: TextUnit = 15.sp) {
+    MoveTypeBadge(type, modifier, fontSize, iconSize = (fontSize.value * 0.95f).dp)
+}
+
+/** The fork's own type badge: the coloured pill, the type's icon and its Chinese name. */
+@Composable
+fun MoveTypeBadge(type: String, modifier: Modifier = Modifier, fontSize: TextUnit = 14.sp, iconSize: Dp = 14.dp) {
+    val color = AppColors.typeColors[type] ?: AppColors.muted
+    val icon = TYPE_ICON_VECTORS[type.uppercase()]
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(color)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            icon?.let {
+                Image(
+                    painter = rememberVectorPainter(it), contentDescription = null,
+                    modifier = Modifier.size(iconSize),
+                    colorFilter = ColorFilter.tint(Color.White),
+                )
+            }
+            Text(
+                com.pokedaisy.app.companion.data.typeLabel(type),
+                color = Color.White, fontSize = fontSize, fontFamily = pixelFontFamily(), maxLines = 1,
             )
         }
-        return
     }
-    GameTag(com.pokedaisy.app.companion.data.typeLabel(type), AppColors.typeColors[type] ?: AppColors.muted, modifier, fontSize, minWidth = TYPE_TAG_W)
+}
+
+/** Just the type's icon on its colour, for tight rows. */
+@Composable
+fun MoveTypeIcon(type: String, modifier: Modifier = Modifier, size: Dp = 16.dp) {
+    val color = AppColors.typeColors[type] ?: AppColors.muted
+    val icon = TYPE_ICON_VECTORS[type.uppercase()]
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(size / 5))
+            .background(color),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (icon != null) {
+            Image(
+                painter = rememberVectorPainter(icon), contentDescription = com.pokedaisy.app.companion.data.typeLabel(type),
+                modifier = Modifier.size(size * 0.9f),
+                colorFilter = ColorFilter.tint(Color.White),
+            )
+        } else {
+            Text(com.pokedaisy.app.companion.data.typeLabel(type), color = Color.White, fontSize = 8.sp, fontFamily = pixelFontFamily(), maxLines = 1)
+        }
+    }
 }
 
 /**
@@ -170,8 +212,89 @@ fun StatusBadge(status: String, modifier: Modifier = Modifier) {
     GameTag(status, AppColors.statusColor(status), modifier)
 }
 
+private enum class EffectKind { SUPER, NORMAL, WEAK, NONE }
+
+private fun effectKind(pct: Int): EffectKind = when {
+    pct == 0 -> EffectKind.NONE
+    pct > 100 -> EffectKind.SUPER
+    pct < 100 -> EffectKind.WEAK
+    else -> EffectKind.NORMAL
+}
+
+private fun effectLabel(kind: EffectKind): String = when (kind) {
+    EffectKind.SUPER -> tr("SUPER EFFECTIVE")
+    EffectKind.NORMAL -> tr("NORMAL EFFECT")
+    EffectKind.WEAK -> tr("NOT VERY EFFECTIVE")
+    EffectKind.NONE -> tr("NO EFFECT")
+}
+
 @Composable
-fun MultiplierChip(label: String, pct: Int, modifier: Modifier = Modifier, fontSize: TextUnit = 10.sp) {
+private fun EffectIcon(kind: EffectKind, color: Color, modifier: Modifier) {
+    Canvas(modifier) {
+        val s = size.minDimension
+        val w = s * 0.14f
+        when (kind) {
+            EffectKind.SUPER -> {
+                drawCircle(color, radius = s * 0.38f, style = Stroke(w))
+                drawCircle(color, radius = s * 0.18f, style = Stroke(w))
+            }
+            EffectKind.NORMAL -> drawCircle(color, radius = s * 0.34f, style = Stroke(w))
+            EffectKind.WEAK -> {
+                val p = Path().apply {
+                    moveTo(s * 0.5f, s * 0.10f)
+                    lineTo(s * 0.90f, s * 0.84f)
+                    lineTo(s * 0.10f, s * 0.84f)
+                    close()
+                }
+                drawPath(p, color, style = Stroke(w))
+            }
+            EffectKind.NONE -> {
+                val d = s * 0.20f
+                drawLine(color, androidx.compose.ui.geometry.Offset(d, d), androidx.compose.ui.geometry.Offset(s - d, s - d), strokeWidth = w)
+                drawLine(color, androidx.compose.ui.geometry.Offset(s - d, d), androidx.compose.ui.geometry.Offset(d, s - d), strokeWidth = w)
+            }
+        }
+    }
+}
+
+/** Official-style effectiveness: an icon and its words; [lethal] says 致命 in red, [maybeLethal] 可能致命 in amber. */
+@Composable
+fun EffectLabel(
+    pct: Int, modifier: Modifier = Modifier, fontSize: TextUnit = 10.sp,
+    lethal: Boolean = false, maybeLethal: Boolean = false,
+) {
+    val kind = effectKind(pct)
+    val color = when {
+        lethal -> Color(0xFFE53935)
+        maybeLethal -> Color(0xFFE08A00)
+        else -> when (kind) {
+            EffectKind.SUPER -> Color(0xFF3F9B3A)
+            EffectKind.NORMAL -> OptionColors.label
+            EffectKind.WEAK -> Color(0xFFC05A2A)
+            EffectKind.NONE -> OptionColors.muted
+        }
+    }
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        EffectIcon(kind, color, Modifier.size((fontSize.value * 0.95f).dp))
+        Text(
+            if (lethal) tr("LETHAL") else if (maybeLethal) tr("MAYBE LETHAL") else effectLabel(kind),
+            color = color, fontSize = fontSize, fontFamily = pixelFontFamily(), maxLines = 1,
+        )
+    }
+}
+
+@Composable
+fun MultiplierChip(
+    label: String, pct: Int, modifier: Modifier = Modifier, fontSize: TextUnit = 10.sp,
+    lethal: Boolean = false, maybeLethal: Boolean = false,
+) {
+    if (lethal || maybeLethal) {
+        GameTag(
+            if (lethal) tr("LETHAL") else tr("MAYBE LETHAL"),
+            if (lethal) Color(0xFFE53935) else Color(0xFFE08A00), modifier,
+        )
+        return
+    }
     val bg = AppColors.multiplierColor(pct)
     val fg = if (pct == 0) Color(0xFFF2B8BD) else Color.White
     GameTag(label, bg, modifier, textColor = fg)

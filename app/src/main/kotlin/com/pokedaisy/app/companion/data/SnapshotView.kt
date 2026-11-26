@@ -4,7 +4,13 @@ import com.pokedaisy.app.companion.i18n.tr
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 
-data class MoveVsFoe(val vsName: String, val label: String, val pct: Int)
+data class MoveVsFoe(
+    val vsName: String, val label: String, val pct: Int,
+    /** Even the lowest damage roll faints the foe. */
+    val lethal: Boolean = false,
+    /** The highest roll faints it, but the lowest doesn't. */
+    val maybeLethal: Boolean = false,
+)
 data class MoveView(val name: String, val type: String, val pp: Int, val power: Int, val vs: List<MoveVsFoe> = emptyList(), val id: Int = 0, val maxPp: Int = 0)
 
 /**
@@ -318,10 +324,47 @@ fun MonView.withMovesVs(targets: List<MonView>): MonView = copy(moves = moves.ma
         val t1 = t.getOrElse(0) { TYPE_NONE }
         val t2 = t.getOrElse(1) { TYPE_NONE }
         val pct = if (atk != TYPE_NONE && t1 != TYPE_NONE) moveMultiplierPct(mv.name, atk, t1, t2) else 100
-        MoveVsFoe(foe.name, formatMultiplier(pct), pct)
+        val risk = faintRisk(this, foe, mv, pct)
+        MoveVsFoe(
+            foe.name, formatMultiplier(pct), pct,
+            lethal = risk == FaintRisk.GUARANTEED,
+            maybeLethal = risk == FaintRisk.MAYBE,
+        )
     })
 })
 
+
+private enum class FaintRisk { NONE, MAYBE, GUARANTEED }
+
+/**
+ * Whether [attacker]'s move is likely to faint [defender] this turn: the Gen 3 damage formula at its lowest roll
+ * (0.85) and highest (1.0). GUARANTEED when even the lowest roll faints; MAYBE when only the highest does. Critical
+ * hits, abilities, items, screens, weather and stat stages outside [MonView.battleStats] aren't part of it.
+ */
+private fun faintRisk(attacker: MonView, defender: MonView, mv: MoveView, pct: Int): FaintRisk {
+    if (pct <= 0 || defender.hp <= 0 || mv.power <= 1) return FaintRisk.NONE
+    if (typeIdOf(mv.type) == TYPE_NONE) return FaintRisk.NONE
+    val kind = moveKind(mv) ?: return FaintRisk.NONE
+    if (kind == MoveKind.STATUS) return FaintRisk.NONE
+    val a = attacker.stats?.stats ?: return FaintRisk.NONE
+    val d = defender.stats?.stats ?: return FaintRisk.NONE
+    val physical = kind == MoveKind.PHYSICAL
+    var atk = a.getOrNull(if (physical) STAT_ATK else STAT_SPATK) ?: return FaintRisk.NONE
+    val def = defender.battleStats?.let { if (physical) it.getOrNull(1) else it.getOrNull(4) }
+        ?: d.getOrNull(if (physical) STAT_DEF else STAT_SPDEF) ?: return FaintRisk.NONE
+    if (physical && attacker.status == "BRN") atk /= 2
+    if (atk <= 0 || def <= 0) return FaintRisk.NONE
+    val level = attacker.level.coerceIn(1, 100)
+    val base = ((2 * level / 5 + 2) * mv.power * atk / def) / 50 + 2
+    val stab = if (mv.type in attacker.types) 1.5 else 1.0
+    val minDamage = (base * stab * (pct / 100.0) * 0.85).toInt()
+    val maxDamage = (base * stab * (pct / 100.0)).toInt()
+    return when {
+        minDamage >= defender.hp -> FaintRisk.GUARANTEED
+        maxDamage >= defender.hp -> FaintRisk.MAYBE
+        else -> FaintRisk.NONE
+    }
+}
 
 private fun battleSpeciesName(id: Int): String = UnboundChineseBattleNames.species(id) ?: displaySpeciesName(id)
 private fun battleMoveName(id: Int, fallback: String): String = UnboundChineseBattleNames.move(id) ?: displayMoveName(id, fallback)

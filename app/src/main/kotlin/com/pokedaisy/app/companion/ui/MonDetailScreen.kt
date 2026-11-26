@@ -932,7 +932,7 @@ private fun MovesSection(
                         }
                         .moveGestures(i, mv),
                     forget = forget != 0 && mv?.id == forget,
-                ) { v -> if (v.vs.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { v.vs.forEach { MultiplierChip(it.label, it.pct) } } else MoveKindIcon(v, m) }
+                ) { v -> if (v.vs.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { v.vs.forEach { MultiplierChip(it.label, it.pct, lethal = it.lethal, maybeLethal = it.maybeLethal) } } else MoveKindIcon(v, m) }
             }
         }
         return
@@ -1015,7 +1015,7 @@ private fun MoveRow(
             // In battle: how the move fares against each foe.
             if (mv.vs.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    mv.vs.forEach { MultiplierChip(it.label, it.pct) }
+                    mv.vs.forEach { MultiplierChip(it.label, it.pct, lethal = it.lethal, maybeLethal = it.maybeLethal) }
                 }
             }
         }

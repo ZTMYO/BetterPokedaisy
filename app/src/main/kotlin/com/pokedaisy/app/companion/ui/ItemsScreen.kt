@@ -1308,11 +1308,11 @@ private fun HgssBagBody(
 /** A machine in HeartGold / SoulSilver's bag: its move and number (1-92 a TM, 1-8 an HM), or null. */
 private fun hgssMachine(itemId: Int): Triple<String, Boolean, Int>? {
     // Origin HeartGold: 130 TMs, its own moves (TM93 on are later items), from its cart.
-    if (originHeartGold) return OriginHeartGold.machine(itemId)?.let { (move, hm, n) -> Triple(lookupMove(move).name, hm, n) }
+    if (originHeartGold) return OriginHeartGold.machine(itemId)?.let { (move, hm, n) -> Triple(com.pokedaisy.app.companion.data.displayMoveName(move, lookupMove(move).name), hm, n) }
     val i = itemId - HEARTGOLD_TM01
     if (i !in tmMovesHeartGold.indices) return null
     val hm = i >= 92
-    return Triple(lookupMove(tmMovesHeartGold[i]).name, hm, if (hm) i - 91 else i + 1)
+    return Triple(com.pokedaisy.app.companion.data.displayMoveName(tmMovesHeartGold[i], lookupMove(tmMovesHeartGold[i]).name), hm, if (hm) i - 91 else i + 1)
 }
 
 /**

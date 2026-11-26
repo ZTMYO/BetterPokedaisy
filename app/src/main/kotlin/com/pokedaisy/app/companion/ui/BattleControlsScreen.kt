@@ -670,14 +670,14 @@ internal fun MoveCard(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp * k)) {
                     TypeBadge(mv.type, fontSize = 16.sp * k)
                     Text(tr("PWR {0}", powerLabel(mv.power)), color = AppColors.muted, fontSize = 22.sp * k, style = tight, maxLines = 1)
-                    if (showHints) mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp * k) }
+                    if (showHints) mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp * k, lethal = v.lethal, maybeLethal = v.maybeLethal) }
                 }
             } else Column(modifier = Modifier.fillMaxSize()) {
                 // HeartGold's halves: the name on the white, then type, power and PP on the beige; the verdict by the name.
                 Row(Modifier.fillMaxWidth().weight(0.47f), verticalAlignment = Alignment.CenterVertically) {
                     FittedText(mv.name, AppColors.text, tight, maxSize = 32, minSize = 20, modifier = Modifier.weight(1f))
                     if (showHints) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp) }
+                        mv.vs.forEach { v -> MultiplierChip(v.label, v.pct, fontSize = 16.sp, lethal = v.lethal, maybeLethal = v.maybeLethal) }
                     }
                 }
                 Row(Modifier.fillMaxWidth().weight(0.53f), verticalAlignment = Alignment.CenterVertically) {
@@ -910,7 +910,7 @@ private fun Gen1MoveList(
                                     TypeBadge(mv.type, fontSize = pill)
                                     if (showHints && mv.power > 0) mv.vs.firstOrNull()?.let { v ->   // status moves ignore the chart
                                         Spacer(Modifier.width(m.u * 4))
-                                        MultiplierChip(v.label, v.pct, fontSize = pill)
+                                        MultiplierChip(v.label, v.pct, fontSize = pill, lethal = v.lethal, maybeLethal = v.maybeLethal)
                                     }
                                     Spacer(Modifier.width(m.u * 8))
                                     GbaText(tr("PP {0}", mv.pp), buttonContent, Color.Transparent, small)
