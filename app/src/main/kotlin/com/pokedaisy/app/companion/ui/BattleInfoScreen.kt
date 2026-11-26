@@ -122,6 +122,9 @@ fun BattleInfoScreen(
     val gap = m.u * 3
     // The foe's moves, each with what it does to the player's battler(s).
     val foes = remember(opponent, player) { opponent.map { it.withMovesVs(player) } }
+    val playerVsFoe = remember(player, opponent) {
+        opponent.firstOrNull()?.let { foe -> player.map { it.withMovesVs(foe) } } ?: player
+    }
     // Room under the scrolling foe column for the floating button, so nothing ends up behind it.
     val buttonRoom = if (onToggleFoeDetails != null) m.rowHeight + m.u * 4 else 0.dp
     SummaryFrame(
@@ -167,7 +170,7 @@ fun BattleInfoScreen(
                 Separator(m, Modifier.fillMaxWidth().padding(vertical = m.u * 2))
                 // 2 + 3. What to do about it.
                 Row(Modifier.fillMaxWidth().weight(1f)) {
-                    MovesColumn(player, opponent.size, showHints, m, small, Modifier.weight(1f).fillMaxHeight().padding(end = gap))
+                    MovesColumn(playerVsFoe, opponent.size, showHints, m, small, Modifier.weight(1f).fillMaxHeight().padding(end = gap))
                     if (showHints || onToggleFoeDetails != null) {
                         Separator(m, Modifier.fillMaxHeight(), vertical = true)
                         FoeDetailsColumn(foes, player.size, showHints, matchups = showHints, dexTables, m, small,
@@ -195,6 +198,9 @@ private fun StyledInfoBody(
 ) {
     val u = m.u
     val gap = u * 3
+    val playerVsFoe = remember(player, opponent) {
+        opponent.firstOrNull()?.let { foe -> player.map { it.withMovesVs(foe) } } ?: player
+    }
     val foeSide = foeHeading.substringBefore(" · ")
     val foeState = foeHeading.substringAfter(" · ", "")
     val mine = OptionColors.cells!!
@@ -216,7 +222,7 @@ private fun StyledInfoBody(
             // Your moves under "<NAME>'S MOVES" where the pane has room (the foe's column has its own headings).
             val title = if (player.size == 1) tr("{0}'S MOVES", player[0].name) else tr("MOVES")
             HeadedBlock(title, small, Modifier.weight(1f).fillMaxHeight(), minBody = u * INFO_MOVES_BODY_MIN, c = mine) { headed ->
-                MovesColumn(player, opponent.size, showHints, m, small, Modifier.fillMaxWidth().weight(1f), striped = true, headed = headed)
+                MovesColumn(playerVsFoe, opponent.size, showHints, m, small, Modifier.fillMaxWidth().weight(1f), striped = true, headed = headed)
             }
             if (showHints || toggle) {
                 FoeDetailsColumn(foes, player.size, showHints, matchups = showHints, dexTables, m, small,

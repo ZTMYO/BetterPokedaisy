@@ -254,7 +254,7 @@ fun CompanionScreen(
             else -> "FOE · " + tk("UNSEEN")
         }
         val infoFoes = shownFoeMon?.let { listOf(it) } ?: snapshot.battleOpponent
-        val infoPlayer = shownFoeMon?.let { foe -> snapshot.battlePlayer.map { it.withMovesVs(foe) } } ?: snapshot.battlePlayer
+        val infoPlayer = infoFoes.getOrNull(0)?.let { foe -> snapshot.battlePlayer.map { it.withMovesVs(foe) } } ?: snapshot.battlePlayer
         // BATTLE FOCUS keeps its own foe state so the normal INFO page is untouched. Any foe that's
         // been out counts as seen, and a foe that's out is shown with its battle stats.
         val battleFocus = settings?.battleFocus == true
