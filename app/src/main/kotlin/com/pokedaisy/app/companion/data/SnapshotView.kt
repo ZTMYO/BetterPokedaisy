@@ -429,7 +429,7 @@ fun partyMonView(m: Mon): MonView {
         if (moveId == 0) null
         else {
             val info = lookupMove(moveId)
-            MoveView(info.name, typeName(info.type), m.pp[idx], info.power, id = moveId)
+            MoveView(battleMoveName(moveId, info.name), typeName(info.type), m.pp[idx], info.power, id = moveId)
         }
     }
     val isEgg = m.isEgg || isVanillaEgg(m.species)
@@ -546,7 +546,7 @@ fun buildSnapshotView(t: Telemetry): SnapshotView {
                         val pct = if (info.type != TYPE_NONE) moveMultiplierPct(info.name, info.type, foe.type1, foe.type2) else 100
                         MoveVsFoe(speciesName(foe.species), formatMultiplier(pct), pct)
                     }
-                    MoveView(info.name, typeName(info.type), b.pp[idx], info.power, vs, id = moveId)
+                    MoveView(battleMoveName(moveId, info.name), typeName(info.type), b.pp[idx], info.power, vs, id = moveId)
                 }
             }
             return MonView(
