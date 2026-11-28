@@ -726,7 +726,11 @@ data class PcStorageLayout(
  * from CFRU's own gExperienceTables ([expTables]: 6 rows of 256 levels; its medium slow is a point under vanilla's at a
  * few levels - 134 for Lv5, not 135).
  */
-data class CfruStorage(val storage: Long, val extraBoxes: List<Long>, val movesTable: Long, val expTables: Long)
+data class CfruStorage(
+    val storage: Long, val extraBoxes: List<Long>, val movesTable: Long, val expTables: Long,
+    /** The game's own compressed <-> BoxPokemon converters, where they were found (Mercury); null = read-only boxes. */
+    val boxSwap: BoxSwapFns? = null,
+)
 
 const val CFRU_PC_BOXES = 25
 private const val CFRU_BOXES_IN_PLACE = 19
@@ -751,12 +755,12 @@ val PLAIN_PC_STORAGE = PcStorageLayout(format = BoxRecordFormat.PLAIN)
 
 /** CFRU's 25 boxes at its own addresses, a hack's gBattleMoves ([movesTable]) giving the PP and its gExperienceTables
  * ([expTables]) the level. */
-private fun cfruPcStorage(movesTable: Long, expTables: Long) = PcStorageLayout(
+private fun cfruPcStorage(movesTable: Long, expTables: Long, boxSwap: BoxSwapFns? = null) = PcStorageLayout(
     boxes = CFRU_PC_BOXES, recordSize = CFRU_RECORD, format = BoxRecordFormat.CFRU,
     cfru = CfruStorage(
         storage = 0x02029314L,
         extraBoxes = listOf(0x0203CB44L, 0x0203CB44L + 30 * 58, 0x0203CB44L + 60 * 58, 0x02027434L, 0x02027434L + 30 * 58, 0x02024638L),
-        movesTable = movesTable, expTables = expTables,
+        movesTable = movesTable, expTables = expTables, boxSwap = boxSwap,
     ),
 )
 
@@ -772,6 +776,10 @@ val AMETHYST_PC_STORAGE = cfruPcStorage(0x089B6358L, 0x089C419CL)
 val AMETHYST_V141_PC_STORAGE = cfruPcStorage(0x089FFCA8L, 0x08A0DAECL)
 val SWORD_SHIELD_PC_STORAGE = cfruPcStorage(0x094BFA7CL, 0x094C24E8L)
 val GS_CHRONICLES_PC_STORAGE = cfruPcStorage(0x09D10BE3L, 0x09D13854L)
+
+/** Pokémon Mercury v1.33: CFRU's compressed boxes with the game's own converters (BoxSwap.kt), its gBattleMoves
+ * 0x08250C10 and gExperienceTables 0x09E0B258. */
+val MERCURY_PC_STORAGE = cfruPcStorage(0x08250C10L, 0x09E0B258L, BOX_SWAP_CFRU_MERCURY)
 
 // CFRU's gExperienceTables as read from the ROM (levels 0..100 of each row), by address.
 private val cfruExpTableCache = HashMap<Long, Array<IntArray>>()

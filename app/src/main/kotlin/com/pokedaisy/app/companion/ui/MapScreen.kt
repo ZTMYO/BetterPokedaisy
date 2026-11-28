@@ -178,7 +178,7 @@ fun MapScreen(
             val sel = selection
             val (name, dungeon) = when {
                 sel != null -> sel.name to sel.dungeon
-                playerRegion == null || playerRegion == shown -> com.pokedaisy.app.companion.data.displayLocationName(snapshot.location.mapSecName) to null
+                playerRegion == null || playerRegion == shown -> snapshot.location.mapSecName to null
                 else -> "" to null
             }
             // The map fills the tab while that stretches it only a little (the Thor's
@@ -201,7 +201,7 @@ fun MapScreen(
                 },
                 tile = model.tile,
                 cell = cursorTile ?: sel?.tiles?.firstOrNull()?.let { it.x to it.y },
-                label = gameCase(name),
+                label = gameCase(com.pokedaisy.app.companion.data.displayLocationName(name)),
                 onCell = { tx, ty ->
                     cursorTile = tx to ty
                     selection = if (playerTile != null && tx to ty == playerTile) null else model.select(shown, tx, ty)
@@ -239,8 +239,8 @@ fun MapScreen(
                         ),
                         headTile = playerTile,
                         cursor = sel?.tiles ?: if (playerRegion == shown) model.tilesOf(playerSection) else emptyList(),
-                        label = gameCase(name),
-                        dungeon = dungeon?.let(::gameCase),
+                        label = gameCase(com.pokedaisy.app.companion.data.displayLocationName(name)),
+                        dungeon = dungeon?.let { gameCase(com.pokedaisy.app.companion.data.displayLocationName(it)) },
                         onTap = { tx, ty ->
                             cursorTile = tx to ty
                             selection = if (playerTile != null && tx to ty == playerTile) null else model.select(shown, tx, ty)
@@ -264,7 +264,7 @@ fun MapScreen(
                     MapButtons(
                         bottomRow = bottomRow,
                         map = mapFocus, group = buttonsFocus,
-                        regionLabel = if (model.images.size > 1) regionName(model.images, (shown + 1) % model.images.size) else null,
+                        regionLabel = if (model.images.size > 1) com.pokedaisy.app.companion.data.displayRegionName(regionName(model.images, (shown + 1) % model.images.size)) else null,
                         awayFromPlayer = selection != null || (playerRegion != null && shown != playerRegion),
                         onPlaces = { placesOpen = true },
                         onFly = openFly, flyBadge = fly?.actionBadge,
@@ -790,7 +790,7 @@ private fun PlacesList(model: RegionMapModel, onPick: (Int) -> Unit, onMe: () ->
                             val s = model.sections.getValue(id)
                             OptionLine(
                                 // Only places off the first map say which one (FireRed's Sevii Islands).
-                                gameCase(s.name), if (s.region > 0) regionName(model.images, s.region) else null,
+                                gameCase(com.pokedaisy.app.companion.data.displayLocationName(s.name)), if (s.region > 0) com.pokedaisy.app.companion.data.displayRegionName(regionName(model.images, s.region)) else null,
                                 selected = false, m, labelWeight = 0.62f, divider = true,
                             ) { onPick(id) }
                         }
@@ -824,7 +824,7 @@ private fun FlyList(model: RegionMapModel?, targets: com.pokedaisy.app.companion
                         val ds = if (activeGame.isDsGame) com.pokedaisy.app.companion.data.gen4ConfigFor(activeGame)?.flySpotName(mapsec) else null
                         val s = if (ds != null) null else model?.sections?.get(mapsec)
                         OptionLine(
-                            gameCase(ds ?: s?.name ?: "#$mapsec"), s?.takeIf { it.region > 0 && model != null }?.let { regionName(model!!.images, it.region) },
+                            gameCase(com.pokedaisy.app.companion.data.displayLocationName(ds ?: s?.name ?: "#$mapsec")), s?.takeIf { it.region > 0 && model != null }?.let { com.pokedaisy.app.companion.data.displayRegionName(regionName(model!!.images, it.region)) },
                             selected = false, m, labelWeight = 0.62f, divider = true,
                         ) { onPick(mapsec) }
                     }

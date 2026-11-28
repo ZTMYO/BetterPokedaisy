@@ -139,7 +139,9 @@ class GameRuntime(
         learnedCallback = { field, battle -> preferences.setFfMenuCallbacks(romKey, field, battle) }
         FfMenuWatch.onLearned = learnedCallback
         ShopWatch.load()
-        RegionMapWatch.load(if (gba && !blocked) romPath else null)
+        // Mercury's 0x020399D4 points at an always-allocated tile buffer, not FireRed's sRegionMap:
+        // scanning it would report the Town Map open on every frame and hold every field job at NOT NOW.
+        RegionMapWatch.load(if (gba && !blocked && crc != MERCURY_V1_33_CN_CRC) romPath else null)
         fieldReadable = gba && !blocked && configureField(crc)
         fieldMovesReadable = false
     }

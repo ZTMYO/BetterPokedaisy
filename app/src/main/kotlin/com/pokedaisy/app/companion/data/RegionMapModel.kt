@@ -144,6 +144,8 @@ fun activeRegionMap(): RegionMapModel? {
     if (activeGame == GameKind.WHITE2) return white2TownMap
     if (activeGame == GameKind.PLATINUM) return platinumTownMap
     if (activeGame.isHgss) return PokegearMap.model()
+    // Mercury's own Johto / Kanto map: its data and bundled pictures (MapSecDataMercury.kt).
+    if (mercuryCn) return mercModel()
     val rom = if (readsRomRegionMap) RomRegionMap.current else null
     if (rom != null) return RegionMapModel(rom.images, rom.sections, rom.layouts)
     if (activeGame == GameKind.ODYSSEY) return null // see lookupLocation

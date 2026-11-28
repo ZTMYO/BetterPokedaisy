@@ -107,6 +107,9 @@ git submodule update --init --depth 1 \
   本项目保留原项目 NOTICE 要求的
   **"Based on PokeDaisy by Lidor Itzhari - https://github.com/lidor30/pokedaisy"** 署名。
 - **简体中文半成品**：[PKM-Bai/pokedaisy](https://github.com/PKM-Bai/pokedaisy)。
+- **水银（宝可梦水银 v1.33）地图与图鉴素材**：感谢社区 **PokeDaisy 1.6.1 汉化版（by 问风）**。
+  本项目参考了该版本中水银的城都/关都 50×36 地图分区、两张地图图片，以及 64×64 图鉴立绘/
+  调色板表地址，补齐了水银的地图和图鉴立绘显示。
 - **数据**：PokeAPI（物种名、图鉴分类、道具说明，BSD 3-Clause）；
   PKHeX（招式、道具、特性、性格、三代地名，GPL 3.0）。
 - **运行核心**：mGBA、armGBA（libretro GBA 核心）、melonDS、rcheevos、pret 反编译工程及各自贡献者。

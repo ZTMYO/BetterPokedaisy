@@ -4072,6 +4072,12 @@ val NATIVE_MERCURY_CN = NATIVE_FIRERED_REV0.copy(
     // Mercury. Matching a battle mon to this record gives the foe's IVs/nature/stats
     // (the compact IV row), and the enemy's next-switch id.
     enemyParty = 0x0202402CL,
+    // BOXES: gPokemonStoragePtr (gSaveBlock2Ptr + 4) still points at 0x02029314, but the records are
+    // CFRU's 58-byte CompressedPokemon (sPokemonBoxPtrs at 0x09DE4A7C). The game's own converters were
+    // found at 0x0809D5A404 / 0x0809D5A4D8 / 0x0809D5A630; gBattleMoves 0x08250C10, gExperienceTables
+    // 0x09E0B258. Box swaps / deposits / withdrawals go through BOX_SWAP_CFRU_MERCURY in BoxSwap.kt.
+    pokemonStoragePtr = 0x03005010L,
+    pcStorage = MERCURY_PC_STORAGE,
     battlerPartyIndexes = 0x02023BCEL,
     battleStructPtr = 0x02023FE8L,
     monToSwitchIntoOff = 0x5C,

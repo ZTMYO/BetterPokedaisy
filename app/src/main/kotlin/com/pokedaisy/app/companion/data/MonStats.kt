@@ -72,7 +72,10 @@ fun polishedNature(personality: Int): Int = (personality and 0x1F).takeIf { it <
  * two-bit slot), so there the bit alone would name the wrong one: no row rather than a guess.
  */
 fun abilitySlotReadable(tables: PokedexTables, game: GameKind = activeGame): Boolean =
-    (game == GameKind.FIRERED || game == GameKind.EMERALD) && tables.hiddenAbilityOff < 0 && tables.expansion == null
+    (game == GameKind.FIRERED || game == GameKind.EMERALD) && tables.expansion == null &&
+        // Mercury's CFRU data has a separate hidden ability at +0x1A; the IV bit still picks one of the two normal
+        // abilities, so the summary's ability row is valid there (it was hidden while hiddenAbilityOff >= 0).
+        (tables.hiddenAbilityOff < 0 || mercuryCn)
 
 /** The species' ability for [slot] (the game's rule: slot 1 with no second ability is the first). */
 fun abilityForSlot(abilities: List<String>, slot: Int): String? {

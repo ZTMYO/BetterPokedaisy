@@ -1,26 +1,36 @@
-# 宝可梦水银 v1.33's POKéDEX tables. Its dex entries are still FireRed's
-# (0x0844E850, 386 national entries); gSpeciesInfo moved to 0x0976DFBC and
+# 宝可梦水银 v1.33's POKéDEX tables. Its own entries (0x097D98F0) hold 1027
+# national records over 1294 species slots (species 452 -> national 399, Bidoof);
+# gSpeciesInfo moved to 0x0976DFBC and
 # sSpeciesToNationalPokedexNum to 0x097E7A78 (checked against Starly 449 -> 396
-# and Turtwig 440 -> 387). The other tables are unmodified FireRed rev 0's.
+# and Turtwig 440 -> 387). Its ability ids follow CFRU's expanded list, so its own
+# full gAbilityNames (0x09D8E858, 13-byte records) must be used: FireRed's copy
+# stops around id 97 and would read pointers as names. gMonFrontPicTable / gMonPaletteTable moved to
+# 0x097BB0A4 / 0x097D64E0 (64x64 pictures, 0x1000-byte LZ77 streams; the
+# community 1.6.1 Chinese build by 问风 has the same pair). The remaining
+# tables are FireRed rev 0's.
 [record.POKEDEX_MERCURY]
 schema = 'gen3_pokedex'
-entries = 0x0844E850
-frontPics = 0
-palettes = 0
+entries = 0x097D98F0
+frontPics = 0x097BB0A4
+palettes = 0x097D64E0
 speciesInfo = 0x0976DFBC
 speciesToNational = 0x097E7A78
-abilityNames = 0x0824FC40
+abilityNames = 0x09D8E858
+hiddenAbilityOff = 0x1A
 footprints = 0
 evolutions = 0x08259754
 tmhmLearnsets = 0x08252BC8
 tmhmMoves = 0x0845A5A4
 categorySuffix = '宝可梦'
 categorySeparator = ''
-regionName = 'JOHTO'
-regionalOrder = 0x097E7BA6
-regionalCount = 385
+regionName = '水银'
+regionalCount = 1294
 flags = 'MERCURY_DEX_FLAGS'
 nationalMagicOff = -1
+nationalCount = 1027
+speciesCount = 1294
+regionalOrder = 0
+regionalOrderIsSpecies = true
 
 # Mercury moved the save's dex bitmaps into SaveBlock1: 52-byte seen at +0x310
 # and caught at +0x38D (found live: Totodile 158 and Starly 396 seen, 158/172

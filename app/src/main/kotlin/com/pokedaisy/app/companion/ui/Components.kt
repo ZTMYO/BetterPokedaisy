@@ -209,7 +209,7 @@ class NotchedShape(private val notch: Dp) : Shape {
 @Composable
 fun StatusBadge(status: String, modifier: Modifier = Modifier) {
     if (status.isEmpty()) return
-    GameTag(status, AppColors.statusColor(status), modifier)
+    GameTag(com.pokedaisy.app.companion.data.statusText(status), AppColors.statusColor(status), modifier)
 }
 
 private enum class EffectKind { SUPER, NORMAL, WEAK, NONE }

@@ -111,7 +111,7 @@ fun AreaMapPane(area: AreaMap.Area, snapshot: SnapshotView, onRegion: () -> Unit
     Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(u * 4)) {
         // The place and floor, REGION MAP, ZOOM: a bar over the map (the map stays whole under it).
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 4)) {
-            OptionTitleWindow(gameCase(snapshot.location.mapSecName).ifEmpty { " " }, m, Modifier.weight(1f), trailing = floor.label)
+            OptionTitleWindow(gameCase(com.pokedaisy.app.companion.data.displayLocationName(snapshot.location.mapSecName)).ifEmpty { " " }, m, Modifier.weight(1f), trailing = floor.label)
             if (!onFloor) OptionButton(tr("ME"), m, emphasis = true, onClick = { area.indexOf(here).takeIf { it >= 0 }?.let { shown = it } })
             OptionButton(tr("REGION MAP"), m, onClick = onRegion)
             OptionButton(

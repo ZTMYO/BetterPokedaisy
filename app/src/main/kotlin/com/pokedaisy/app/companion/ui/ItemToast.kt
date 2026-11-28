@@ -80,8 +80,6 @@ fun ItemToastHost(
     connected: Boolean,
     hasData: Boolean,
     reset: Int,
-    /** The game's own frame clock ([com.pokedaisy.app.companion.data.SnapshotView.frameCounter]): a jump in it is a load. */
-    frame: Long,
     modifier: Modifier = Modifier,
 ) {
     val m = rememberGbaTextMetrics(1f)
@@ -91,8 +89,6 @@ fun ItemToastHost(
     var visible by remember { mutableStateOf(false) }
     var previous by remember { mutableStateOf<Map<Int, Int>?>(null) }
     var ready by remember { mutableStateOf(false) }
-    var previousFrame by remember { mutableStateOf(-1L) }
-    val latestFrame by rememberUpdatedState(frame)
     val latest by rememberUpdatedState(items)
     LaunchedEffect(connected, hasData, reset) {
         ready = false
@@ -104,7 +100,6 @@ fun ItemToastHost(
         // The game's own bag load, or a savestate's, is not an acquisition: let it settle, then take it as the baseline.
         delay(900)
         previous = itemTotals(latest).takeIf { it.isNotEmpty() }
-        previousFrame = latestFrame
         ready = true
     }
     LaunchedEffect(items, connected, hasData) {
@@ -114,12 +109,8 @@ fun ItemToastHost(
         val now = itemTotals(items)
         if (now.isEmpty()) return@LaunchedEffect
         val before = previous
-        val beforeFrame = previousFrame
         previous = now
-        previousFrame = latestFrame
         if (before == null) return@LaunchedEffect
-        // The game somewhere else since the last bag (any load, not only the hotkeys'): a new baseline, no cards.
-        if (!playedOn(beforeFrame, latestFrame)) return@LaunchedEffect
         for ((id, count) in itemGainNotices(before, now)) {
             latest.firstOrNull { it.itemId == id }?.let { queue.trySend(ItemGain(it, count)) }
         }

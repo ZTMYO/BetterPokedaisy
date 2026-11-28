@@ -26,6 +26,16 @@ data class BoxSwapFns(
     val codeCrcs: List<Long>,
     /** Ruby / Sapphire: [storagePtr] is gPokemonStorage itself (their save blocks never move), not a pointer to it. */
     val staticStorage: Boolean = false,
+    /** CFRU's 58-byte CompressedPokemon boxes: [getBoxedMonPtr] and [createCompressedMon] convert them, and
+     * [boxPtrs] is the game's table of the 25 box base addresses. */
+    val cfru: Boolean = false,
+    val getBoxedMonPtr: Long = 0,
+    val createCompressedMon: Long = 0,
+    val boxPtrs: Long = 0,
+    /** Room for a BoxPokemon while a party one is compressed (CFRU's gTempTeamBackup). */
+    val tempMon: Long = 0,
+    /** CFRU's gDisposableBoxMon: GetBoxedMonPtr expands into it, the compressor writes its 58 bytes here. */
+    val disposableMon: Long = 0,
 )
 
 /** Retail Ruby / Sapphire rev 1 and 2 (pokeruby's symbols, the same addresses in all four): ExpandBoxMon is their
@@ -64,6 +74,21 @@ val BOX_SWAP_LEAFGREEN_REV0 = BoxSwapFns(
     codeCrcs = listOf(0x9435DDECL, 0x05F9FBC2L, 0xF3E3F4DDL),
 )
 
+/** Pokémon Mercury v1.33's CFRU boxes: its compressed-record helpers were found in the ROM at 0x0809D5A404
+ * (CreateBoxMonFromCompressedMon), 0x0809D5A4D8 (GetBoxedMonPtr, behind the 0x0808BD30 veneer), and
+ * 0x0809D5A630 (CreateCompressedMonFromBoxMon), with sPokemonBoxPtrs at 0x09DE4A7C. BoxMonToMon is retail
+ * FireRed rev 0's (0x0803E774), unchanged in Mercury. */
+val BOX_SWAP_CFRU_MERCURY = BoxSwapFns(
+    boxMonToMon = 0x0803E774L, boxMonRestorePP = 0x080442E4L, getBoxMonData = 0x0803FD44L, storagePtr = 0x03005010L,
+    codeCrcs = emptyList(),
+    cfru = true,
+    getBoxedMonPtr = 0x0808BD30L,
+    createCompressedMon = 0x0809D5A630L,
+    boxPtrs = 0x09DE4A7CL,
+    tempMon = 0x0203E1A4L,       // CFRU's gTempTeamBackup
+    disposableMon = 0x02022BC4L, // CFRU's gDisposableBoxMon
+)
+
 /**
  * The swap's table for the game whose bag runs on [fields] (the same build) and whose boxes [cfg] reads, or null. Only
  * where the BOXES tab reads vanilla's boxes at the table's own storage pointer: hacks built on these games' code (their
@@ -72,6 +97,10 @@ val BOX_SWAP_LEAFGREEN_REV0 = BoxSwapFns(
  */
 fun boxSwapFor(fields: FieldItemFns?, cfg: NativeConfig?): BoxSwapFns? {
     if (fields == null || fields.party == null || cfg == null) return null
+    // CFRU's compressed boxes have their own converters; a game whose ROM they were found in carries them in its layout.
+    cfg.pcStorage.cfru?.boxSwap?.let { fns ->
+        return fns.takeIf { cfg.pokemonStoragePtr == it.storagePtr }
+    }
     if (cfg.pcStorage != VANILLA_PC_STORAGE && cfg.pcStorage != STATIC_PC_STORAGE) return null
     val fns = when {
         fields === FIELD_ITEMS_RUBY -> BOX_SWAP_RUBY
@@ -117,6 +146,8 @@ private const val MON_SIZE = 100
 private const val BOX_MON = 80
 private const val HP_OFF = 0x56
 private const val BOXES = 14
+private const val CFRU_BOXES = 25
+private const val CFRU_BOX_MON = 58
 private const val SLOTS = 30
 private const val PARTY_MAX = 6
 private const val FIELD_PERSONALITY = 0
@@ -130,6 +161,8 @@ private const val FIELD_IS_EGG = 45
  */
 private class BoxMove(val fields: FieldItemFns, val p: PartyItemFns, val fns: BoxSwapFns, val g: GameCalls) {
     fun u32(addr: Long) = g.read(addr, 4).let { b -> b.indices.fold(0L) { acc, i -> acc or ((b[i].toLong() and 0xFF) shl (8 * i)) } }
+    fun u32(b: ByteArray, off: Int) = (0 until 4).fold(0L) { acc, i -> acc or ((b[off + i].toLong() and 0xFF) shl (8 * i)) }
+    fun u16(b: ByteArray, off: Int) = (b[off].toLong() and 0xFF) or ((b[off + 1].toLong() and 0xFF) shl 8)
     fun partyMon(i: Int) = p.party + i.toLong() * MON_SIZE
     fun mon(i: Int, field: Int) = g.call(p.getMonData, partyMon(i).toInt(), field).also { if (it < 0) throw IllegalStateException("GetMonData didn't return") }
     fun boxed(addr: Long, field: Int) = g.call(fns.getBoxMonData, addr.toInt(), field).also { if (it < 0) throw IllegalStateException("GetBoxMonData didn't return") }
@@ -141,6 +174,22 @@ private class BoxMove(val fields: FieldItemFns, val p: PartyItemFns, val fns: Bo
         if (storage !in 0x02000000L until 0x02040000L) return null
         return storage + 4 + (box * SLOTS + slot).toLong() * BOX_MON
     }
+
+    /** CFRU's 58-byte slot: its box base address comes from the game's own sPokemonBoxPtrs table. */
+    fun cfruSlot(box: Int, slot: Int): Long? {
+        if (box !in 0 until CFRU_BOXES || slot !in 0 until SLOTS) return null
+        val table = g.read(fns.boxPtrs + box * 4L, 4)
+        if (table.size != 4) return null
+        val base = u32(table, 0)
+        if (base !in 0x02000000L until 0x02040000L) return null
+        return base + slot.toLong() * CFRU_BOX_MON
+    }
+
+    fun cfruBox(box: Int, slot: Int): ByteArray? = cfruSlot(box, slot)?.let { g.read(it, CFRU_BOX_MON) }
+
+    fun cfruSpecies(box: Int, slot: Int): Int = cfruBox(box, slot)?.let { if (it.size == CFRU_BOX_MON) u16(it, 0x1C).toInt() else 0 } ?: 0
+
+    fun cfruEgg(raw: ByteArray) = ((u32(raw, 0x36) shr 30) and 1L) == 1L
 
     fun holdsMail(i: Int) = mon(i, FIELD_HELD_ITEM).toInt() in p.mail
 
@@ -158,15 +207,108 @@ private class BoxMove(val fields: FieldItemFns, val p: PartyItemFns, val fns: Bo
  */
 private fun boxMove(fields: FieldItemFns, fns: BoxSwapFns, busy: Boolean, g: GameCalls, move: BoxMove.() -> BoxSwapResult): BoxSwapResult {
     val p = fields.party ?: return BoxSwapResult.FAILED
-    val crcs = fns.codeCrcs.zip(listOf(fns.boxMonToMon, fns.boxMonRestorePP, fns.getBoxMonData))
-    if (!fieldItemCodeMatches(fields, g::read) ||
-        crcs.any { (crc, fn) -> crc32(g.read(fn, 32)) != crc }) return BoxSwapResult.FAILED
+    if (!fieldItemCodeMatches(fields, g::read)) return BoxSwapResult.FAILED
+    // CFRU's boxes are 58-byte CompressedPokemon: retail BoxMonToMon alone can't touch them, so the table's own
+    // converter addresses replace the CRC check here (fieldItemCodeMatches already proved this is its ROM).
+    if (!fns.cfru) {
+        val crcs = fns.codeCrcs.zip(listOf(fns.boxMonToMon, fns.boxMonRestorePP, fns.getBoxMonData))
+        if (crcs.any { (crc, fn) -> crc32(g.read(fn, 32)) != crc }) return BoxSwapResult.FAILED
+    }
     if (busy || g.call(fields.fieldControlsLocked) != 0L) return BoxSwapResult.NOT_NOW
     return runCatching { BoxMove(fields, p, fns, g).move() }.getOrElse { BoxSwapResult.FAILED }
 }
 
-/**
- * Swaps box [box]'s slot [slot] (holding [boxPersonality]) with party slot [partySlot] (holding [partyPersonality]);
+/** CFRU: the box's compressed record goes through the game's CreateBoxMonFromCompressedMon/BoxMonToMon
+ * (GetBoxedMonPtr + the retail BoxMonToMon), and the party one back through CreateCompressedMonFromBoxMon. */
+private fun BoxMove.swapCfru(
+    box: Int, slot: Int, boxPersonality: Long, partySlot: Int, partyPersonality: Long,
+): BoxSwapResult {
+    val count = count
+    if (partySlot !in 0 until count || mon(partySlot, FIELD_PERSONALITY) != partyPersonality) return BoxSwapResult.CHANGED
+    val at = cfruSlot(box, slot) ?: return BoxSwapResult.FAILED
+    val boxBefore = g.read(at, CFRU_BOX_MON)
+    if (boxBefore.size != CFRU_BOX_MON || u16(boxBefore, 0x1C).toInt() == 0 ||
+        u32(boxBefore, 0) != boxPersonality) return BoxSwapResult.CHANGED
+    if (holdsMail(partySlot)) return BoxSwapResult.HOLDS_MAIL
+    if (cfruEgg(boxBefore) && !fighterLeft(partySlot)) return BoxSwapResult.LAST_MON
+
+    val partyBefore = g.read(partyMon(partySlot), MON_SIZE)
+    if (partyBefore.size != MON_SIZE) return BoxSwapResult.FAILED
+    val ptr = g.call(fns.getBoxedMonPtr, box, slot)
+    if (ptr !in 0x02000000L until 0x02040000L) return BoxSwapResult.FAILED
+    if (g.call(fns.boxMonToMon, ptr.toInt(), partyMon(partySlot).toInt()) < 0) return BoxSwapResult.FAILED
+    fun putBack() {
+        g.write(partyMon(partySlot), partyBefore)
+    }
+    if (mon(partySlot, FIELD_PERSONALITY) != boxPersonality) { putBack(); return BoxSwapResult.FAILED }
+    // The party Pokémon's 80-byte BoxPokemon goes into the temp team backup, then the game compresses it.
+    if (!g.write(fns.tempMon, partyBefore.copyOfRange(0, BOX_MON))) { putBack(); return BoxSwapResult.FAILED }
+    if (g.call(fns.createCompressedMon, fns.tempMon.toInt(), fns.disposableMon.toInt()) < 0) { putBack(); return BoxSwapResult.FAILED }
+    val packed = g.read(fns.disposableMon, CFRU_BOX_MON)
+    if (packed.size != CFRU_BOX_MON || u32(packed, 0) != partyPersonality ||
+        u16(packed, 0x1C).toInt() == 0) { putBack(); return BoxSwapResult.FAILED }
+    if (!g.write(at, packed)) { putBack(); return BoxSwapResult.FAILED }
+    return BoxSwapResult.SWAPPED
+}
+
+/** CFRU DEPOSIT: compress the party's BoxPokemon into the first free 58-byte slot, then compact the party. */
+private fun BoxMove.depositCfru(partySlot: Int, partyPersonality: Long, box: Int): BoxSwapResult {
+    val count = count
+    if (partySlot !in 0 until count || mon(partySlot, FIELD_PERSONALITY) != partyPersonality) return BoxSwapResult.CHANGED
+    if (count <= 1 || !fighterLeft(partySlot)) return BoxSwapResult.LAST_MON
+    if (holdsMail(partySlot)) return BoxSwapResult.HOLDS_MAIL
+    val slot = (0 until SLOTS).firstOrNull { cfruSpecies(box, it) == 0 } ?: return BoxSwapResult.BOX_FULL
+    val at = cfruSlot(box, slot) ?: return BoxSwapResult.FAILED
+    val partyBefore = g.read(p.party, count * MON_SIZE)
+    val boxBefore = g.read(at, CFRU_BOX_MON)
+    if (partyBefore.size != count * MON_SIZE || boxBefore.size != CFRU_BOX_MON) return BoxSwapResult.FAILED
+    if (g.call(fns.createCompressedMon, partyMon(partySlot).toInt(), fns.disposableMon.toInt()) < 0) return BoxSwapResult.FAILED
+    val packed = g.read(fns.disposableMon, CFRU_BOX_MON)
+    if (packed.size != CFRU_BOX_MON || u32(packed, 0) != partyPersonality ||
+        u16(packed, 0x1C).toInt() == 0) return BoxSwapResult.FAILED
+    if (!g.write(at, packed)) return BoxSwapResult.FAILED
+    val compacted = partyBefore.copyOfRange(0, partySlot * MON_SIZE) +
+        partyBefore.copyOfRange((partySlot + 1) * MON_SIZE, count * MON_SIZE) + ByteArray(MON_SIZE)
+    fun putBack() {
+        g.write(at, boxBefore)
+        g.write(p.party, partyBefore)
+        g.write(p.partyCount, byteArrayOf(count.toByte()))
+    }
+    if (!g.write(p.party, compacted) || !g.write(p.partyCount, byteArrayOf((count - 1).toByte()))) {
+        putBack(); return BoxSwapResult.FAILED
+    }
+    if (this.count != count - 1 || mon(count - 1, FIELD_SPECIES) != 0L) { putBack(); return BoxSwapResult.FAILED }
+    return BoxSwapResult.SWAPPED
+}
+
+/** CFRU WITHDRAW: the game expands the 58-byte record into the party, then the box slot is zeroed. */
+private fun BoxMove.withdrawCfru(box: Int, slot: Int, boxPersonality: Long): BoxSwapResult {
+    val count = count
+    if (count >= PARTY_MAX) return BoxSwapResult.PARTY_FULL
+    val at = cfruSlot(box, slot) ?: return BoxSwapResult.FAILED
+    val boxBefore = g.read(at, CFRU_BOX_MON)
+    if (boxBefore.size != CFRU_BOX_MON || u16(boxBefore, 0x1C).toInt() == 0 ||
+        u32(boxBefore, 0) != boxPersonality) return BoxSwapResult.CHANGED
+    val partyBefore = g.read(partyMon(count), MON_SIZE)
+    if (partyBefore.size != MON_SIZE) return BoxSwapResult.FAILED
+    val ptr = g.call(fns.getBoxedMonPtr, box, slot)
+    if (ptr !in 0x02000000L until 0x02040000L) return BoxSwapResult.FAILED
+    if (g.call(fns.boxMonToMon, ptr.toInt(), partyMon(count).toInt()) < 0) return BoxSwapResult.FAILED
+    fun putBack() {
+        g.write(partyMon(count), partyBefore)
+        g.write(p.partyCount, byteArrayOf(count.toByte()))
+    }
+    if (mon(count, FIELD_PERSONALITY) != boxPersonality) { putBack(); return BoxSwapResult.FAILED }
+    if (!g.write(at, ByteArray(CFRU_BOX_MON)) || !g.write(p.partyCount, byteArrayOf((count + 1).toByte()))) {
+        g.write(at, boxBefore); putBack(); return BoxSwapResult.FAILED
+    }
+    if (this.count != count + 1 || cfruSpecies(box, slot) != 0) {
+        g.write(at, boxBefore); putBack(); return BoxSwapResult.FAILED
+    }
+    return BoxSwapResult.SWAPPED
+}
+
+/** Swaps box [box]'s slot [slot] (holding [boxPersonality]) with party slot [partySlot] (holding [partyPersonality]);
  * [busy] = a battle or a menu screen is up. Puts both back if the game's call didn't take. Emu thread.
  */
 fun swapWithBox(
@@ -176,7 +318,8 @@ fun swapWithBox(
     // r0 comes back unsigned; the companion's reads may hold a personality either way.
     @Suppress("NAME_SHADOWING") val boxPersonality = boxPersonality and 0xFFFFFFFFL
     @Suppress("NAME_SHADOWING") val partyPersonality = partyPersonality and 0xFFFFFFFFL
-    if (box !in 0 until BOXES || slot !in 0 until SLOTS) return BoxSwapResult.FAILED
+    if (box !in 0 until (if (fns.cfru) CFRU_BOXES else BOXES) || slot !in 0 until SLOTS) return BoxSwapResult.FAILED
+    if (fns.cfru) return boxMove(fields, fns, busy, g) { swapCfru(box, slot, boxPersonality, partySlot, partyPersonality) }
     return boxMove(fields, fns, busy, g) {
         val boxMon = boxMon(box, slot) ?: return@boxMove BoxSwapResult.FAILED
         val count = count
@@ -215,7 +358,8 @@ fun depositToBox(
     fields: FieldItemFns, fns: BoxSwapFns, partySlot: Int, partyPersonality: Long, box: Int, busy: Boolean, g: GameCalls,
 ): BoxSwapResult {
     @Suppress("NAME_SHADOWING") val partyPersonality = partyPersonality and 0xFFFFFFFFL
-    if (box !in 0 until BOXES) return BoxSwapResult.FAILED
+    if (box !in 0 until (if (fns.cfru) CFRU_BOXES else BOXES)) return BoxSwapResult.FAILED
+    if (fns.cfru) return boxMove(fields, fns, busy, g) { depositCfru(partySlot, partyPersonality, box) }
     return boxMove(fields, fns, busy, g) {
         val count = count
         if (partySlot !in 0 until count || mon(partySlot, FIELD_PERSONALITY) != partyPersonality) return@boxMove BoxSwapResult.CHANGED
@@ -257,7 +401,8 @@ fun withdrawFromBox(
     fields: FieldItemFns, fns: BoxSwapFns, box: Int, slot: Int, boxPersonality: Long, busy: Boolean, g: GameCalls,
 ): BoxSwapResult {
     @Suppress("NAME_SHADOWING") val boxPersonality = boxPersonality and 0xFFFFFFFFL
-    if (box !in 0 until BOXES || slot !in 0 until SLOTS) return BoxSwapResult.FAILED
+    if (box !in 0 until (if (fns.cfru) CFRU_BOXES else BOXES) || slot !in 0 until SLOTS) return BoxSwapResult.FAILED
+    if (fns.cfru) return boxMove(fields, fns, busy, g) { withdrawCfru(box, slot, boxPersonality) }
     return boxMove(fields, fns, busy, g) {
         val boxMon = boxMon(box, slot) ?: return@boxMove BoxSwapResult.FAILED
         val count = count
@@ -304,6 +449,8 @@ enum class BoxSortResult {
  */
 /** [dexOf]: a species id's Pokédex number (Hoenn's species ids aren't in National order), 0 = unknown (the id is used). */
 fun sortBoxes(fields: FieldItemFns, fns: BoxSwapFns, busy: Boolean, g: GameCalls, dexOf: (Int) -> Int = { 0 }): BoxSortResult {
+    // Vanilla's 14 x 30 x 80-byte records only: CFRU's compressed boxes would be read (and written) at the wrong stride.
+    if (fns.cfru) return BoxSortResult.FAILED
     val crcs = fns.codeCrcs.zip(listOf(fns.boxMonToMon, fns.boxMonRestorePP, fns.getBoxMonData))
     if (!fieldItemCodeMatches(fields, g::read) ||
         crcs.any { (crc, fn) -> crc32(g.read(fn, 32)) != crc }) return BoxSortResult.FAILED

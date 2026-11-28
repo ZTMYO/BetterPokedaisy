@@ -66,6 +66,10 @@ var retailGen3Rom = false
 @Volatile
 var mercuryCn = false
 
+/** Mercury v1.33's CRC32, for checks made before the first sample has identified the ROM. Its 0x020399D4
+ * points at an always-allocated tile buffer, not FireRed's sRegionMap, so RegionMapWatch must not scan it. */
+const val MERCURY_V1_33_CN_CRC = 0x518482f7L
+
 private inline val unbound get() = activeGame == GameKind.UNBOUND
 private inline val emerald get() = activeGame == GameKind.EMERALD
 
@@ -327,7 +331,7 @@ val readsRomRegionMap: Boolean get() = when {
     activeGame.isGameBoyGame || activeGame.isDsGame -> false
     // Recharged Yellow is a rebuild: FireRed 1.0's literal pools RomRegionMap follows aren't its code.
     activeGame == GameKind.RECHARGED_YELLOW -> false
-    activeGame == GameKind.FIRERED -> runningFireRedHack?.ownRegionMap == true || mercuryCn
+    activeGame == GameKind.FIRERED -> runningFireRedHack?.ownRegionMap == true
     else -> true
 }
 /** Super Mariomon v1.2.1 / v1.2.2 / v1.3 share their tables, v1.5.x has its own (a species and seven
@@ -348,8 +352,9 @@ private inline val rhythm get() = activeGame == GameKind.RHYTHM
 // Pokémon Oops All Eevees!: Kanto on CFRU, every species an Eevee form (gen_cfru_tables.py oops_all_eevees).
 private inline val oopsAllEevees get() = activeGame == GameKind.OOPS_ALL_EEVEES
 // CFRU-family hacks with CFRU's own type ids (Fairy = 23, as in Unbound) -
-// checked in each ROM's base stats (CLEFAIRY is 23/23).
-private inline val cfruTypes get() = radicalRed || amethyst || gaia || swordShield || gsChronicles || rhythm || oopsAllEevees
+// checked in each ROM's base stats (CLEFAIRY is 23/23). Mercury's base stats
+// put Fairy at 23 too, so its type names and chart come from Unbound's table.
+private inline val cfruTypes get() = radicalRed || amethyst || gaia || swordShield || gsChronicles || rhythm || oopsAllEevees || mercuryCn
 // Hacks confirmed to store species as the plain National Dex number (see
 // SpeciesNamesNationalDex.kt) rather than vanilla's internal Gen3 index.
 private inline val nationalDexSpecies get() =
@@ -677,7 +682,7 @@ val activeTypeNames: Map<Int, String> get() = when {
     monomyth -> typeNamesMonomyth
     else -> frHack?.typeNamesMerged ?: typeNames
 }
-val activeMapSecData: Map<Int, MapSecInfo> get() = localText?.mapSecData ?: when {
+val activeMapSecData: Map<Int, MapSecInfo> get() = if (mercuryCn) mercSecData else localText?.mapSecData ?: when {
     gen4 -> emptyMap()   // no region map yet: the place comes from the map header (Telemetry.mapSecName)
     pureRgb -> mapSecDataPureRgb
     brown -> if (brownV601) mapSecDataBrownV601 else mapSecDataBrown
@@ -806,6 +811,7 @@ private val regionMapImagesSeaglass = arrayOf("seaglass")
 private val regionMapImagesRechargedEmerald = arrayOf("recharged_emerald")
 
 val activeRegionMapImages: Array<String> get() = when {
+    mercuryCn -> mercuryMapImages
     redBlue && gen1Gen2Graphics -> arrayOf(Gen1Art.RED_GEN2_GRAPHICS_TOWN_MAP_NAME)
     redBlue -> arrayOf(Gen1Art.RED_BLUE_TOWN_MAP_NAME)   // Red's / Blue's town map, in their own colours (Gen1Art)
     brown -> arrayOf(Gen1Art.BROWN_TOWN_MAP_NAME)   // Rijon's, from its ROM (Gen1Art)

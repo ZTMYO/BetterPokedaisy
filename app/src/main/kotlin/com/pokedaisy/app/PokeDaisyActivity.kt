@@ -901,7 +901,8 @@ class PokeDaisyActivity : Activity() {
         }
         override fun canSwapBox() = com.pokedaisy.app.companion.data.boxSwapFor(fieldItemSupport()?.fns, com.pokedaisy.app.companion.data.activeNativeConfig) != null
 
-        override fun canSortBoxes() = canSwapBox()
+        // SORT packs vanilla's 80-byte records; CFRU's 58-byte boxes need their own (not written yet).
+        override fun canSortBoxes() = canSwapBox() && com.pokedaisy.app.companion.data.activeNativeConfig?.pcStorage?.cfru == null
 
         override fun sortBoxes(done: (com.pokedaisy.app.companion.data.BoxSortResult) -> Unit) {
             val inBattle = telemetry.snapshot.value.inBattle
@@ -5016,18 +5017,21 @@ class PokeDaisyActivity : Activity() {
                         kotlinx.coroutines.delay(500)
                     }
                 }
-                // ITEM POPUPS: a bag gain, a small card top centre (clear of the HUD's corners and the area's name).
-                if (itemToastOn.value) com.pokedaisy.app.companion.ui.ItemToastHost(
-                    snap.items, snap.connected, snap.hasData, itemToastReset.intValue, snap.frameCounter,
-                    androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.TopCenter).padding(top = clearTop + 8.dp),
-                )
+                val clearBottom = with(androidx.compose.ui.platform.LocalDensity.current) { hudClear.value.second.toDp() }
                 if (!companionSeen) {
-                    val clearBottom = with(androidx.compose.ui.platform.LocalDensity.current) { hudClear.value.second.toDp() }
                     com.pokedaisy.app.companion.ui.AchievementIndicators(
                         RetroAchievements,
                         androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomEnd).padding(end = 8.dp, bottom = clearBottom + 8.dp),
                     )
                 }
+                // A bag gain: a small card bottom left, above the HUD's balls / buttons when it's up.
+                if (itemToastOn.value) com.pokedaisy.app.companion.ui.ItemToastHost(
+                    snap.items, snap.connected, snap.hasData, itemToastReset.intValue,
+                    androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(
+                        start = 10.dp,
+                        bottom = clearBottom + 10.dp + if (shown) 80.dp else 0.dp,
+                    ),
+                )
             }
         }
         // Tips' clock: field play time, the moments, whether the field is calm ([tickTips]).

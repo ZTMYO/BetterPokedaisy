@@ -39,6 +39,9 @@ object GameArt {
     private val cache = LockedMap<String, ImageBitmap>()
     private val missing = LockedMap<String, Int>()
 
+    /** Bundled art for a path RomArt didn't rebuild (Mercury's two maps, from the community Chinese build by 问风). */
+    @Volatile var bundled: ((String) -> ByteArray?)? = null
+
     /** [path] if it's already decoded (no disk read). */
     fun peek(path: String): ImageBitmap? = cache[path]
 
@@ -47,7 +50,7 @@ object GameArt {
         val gen = RomArt.updates.value
         if (missing[path] == gen) return null
         val bmp = try {
-            RomArt.file(path)?.let { f -> decodeImage(f.readBytes()) }
+            (RomArt.file(path)?.readBytes() ?: bundled?.invoke(path))?.let { decodeImage(it) }
         } catch (e: Exception) {
             null
         }

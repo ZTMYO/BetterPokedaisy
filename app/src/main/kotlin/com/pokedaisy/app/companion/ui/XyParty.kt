@@ -278,7 +278,7 @@ internal fun XyStatusTag(status: String, size: Float) {
         Modifier.drawBehind { drawRoundRect(color, cornerRadius = CornerRadius(this.size.height / 2)) },
         contentAlignment = Alignment.Center,
     ) {
-        XyText(" $status ", size, Color.White, Color.Black.copy(alpha = 0.5f), size * 0.08f)
+        XyText(" ${com.pokedaisy.app.companion.data.statusText(status)} ", size, Color.White, Color.Black.copy(alpha = 0.5f), size * 0.08f)
     }
 }
 

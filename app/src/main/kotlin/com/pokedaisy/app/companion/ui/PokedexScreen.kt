@@ -119,7 +119,8 @@ class DexUiState(val list: LazyListState) {
     fun entries(dex: PokedexState, order: DexOrder, species: IntArray?): List<Int> {
         val type = type.takeIf { species != null }
         val letter = letter.takeIf { species != null }
-        return order.nationals.filter { n ->
+        // A misread regional-order table (Mercury's) can repeat a national number: LazyColumn keys must be unique.
+        return order.nationals.distinct().filter { n ->
             val status = when (filter) {
                 DexFilter.ALL -> true
                 DexFilter.CAUGHT -> n in dex.caught
@@ -163,7 +164,7 @@ fun rememberDexOrder(dex: PokedexState, national: Boolean): DexOrder {
             // Numbers with no species (a hack's unused slots) aren't listed.
             national -> DexOrder((1..t.nationalCount).filter { species == null || species.getOrElse(it) { 0 } != 0 }, regional = false)
             // Until a non-Kanto regional order has loaded: an empty list, not a wrong one.
-            else -> DexOrder(regional?.filter { it in 1..t.nationalCount } ?: emptyList(), regional = true,
+            else -> DexOrder(regional?.filter { it in 1..t.nationalCount }?.distinct() ?: emptyList(), regional = true,
                 first = if (t.gen4?.gen5 == true) 0 else 1)
         }
     }

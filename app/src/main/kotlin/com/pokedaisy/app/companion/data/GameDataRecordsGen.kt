@@ -4,7 +4,7 @@ package com.pokedaisy.app.companion.data
 // TOML there and run `make gamedata` (gamedata/README.md). Each one is built on first use, so
 // they can name each other and vals in any other file, whichever file is initialised first.
 
-// ---- gamedata\gen3\records\emerald.toml ----
+// ---- gamedata/gen3/records/emerald.toml ----
 
 // Emerald's own item.c: gBagPockets[ITEMS_POCKET=0/BALLS_POCKET=1/
 // TMHM_POCKET=2/BERRIES_POCKET=3/KEYITEMS_POCKET=4] - a different order.
@@ -1334,7 +1334,7 @@ val FLIGHT_SAPPHIRE: FlightFns by lazy {
     )
 }
 
-// ---- gamedata\gen3\records\expansion_flash.toml ----
+// ---- gamedata/gen3/records/expansion_flash.toml ----
 
 // Pokemon Lazarus (v2.0).gba: found by scripts/find_flash_expansion.py.
 val FLASH_LAZARUS: FlashFns by lazy {
@@ -1485,7 +1485,7 @@ val FLASH_SOULGOLD_V1_2_1: FlashFns by lazy {
     )
 }
 
-// ---- gamedata\gen3\records\firered.toml ----
+// ---- gamedata/gen3/records/firered.toml ----
 
 // FireRed's own gBagPockets[] index order (item.c: gBagPockets[POCKET_X-1] =
 // ...). Every FireRed-engine config (rev0/rev1/Unbound/Gaia/Radical Red)
@@ -2412,31 +2412,41 @@ val FLIGHT_LEAFGREEN_REV1: FlightFns by lazy {
     )
 }
 
-// ---- gamedata\gen3\records\mercury.toml ----
+// ---- gamedata/gen3/records/mercury.toml ----
 
-// 宝可梦水银 v1.33's POKéDEX tables. Its dex entries are still FireRed's
-// (0x0844E850, 386 national entries); gSpeciesInfo moved to 0x0976DFBC and
+// 宝可梦水银 v1.33's POKéDEX tables. Its own entries (0x097D98F0) hold 1027
+// national records over 1294 species slots (species 452 -> national 399, Bidoof);
+// gSpeciesInfo moved to 0x0976DFBC and
 // sSpeciesToNationalPokedexNum to 0x097E7A78 (checked against Starly 449 -> 396
-// and Turtwig 440 -> 387). The other tables are unmodified FireRed rev 0's.
+// and Turtwig 440 -> 387). Its ability ids follow CFRU's expanded list, so its own
+// full gAbilityNames (0x09D8E858, 13-byte records) must be used: FireRed's copy
+// stops around id 97 and would read pointers as names. gMonFrontPicTable / gMonPaletteTable moved to
+// 0x097BB0A4 / 0x097D64E0 (64x64 pictures, 0x1000-byte LZ77 streams; the
+// community 1.6.1 Chinese build by 问风 has the same pair). The remaining
+// tables are FireRed rev 0's.
 val POKEDEX_MERCURY: PokedexTables by lazy {
     PokedexTables(
-        entries = 0x0844E850L,
-        frontPics = 0,
-        palettes = 0,
+        entries = 0x097D98F0L,
+        frontPics = 0x097BB0A4L,
+        palettes = 0x097D64E0L,
         speciesInfo = 0x0976DFBCL,
         speciesToNational = 0x097E7A78L,
-        abilityNames = 0x0824FC40L,
+        abilityNames = 0x09D8E858L,
+        hiddenAbilityOff = 0x1A,
         footprints = 0,
         evolutions = 0x08259754L,
         tmhmLearnsets = 0x08252BC8L,
         tmhmMoves = 0x0845A5A4L,
         categorySuffix = "宝可梦",
         categorySeparator = "",
-        regionName = "JOHTO",
-        regionalOrder = 0x097E7BA6L,
-        regionalCount = 385,
+        regionName = "水银",
+        regionalCount = 1294,
         flags = MERCURY_DEX_FLAGS,
         nationalMagicOff = -1,
+        nationalCount = 1027,
+        speciesCount = 1294,
+        regionalOrder = 0,
+        regionalOrderIsSpecies = true,
     )
 }
 
@@ -2454,7 +2464,7 @@ val MERCURY_DEX_FLAGS: DexFlags by lazy {
     )
 }
 
-// ---- gamedata\gen3\records\ported.toml ----
+// ---- gamedata/gen3/records/ported.toml ----
 
 // FLASH (Flash.kt): retail Ruby rev 1 and rev 2 (the same addresses and code), pret's pokeruby built as ruby_rev1 /
 // ruby_rev2 (byte for byte retail) and its ELF. FLASH is field move 1 here as in Emerald: the Knuckle Badge. Its party
@@ -2512,7 +2522,7 @@ val FLASH_SAPPHIRE_REV0: FlashFns by lazy {
     )
 }
 
-// ---- gamedata\gen3\records\recharged_emerald.toml ----
+// ---- gamedata/gen3/records/recharged_emerald.toml ----
 
 // Pokemon Recharged Emerald (v2.2.5).gba: found by scripts/find_tm_flash_recharged_emerald.py.
 val TM_RECHARGED_EMERALD_V2_2_5: TmFns by lazy {
@@ -2628,7 +2638,7 @@ val FLASH_RECHARGED_EMERALD_REBALANCED_V2_2_8: FlashFns by lazy {
     )
 }
 
-// ---- gamedata\gen3\records\ruby_sapphire.toml ----
+// ---- gamedata/gen3/records/ruby_sapphire.toml ----
 
 // TMs from the bag on Ruby / Sapphire (TmTeach.kt, 2026-11-18): pret's pokeruby symbols (rev 1 = rev 2), the bag's own way into
 // the party menu (item_use.c's SetPokemonItemUseAndFadeOut, pokemon_menu.c's sub_808B020), its fixed way back to the bag

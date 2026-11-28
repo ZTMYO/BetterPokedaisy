@@ -10,6 +10,7 @@ import com.pokedaisy.app.companion.i18n.L10n
 internal fun speciesNameKey(s: String): String = s.trim().uppercase()
     .replace("♀", "-F")
     .replace("♂", "-M")
+    .replace("'", "").replace("’", "").replace("‘", "")
 
 /**
  * Translate only when both the National Dex number and the ROM's name agree with

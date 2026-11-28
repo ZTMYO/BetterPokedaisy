@@ -11,6 +11,11 @@ class PokeDaisyApp : Application() {
         com.pokedaisy.app.companion.data.EmulatorCore.current = MgbaEmulatorCore
         // The app's files folder, where the screens find the art RomArt rebuilt from the player's ROMs.
         com.pokedaisy.app.companion.data.RomArt.filesDir = filesDir.toOkioPath()
+        // Mercury's two maps are the only bundled game art: its ROM repurposes the region-map pointer RomArt
+        // would follow, so the community build's pictures stand in when RomArt has none.
+        com.pokedaisy.app.companion.ui.GameArt.bundled = { path ->
+            runCatching { assets.open(path).use { it.readBytes() } }.getOrNull()
+        }
         // The data code's log lines (companion/data/Logs.kt) go to Android's log.
         com.pokedaisy.app.companion.data.Logs.sink = com.pokedaisy.app.companion.data.Logs.Sink { tag, warning, message, error ->
             if (warning) android.util.Log.w(tag, message, error) else android.util.Log.i(tag, message)
