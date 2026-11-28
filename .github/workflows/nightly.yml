@@ -1,21 +1,15 @@
-# The full suite on dev, once a night: everything CI runs on a PR (unit tests with every Paparazzi render, the debug
-# APK, ui-preview stress / docs search / keyed state, the manual), the Linux and libretro builds whatever paths
-# changed, and what no PR job runs (the 3DS port's generated configs; every ui-preview render, off for now). A night
-# with no new commit on dev is skipped; a manual run (Actions > Nightly > Run workflow) always runs, on dev or any
-# branch named.
+# The full suite on demand: everything CI runs on a PR (unit tests with every Paparazzi render, the debug APK,
+# ui-preview stress / docs search / keyed state, the manual), the Linux and libretro builds whatever paths changed,
+# and what no PR job runs (the 3DS port's generated configs; every ui-preview render, off for now). Run it from
+# Actions > Nightly > Run workflow, on dev or any branch named.
 #
-# GitHub starts scheduled runs from the default branch's copy of this file only, so it fires once it's on main. The
-# workflows it calls are dev's own copies (@dev, not main's older ones), and every job checks out dev's head by its
-# SHA, so they all test the same commit. The ROM-backed tests aren't here: the ROM
-# runner takes only the owner's releases (scripts/runner_job_check.sh). A failed night mails whoever last edited
-# the cron line below.
+# No schedule: the owner doesn't want GitHub's daily failure e-mails. The workflows it calls are dev's own copies
+# (@dev, not main's older ones), and every job checks out the branch's head by its SHA, so they all test the same
+# commit. The ROM-backed tests aren't here: the ROM runner takes only the owner's releases
+# (scripts/runner_job_check.sh).
 name: Nightly
 
 on:
-  schedule:
-    # 00:47 UTC = 02:47 Israel in winter (03:47 in summer). Off the hour on purpose: GitHub queues scheduled runs and
-    # the top of the hour is when it's busiest - '0 1' started at 06:51 UTC on its first night (2026-11-08).
-    - cron: '47 0 * * *'
   workflow_dispatch:
     inputs:
       branch:
